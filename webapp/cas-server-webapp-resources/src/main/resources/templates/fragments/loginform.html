@@ -41,7 +41,7 @@
 							</div>
 							<h6>
 								<i class="fas fa-info-circle"></i>&nbsp;
-								<span th:utext="Welcome, ${guaUsername}" />
+								<span th:utext="#{screen.welcome.forcedsso(${guaUsername})}" />
 							</h6>
 						</div>
                         <h3 th:unless="${existingSingleSignOnSessionAvailable}"
