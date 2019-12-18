@@ -68,7 +68,7 @@ public class GraphicalUserAuthenticationWebflowConfigurer extends AbstractCasWeb
 			// auth.
 			createTransitionForState(viewState, CasWebflowConstants.TRANSITION_ID_SUBMIT, targetStateId);
             //createTransitionForState(viewState, CasWebflowConstants.TRANSITION_ID_SUBMIT, STATE_ID_GUA_DISPLAY_USER_GFX);
-			val targetState = getState(flow, targetStateId, ActionState.class);
+			val targetState = getState(flow, targetStateId, ViewState.class);
             targetState.getRenderActionList().add(createEvaluateAction(ACTION_ID_DISPLAY_USER_GRAPHICS_BEFORE_AUTHENTICATION));
 
 			/*
