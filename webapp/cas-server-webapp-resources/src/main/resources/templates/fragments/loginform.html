@@ -44,7 +44,7 @@
 								<span th:utext="#{screen.welcome.forcedsso(${guaUsername})}" />
 							</h6>
 						</div>
-                        <h3 th:unless="${existingSingleSignOnSessionAvailable}"
+                        <h3 th:unless="${existingSingleSignOnSessionAvailable || guaEnabled}"
                             style="text-align: center; margin-top:-15px">
                             <i class="fas fa-id-card"></i>
                             <span th:utext="#{screen.welcome.instructions}">Enter your Username and Password:</span>
