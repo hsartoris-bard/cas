@@ -40,14 +40,36 @@ public class GraphicalUserAuthenticationWebflowConfigurer extends AbstractCasWeb
     protected void doInitialize() {
         val flow = getLoginFlow();
         if (flow != null) {
+			// `state` is init; i.e., before display
             val state = getState(flow, CasWebflowConstants.STATE_ID_INIT_LOGIN_FORM, ActionState.class);
+			// retrieve Transition that will fire on success from init
             val transition = (Transition) state.getTransition(CasWebflowConstants.TRANSITION_ID_SUCCESS);
+			// retrieve target of previous Transition, for use later
             val targetStateId = transition.getTargetStateId();
+			// inject transition to guaGetUserId state
             createTransitionForState(state, TRANSITION_ID_GUA_GET_USERID, STATE_ID_GUA_GET_USERID);
 
+			// create the state targeted by previous transition
             val viewState = createViewState(flow, STATE_ID_GUA_GET_USERID, "casGuaGetUserIdView");
-            createTransitionForState(viewState, CasWebflowConstants.TRANSITION_ID_SUBMIT, STATE_ID_GUA_DISPLAY_USER_GFX);
+			// attach transition to guaGetUserId state: on submit, move to
+			// display user graphics state
+			//
+			// BUT ACTUALLY WE'RE OVERRIDING THAT
+			// this means we simply go to the end state, without making the
+			// user confirm their image
+			//
+			// in addition, DisplayUserGraphicsBeforeAuthenticationAction is
+			// extended to perform the addition of a credential to the webflow,
+			// namely UsernamePasswordCredential(username, null).
+			// this is what AcceptUserGraphicsForAuthenticationAction normally
+			// does. This also means that our standard login form needs to be
+			// able to 1) take a preset username and 2) display a given image,
+			// as would casGuaDisplayUserGraphicsView, but inline with regular
+			// auth.
+			createTransitionForState(viewState, CasWebflowConstants.TRANSITION_ID_SUBMIT, targetStateId);
+            //createTransitionForState(viewState, CasWebflowConstants.TRANSITION_ID_SUBMIT, STATE_ID_GUA_DISPLAY_USER_GFX);
 
+			/*
             val viewStateGfx = createViewState(flow, STATE_ID_GUA_DISPLAY_USER_GFX, "casGuaDisplayUserGraphicsView");
             viewStateGfx.getRenderActionList().add(createEvaluateAction(ACTION_ID_DISPLAY_USER_GRAPHICS_BEFORE_AUTHENTICATION));
             createTransitionForState(viewStateGfx, CasWebflowConstants.TRANSITION_ID_SUBMIT, STATE_ID_ACCEPT_GUA);
@@ -55,6 +77,7 @@ public class GraphicalUserAuthenticationWebflowConfigurer extends AbstractCasWeb
             val acceptState = createActionState(flow, STATE_ID_ACCEPT_GUA,
                 createEvaluateAction(ACTION_ID_ACCEPT_USER_GRAPHICS_FOR_AUTHENTICATION));
             createStateDefaultTransition(acceptState, targetStateId);
+			*/
         }
     }
 }
