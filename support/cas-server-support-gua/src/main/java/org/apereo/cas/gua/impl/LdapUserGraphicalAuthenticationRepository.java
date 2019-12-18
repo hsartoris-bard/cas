@@ -55,7 +55,13 @@ public class LdapUserGraphicalAuthenticationRepository implements UserGraphicalA
                                 gua.getLdap().getImageAttribute(),
                                 gua.getDefaultImageUri());
                         LOGGER.debug("Returning retrieved bytes");
-                        return getImageByUri(stringAttr);
+                        val imageByteSource = getImageByUri(stringAttr);
+                        if (imageByteSource == null)
+                            LOGGER.debug("imageByteSource is null");
+                        else if (imageByteSource.isEmpty())
+                            LOGGER.debug("imageByteSource is empty");
+                        else
+                            return imageByteSource;
                 }
             }
         } catch (final Exception e) {
@@ -68,10 +74,11 @@ public class LdapUserGraphicalAuthenticationRepository implements UserGraphicalA
         LOGGER.debug("Attempting to retrieve image from [{}]", uri);
         val url = new URL(uri);
         val img = ImageIO.read(url);
-        val ext = uri.substring(uri.lastIndexOf("."));
-        LOGGER.debug("Retrieved image with extension [{}]", ext);
+        val ext = uri.substring(uri.lastIndexOf(".") + 1);
+        LOGGER.debug("Retrieved image with extension [{}], height [{}], width [{}]", 
+                ext, img.getHeight(), img.getWidth());
         val baos = new ByteArrayOutputStream();
-        ImageIO.write(img, uri.substring(uri.lastIndexOf(".")), baos);
+        ImageIO.write(img, ext, baos);
         return ByteSource.wrap(baos.toByteArray());
     }
 
