@@ -37,7 +37,7 @@ public class DisplayUserGraphicsBeforeAuthenticationAction extends AbstractActio
             throw new UnauthorizedServiceException(UnauthorizedServiceException.CODE_UNAUTHZ_SERVICE, StringUtils.EMPTY);
         }
         val image = EncodingUtils.encodeBase64ToByteArray(graphics.read());
-		WebUtils.putCredential(new UsernamePasswordCredential(username, null));
+		WebUtils.putCredential(requestContext, new UsernamePasswordCredential(username, null));
         WebUtils.putGraphicalUserAuthenticationUsername(requestContext, username);
         WebUtils.putGraphicalUserAuthenticationImage(requestContext, new String(image, StandardCharsets.UTF_8));
         return success();
