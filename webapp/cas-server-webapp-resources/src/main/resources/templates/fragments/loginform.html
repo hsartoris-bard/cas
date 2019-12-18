@@ -31,6 +31,19 @@
                                 <span th:utext="#{screen.welcome.forcedsso(${existingSingleSignOnSessionPrincipal.id})}" />
                             </h6>
                         </div>
+						<div th:if"${!existingSingleSignOnSessionAvailable && guaEnabled}"
+							style="text-align: center; margin-top:-15px">
+							<div align="middle">
+								<img style="width:130px;height:130px;border-radius:20%;
+									   		box-shadow: 0 0 2px 1px rgba(0, 140, 186, 0.5);
+											border: 1px solid #ddd;border-radius: 4px;"
+									 th:src="@{'data:image/jpeg;base64,' + ${guaUserImage}}"/>
+							</div>
+							<h6>
+								<i class="fas fa-info-circle"></i>&nbsp;
+								<span th:utext="Welcome, ${guaUsername}" />
+							</h6>
+						</div>
                         <h3 th:unless="${existingSingleSignOnSessionAvailable}"
                             style="text-align: center; margin-top:-15px">
                             <i class="fas fa-id-card"></i>
