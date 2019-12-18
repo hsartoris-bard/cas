@@ -27,7 +27,6 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 @Configuration("redisMultifactorAuthenticationTrustConfiguration")
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 public class RedisMultifactorAuthenticationTrustConfiguration {
-
     @Autowired
     private CasConfigurationProperties casProperties;
 
