@@ -26,6 +26,8 @@ public class GraphicalUserAuthenticationProperties implements Serializable {
 
     private static final long serialVersionUID = 7527953699378415460L;
 
+    private String defaultImageUri;
+
     /**
      * Locate GUA settings and images from LDAP.
      */
@@ -46,7 +48,13 @@ public class GraphicalUserAuthenticationProperties implements Serializable {
         /**
          * Entry attribute that holds the user image.
          */
-        @RequiredProperty
         private String imageAttribute;
+
+        /**
+         * Hints how to handle the attribute value
+         */
+        @RequiredProperty
+        private String imageType = "base64";
+
     }
 }

@@ -14,6 +14,11 @@ import org.ldaptive.Response;
 import org.ldaptive.ReturnAttributes;
 import org.ldaptive.SearchResult;
 
+import javax.imageio.ImageIO;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.net.URL;
+
 /**
  * This is {@link LdapUserGraphicalAuthenticationRepository}.
  *
@@ -27,6 +32,7 @@ public class LdapUserGraphicalAuthenticationRepository implements UserGraphicalA
 
     private final CasConfigurationProperties casProperties;
 
+
     @Override
     public ByteSource getGraphics(final String username) {
         try {
@@ -34,15 +40,39 @@ public class LdapUserGraphicalAuthenticationRepository implements UserGraphicalA
             val response = searchForId(username);
             if (LdapUtils.containsResultEntry(response)) {
                 val entry = response.getResult().getEntry();
-                val attribute = entry.getAttribute(gua.getLdap().getImageAttribute());
-                if (attribute != null && attribute.isBinary()) {
-                    return ByteSource.wrap(attribute.getBinaryValue());
+                val imageType = gua.getLdap().getImageType();
+                switch (imageType) {
+                    case "base64":
+                        LOGGER.debug("Retrieving base64 image for user [{}]", username);
+                        val base64attr = entry.getAttribute(gua.getLdap().getImageAttribute());
+                        if (base64attr != null)
+                            return ByteSource.wrap(base64attr.getBinaryValue());
+                        break;
+                    case "url":
+                    case "uri":
+                        LOGGER.debug("Retrieving image URI for user [{}]", username);
+                        val stringAttr = LdapUtils.getString(entry, 
+                                gua.getLdap().getImageAttribute(),
+                                gua.getDefaultImageUri());
+                        LOGGER.debug("Returning retrieved bytes");
+                        return getImageByUri(stringAttr);
                 }
             }
         } catch (final Exception e) {
             LOGGER.error(e.getMessage(), e);
         }
         return ByteSource.empty();
+    }
+
+    private ByteSource getImageByUri(final String uri) throws IOException {
+        LOGGER.debug("Attempting to retrieve image from [{}]", uri);
+        val url = new URL(uri);
+        val img = ImageIO.read(url);
+        val ext = uri.substring(uri.lastIndexOf("."));
+        LOGGER.debug("Retrieved image with extension [{}]", ext);
+        val baos = new ByteArrayOutputStream();
+        ImageIO.write(img, uri.substring(uri.lastIndexOf(".")), baos);
+        return ByteSource.wrap(baos.toByteArray());
     }
 
     private Response<SearchResult> searchForId(final String id) throws LdapException {
