@@ -50,6 +50,28 @@ public class RestMultifactorAuthenticationTrustStorage extends BaseMultifactorAu
             .orElse(null);
     }
 
+	@Override
+	public void expire(final LocalDateTime onOrBefore) {
+		expire(onOrBefore.toString());
+	}
+	
+	@Override
+	public void expire(final String onOrBefore) {
+		val rest = properties.getAuthn().getMfa().getTrusted().getRest();
+		HttpResponse response = null;
+		try {
+			response = HttpUtils.executeDelete(rest.getUrl(),
+					rest.getBasicAuthUsername(),
+					rest.getBasicAuthPassword(),
+					onOrBefore);
+		} catch (final Exception e) {
+			LOGGER.error(e.getMessage(), e);
+		} finally {
+			HttpUtils.close(response);
+		}
+	}
+
+	/*
     @Override
     public void expire(final LocalDateTime onOrBefore) {
         val entity = getHttpEntity(onOrBefore.toString());
@@ -61,6 +83,7 @@ public class RestMultifactorAuthenticationTrustStorage extends BaseMultifactorAu
         val entity = getHttpEntity(key);
         restTemplate.exchange(getEndpointUrl(null), HttpMethod.POST, entity, Object.class);
     }
+	*/
 
     @Override
     protected MultifactorAuthenticationTrustRecord setInternal(final MultifactorAuthenticationTrustRecord record) {
