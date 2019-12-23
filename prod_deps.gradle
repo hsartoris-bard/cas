@@ -7,7 +7,7 @@ dependencies {
 	
 	implementation project(":support:cas-server-support-ldap")
 	implementation project(":support:cas-server-support-ldap-monitor")
-	implementation project(":support:cas-server-support-gua")
+	//implementation project(":support:cas-server-support-gua")
 	implementation project(":support:cas-server-support-pac4j-webflow")
 	implementation project(":support:cas-server-support-saml")
 	implementation project(":support:cas-server-support-saml-idp")
