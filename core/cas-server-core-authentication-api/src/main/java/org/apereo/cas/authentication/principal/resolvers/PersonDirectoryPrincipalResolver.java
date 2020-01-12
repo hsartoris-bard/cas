@@ -90,6 +90,11 @@ public class PersonDirectoryPrincipalResolver implements PrincipalResolver {
      */
     protected final Set<String> activeAttributeRepositoryIdentifiers;
 
+    /**
+     * Map to store objects to synchronize on for retrieval of attributes one at a time per user.
+     */
+    protected Map<String, PersonAttributeRetriever> retrieverMap = new HashMap<>();
+
     public PersonDirectoryPrincipalResolver() {
         this(new StubPersonAttributeDao(new HashMap<>(0)), PrincipalFactoryUtils.newPrincipalFactory(), false,
             String::trim, null,
@@ -152,11 +157,6 @@ public class PersonDirectoryPrincipalResolver implements PrincipalResolver {
     }
 
     @Override
-    public boolean supports(final Credential credential) {
-        return credential != null && credential.getId() != null;
-    }
-
-    @Override
     public Principal resolve(final Credential credential, final Optional<Principal> currentPrincipal, final Optional<AuthenticationHandler> handler) {
         LOGGER.debug("Attempting to resolve a principal via [{}]", getName());
         var principalId = extractPrincipalId(credential, currentPrincipal);
@@ -185,13 +185,35 @@ public class PersonDirectoryPrincipalResolver implements PrincipalResolver {
             }
             LOGGER.debug("Retrieved [{}] attribute(s) from the repository", attributes.size());
             val pair = convertPersonAttributesToPrincipal(principalId, attributes);
-            val principal = this.principalFactory.createPrincipal(pair.getKey(), pair.getValue());
+            val principal = buildResolvedPrincipal(pair.getKey(), pair.getValue(), credential, currentPrincipal, handler);
             LOGGER.debug("Final resolved principal by [{}] is [{}]", getName(), principal);
             return principal;
         }
-        val principal = this.principalFactory.createPrincipal(principalId);
+        val principal = buildResolvedPrincipal(principalId, new HashMap<>(0),
+            credential, currentPrincipal, handler);
         LOGGER.debug("Final resolved principal by [{}] without resolving attributes is [{}]", getName(), principal);
         return principal;
+    }
+
+    @Override
+    public boolean supports(final Credential credential) {
+        return credential != null && credential.getId() != null;
+    }
+
+    /**
+     * Build resolved principal.
+     *
+     * @param id               the id
+     * @param attributes       the attributes
+     * @param credential       the credential
+     * @param currentPrincipal the current principal
+     * @param handler          the handler
+     * @return the principal
+     */
+    protected Principal buildResolvedPrincipal(final String id, final Map<String, List<Object>> attributes,
+                                               final Credential credential, final Optional<Principal> currentPrincipal,
+                                               final Optional<AuthenticationHandler> handler) {
+        return this.principalFactory.createPrincipal(id, attributes);
     }
 
     /**
@@ -207,9 +229,9 @@ public class PersonDirectoryPrincipalResolver implements PrincipalResolver {
         val convertedAttributes = new LinkedHashMap<String, List<Object>>();
         attributes.forEach((key, attrValue) -> {
             val values = ((List<Object>) CollectionUtils.toCollection(attrValue, ArrayList.class))
-                    .stream()
-                    .filter(Objects::nonNull)
-                    .collect(toList());
+                .stream()
+                .filter(Objects::nonNull)
+                .collect(toList());
             LOGGER.debug("Found attribute [{}] with value(s) [{}]", key, values);
             convertedAttributes.put(key, values);
         });
@@ -248,9 +270,28 @@ public class PersonDirectoryPrincipalResolver implements PrincipalResolver {
      *                    can extract useful bits of authN info such as attributes into the principal.
      * @return the map
      */
-    @Synchronized
     protected Map<String, List<Object>> retrievePersonAttributes(final String principalId, final Credential credential) {
-        return CoreAuthenticationUtils.retrieveAttributesFromAttributeRepository(this.attributeRepository, principalId, activeAttributeRepositoryIdentifiers);
+        val retriever = getPersonAttributeRetriever(principalId, credential);
+        return retriever.retrievePersonAttributes();
+    }
+
+    /**
+     * This method is synchronized on this singleton but doesn't do anything expensive.
+     *
+     * The object returned from this method is specific to a user and it allows attribute retrieval to be synchronized
+     * on a user (so the same attributes are not retrieved multiple times for the same user and attribute cache can be employed.
+     * @param principalId User principal id
+     * @param credential User credentials
+     * @return PersonAttributeRetriever for given principal id
+     */
+    @Synchronized
+    protected PersonAttributeRetriever getPersonAttributeRetriever(final String principalId, final Credential credential) {
+        var retriever = retrieverMap.get(principalId);
+        if (retriever == null) {
+            retriever = new PersonAttributeRetriever(principalId, credential);
+            retrieverMap.put(principalId, retriever);
+        }
+        return retriever;
     }
 
     /**
@@ -281,6 +322,26 @@ public class PersonDirectoryPrincipalResolver implements PrincipalResolver {
         }
         LOGGER.debug("Extracted principal id [{}]", id);
         return id;
+    }
+
+    /**
+     * This object allows for synchronization of attribute retrieval for a particular user.
+     */
+    @RequiredArgsConstructor
+    @Getter
+    @Setter
+    public class PersonAttributeRetriever {
+
+        private final String principalId;
+
+        private final Credential credential;
+
+        @Synchronized
+        protected Map<String, List<Object>> retrievePersonAttributes() {
+            Map<String, List<Object>> attributes = CoreAuthenticationUtils.retrieveAttributesFromAttributeRepository(attributeRepository, principalId, activeAttributeRepositoryIdentifiers);
+            retrieverMap.remove(principalId);
+            return attributes;
+        }
     }
 
 }

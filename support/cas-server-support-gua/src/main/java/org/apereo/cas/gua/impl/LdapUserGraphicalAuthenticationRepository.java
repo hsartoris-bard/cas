@@ -10,9 +10,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.ldaptive.LdapException;
-import org.ldaptive.Response;
 import org.ldaptive.ReturnAttributes;
-import org.ldaptive.SearchResult;
+import org.ldaptive.SearchResponse;
 
 import javax.imageio.ImageIO;
 import java.io.ByteArrayOutputStream;
@@ -39,6 +38,7 @@ public class LdapUserGraphicalAuthenticationRepository implements UserGraphicalA
             val gua = casProperties.getAuthn().getGua();
             val response = searchForId(username);
             if (LdapUtils.containsResultEntry(response)) {
+<<<<<<< HEAD
                 val entry = response.getResult().getEntry();
                 val imageType = gua.getLdap().getImageType();
                 switch (imageType) {
@@ -62,6 +62,12 @@ public class LdapUserGraphicalAuthenticationRepository implements UserGraphicalA
                             LOGGER.debug("imageByteSource is empty");
                         else
                             return imageByteSource;
+=======
+                val entry = response.getEntry();
+                val attribute = entry.getAttribute(gua.getLdap().getImageAttribute());
+                if (attribute != null && attribute.isBinary()) {
+                    return ByteSource.wrap(attribute.getBinaryValue());
+>>>>>>> master
                 }
             }
         } catch (final Exception e) {
@@ -70,6 +76,7 @@ public class LdapUserGraphicalAuthenticationRepository implements UserGraphicalA
         return ByteSource.empty();
     }
 
+<<<<<<< HEAD
     private ByteSource getImageByUri(final String uri) throws IOException {
         LOGGER.debug("Attempting to retrieve image from [{}]", uri);
         val url = new URL(uri);
@@ -83,6 +90,9 @@ public class LdapUserGraphicalAuthenticationRepository implements UserGraphicalA
     }
 
     private Response<SearchResult> searchForId(final String id) throws LdapException {
+=======
+    private SearchResponse searchForId(final String id) throws LdapException {
+>>>>>>> master
         val gua = casProperties.getAuthn().getGua();
         val filter = LdapUtils.newLdaptiveSearchFilter(gua.getLdap().getSearchFilter(),
             LdapUtils.LDAP_SEARCH_FILTER_DEFAULT_PARAM_NAME,
