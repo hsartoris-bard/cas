@@ -25,6 +25,7 @@ public class MultiphaseAuthenticationWebflowConfigurer extends AbstractCasWebflo
     public static final String TRANSITION_ID_MULTIPHASE_GET_USERID = "multiphaseGetUserId";
 
     static final String ACTION_ID_STORE_USERID_FOR_AUTHENTICATION = "storeUserIdForAuthenticationAction";
+    static final String VIEW_ID_REDIRECT_USER = "redirectUserForAuthentication";
 
     public MultiphaseAuthenticationWebflowConfigurer(final FlowBuilderServices flowBuilderServices,
                                                      final FlowDefinitionRegistry loginFlowDefinitionRegistry,
@@ -65,6 +66,17 @@ public class MultiphaseAuthenticationWebflowConfigurer extends AbstractCasWebflo
             val actionState = createActionState(flow, 
                     CasWebflowConstants.STATE_ID_MULTIPHASE_STORE_USERID,
                     createEvaluateAction(ACTION_ID_STORE_USERID_FOR_AUTHENTICATION));
+
+            val noRedirectTransition = createTransition(CasWebflowConstants.TRANSITION_ID_SUCCESS, targetStateId);
+            val yesRedirectTransition = createTransition("multiphaseRedirectUserToAuthenticate",
+                    VIEW_ID_REDIRECT_USER);
+
+            val transitionSet = actionState.getTransitionSet();
+            transitionSet.add(noRedirectTransition);
+            transitionSet.add(yesRedirectTransition);
+
+            createViewState(flow, VIEW_ID_REDIRECT_USER, "casMultiphaseRedirectView");
+            //val redirectView = createViewState(flow, VIEW_ID_REDIRECT_USER, "casMultiphaseRedirectView");
             
             LOGGER.debug("Creating transition with id [{}] for state [{}] to state [{}]",
                     CasWebflowConstants.TRANSITION_ID_SUCCESS, actionState.getId(), targetStateId);

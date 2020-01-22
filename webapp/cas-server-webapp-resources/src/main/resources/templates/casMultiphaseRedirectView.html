@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout}">
+
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/>
+
+<title th:text="#{cas.login.pagetitle}">CAS Interrupt View</title>
+<link href="../../static/css/cas.css" rel="stylesheet" th:remove="tag"/>
+
+<script th:inline="javascript">
+/*<![CDATA[*/
+var redirectUrl = /*[[${redirectUrl}]]*/;
+if (redirectUrl) {
+	setTimeout(function() {
+			window.location = redirectUrl;
+			}, 0);
+}
+/*]]>*/
+</script>
+</head>
+
+<body>
+You are about to be redirected, please wait...
+</body>
+</html>
+
