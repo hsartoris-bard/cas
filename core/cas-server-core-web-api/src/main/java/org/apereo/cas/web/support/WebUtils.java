@@ -42,6 +42,7 @@ import org.springframework.webflow.execution.RequestContextHolder;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import java.io.Serializable;
 import java.net.URI;
 import java.util.Collection;
@@ -65,16 +66,47 @@ public class WebUtils {
     public static final String PARAMETER_TICKET_GRANTING_TICKET_ID = "ticketGrantingTicketId";
 
     private static final String PUBLIC_WORKSTATION_ATTRIBUTE = "publicWorkstation";
+
     private static final String PARAMETER_AUTHENTICATION = "authentication";
+
     private static final String PARAMETER_AUTHENTICATION_RESULT_BUILDER = "authenticationResultBuilder";
+
     private static final String PARAMETER_AUTHENTICATION_RESULT = "authenticationResult";
+
     private static final String PARAMETER_CREDENTIAL = "credential";
+
     private static final String PARAMETER_UNAUTHORIZED_REDIRECT_URL = "unauthorizedRedirectUrl";
+
     private static final String PARAMETER_REGISTERED_SERVICE = "registeredService";
+
     private static final String PARAMETER_SERVICE = "service";
+
     private static final String PARAMETER_SERVICE_TICKET_ID = "serviceTicketId";
+
     private static final String PARAMETER_LOGOUT_REQUESTS = "logoutRequests";
+
     private static final String PARAMETER_SERVICE_UI_METADATA = "serviceUIMetadata";
+
+    /**
+     * Gets resolved events as attribute.
+     *
+     * @param context the context
+     * @return the resolved events as attribute
+     */
+    public static Collection<Event> getResolvedEventsAsAttribute(final RequestContext context) {
+        return context.getAttributes().get("resolvedAuthenticationEvents", Collection.class);
+    }
+
+    /**
+     * Put resolved events as attribute.
+     *
+     * @param context        the context
+     * @param resolvedEvents the resolved events
+     */
+    public static void putResolvedEventsAsAttribute(final RequestContext context,
+                                                    final Collection<Event> resolvedEvents) {
+        context.getAttributes().put("resolvedAuthenticationEvents", resolvedEvents);
+    }
 
     /**
      * Gets the http servlet request from the context.
@@ -847,19 +879,26 @@ public class WebUtils {
      * @return the passwordless authentication account
      */
     public static <T> T getPasswordlessAuthenticationAccount(final Event event, final Class<T> clazz) {
-        return event.getAttributes().get("passwordlessAccount", clazz);
+        if (event != null) {
+            return event.getAttributes().get("passwordlessAccount", clazz);
+        }
+        return null;
     }
 
     /**
      * Gets passwordless authentication account.
      *
      * @param <T>   the type parameter
-     * @param event the event
+     * @param requestContext the context
      * @param clazz the clazz
      * @return the passwordless authentication account
      */
-    public static <T> T getPasswordlessAuthenticationAccount(final RequestContext event, final Class<T> clazz) {
-        return getPasswordlessAuthenticationAccount(event.getCurrentEvent(), clazz);
+    public static <T> T getPasswordlessAuthenticationAccount(final RequestContext requestContext, final Class<T> clazz) {
+        var result = getPasswordlessAuthenticationAccount(requestContext.getCurrentEvent(), clazz);
+        if (result == null) {
+            result = requestContext.getFlowScope().get("passwordlessAccount", clazz);
+        }
+        return result;
     }
 
     /**
@@ -1102,7 +1141,7 @@ public class WebUtils {
      */
     public static void createCredential(final RequestContext requestContext) {
         removeCredential(requestContext);
-        val flow = (Flow) requestContext.getFlowExecutionContext().getDefinition();
+        val flow = (Flow) requestContext.getActiveFlow();
         val var = flow.getVariable(CasWebflowConstants.VAR_ID_CREDENTIAL);
         var.create(requestContext);
     }
