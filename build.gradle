@@ -5,7 +5,6 @@ defaultTasks "clean", "build"
 
 buildscript {
     repositories {
-        mavenLocal()
         jcenter()
         maven {
             url "https://maven.eveoh.nl/content/repositories/releases"
@@ -34,7 +33,6 @@ buildscript {
         classpath "org.gradle:test-retry-gradle-plugin:$gradleRetryVersion"
         classpath "com.github.jk1:gradle-license-report:$gradleLicenseVersion"
         classpath "org.springframework.boot:spring-boot-gradle-plugin:$springBootVersion"
-        classpath "com.netflix.nebula:gradle-lint-plugin:$gradleLintVersion"
         classpath "gradle.plugin.com.gorylenko.gradle-git-properties:gradle-git-properties:$gradleGitVersion"
         classpath "io.franzbecker:gradle-lombok:$gradleLombokVersion"
         classpath "com.github.ben-manes:gradle-versions-plugin:$gradleDependencyVersionsVersion"
@@ -157,13 +155,10 @@ allprojects {
 
     project.ext["forceBootifulArtifact"] = null
 
-    if (!rootProject.publishSnapshots && !Boolean.getBoolean("skipGradleLint")) {
-        apply plugin: "nebula.lint"
-        gradleLint.rules = ["dependency-parentheses", "dependency-tuple"]
-    }
-
-    jacoco {
-        toolVersion = "$gradleJacocoVersion"
+    afterEvaluate { project ->
+        jacoco {
+            toolVersion = "$gradleJacocoVersion"
+        }
     }
 
     idea {
@@ -178,7 +173,12 @@ allprojects {
     }
 
     repositories {
-        mavenLocal()
+        mavenLocal{
+            content {
+                includeModuleByRegex "org\\.apereo", "person-directory.*"
+                includeGroupByRegex "$mavenLocalGroupInclude"
+            }
+        }
         mavenCentral()
         jcenter()
         maven {
@@ -237,7 +237,12 @@ subprojects {
     ext.libraries = rootProject.ext.libraries
 
     repositories {
-        mavenLocal()
+        mavenLocal{
+            content {
+                includeModuleByRegex "org\\.apereo", "person-directory.*"
+                includeGroupByRegex "$mavenLocalGroupInclude"
+            }
+        }
         mavenCentral()
         maven {
             url "https://build.shibboleth.net/nexus/content/repositories/releases"
@@ -438,14 +443,6 @@ subprojects {
         it.options.compilerArgs += casCompilerArgs
     }
 
-    def currentTime = java.time.ZonedDateTime.now(ZoneId.systemDefault())
-    compileJava.doLast {
-        buildDate = currentTime
-        jar.manifest {
-            attributes("Implementation-Date": project.buildDate)
-        }
-    }
-
     tasks.jar.onlyIf {
         project.buildDate != null || !project.buildJarFile.exists()
     }
@@ -460,12 +457,13 @@ subprojects {
     jar {
         manifest {
             attributes(
-                    "Automatic-Module-Name": project.name,
-                    "Implementation-Title": project.name,
-                    "Implementation-Vendor": project.group,
-                    "Created-By": project.group,
-                    "Specification-Version": "${-> project.ext.has("gitProps") ? project.ext.gitProps['git.commit.id'] : 'N/A'}",
-                    "Implementation-Version": project.version)
+                "Automatic-Module-Name": project.name,
+                "Implementation-Title": project.name,
+                "Implementation-Vendor": project.group,
+                "Created-By": project.group,
+                "Implementation-Date": java.time.ZonedDateTime.now(ZoneId.systemDefault()),
+                "Specification-Version": "${-> project.ext.has("gitProps") ? project.ext.gitProps['git.commit.id'] : 'N/A'}",
+                "Implementation-Version": project.version)
         }
     }
 
@@ -634,10 +632,8 @@ task jacocoRootReport(type: JacocoReport, group: "Coverage reports") {
         fileTree(dir: it,
                 include: '**/*.class',
                 exclude: [
-                        '**/**Configuration.class',
                         '**/shell/cli/**',
                         '**/shell/commands/**',
-                        '**/**Configuration$**',
                         '**/**ConfigurationMetadataGenerator**',
                         '**/**Application.class',
                         '**/**Application$**',
@@ -650,7 +646,7 @@ task jacocoRootReport(type: JacocoReport, group: "Coverage reports") {
     }
     executionData jacocoMerge.destinationFile
     reports {
-        html.enabled = !rootProject.continuousIntegrationBuild
+        html.enabled = true
         xml.enabled = true
     }
 }

@@ -4,7 +4,7 @@ gradle="./gradlew "
 gradleBuild=""
 gradleBuildOptions="--build-cache --configure-on-demand --no-daemon "
 
-tomcatVersion="9.0.30"
+tomcatVersion="9.0.31"
 tomcatVersionTag="v${tomcatVersion}"
 tomcatUrl="https://www-eu.apache.org/dist/tomcat/tomcat-9/${tomcatVersionTag}/bin/apache-tomcat-${tomcatVersion}.zip"
 
@@ -12,7 +12,7 @@ echo -e "***********************************************"
 echo -e "Gradle build started at `date` for web application server"
 echo -e "***********************************************"
 
-gradleBuild="$gradleBuild :webapp:cas-server-webapp:build -x check -x test -x javadoc -DskipNestedConfigMetadataGen=true -DskipGradleLint=true "
+gradleBuild="$gradleBuild :webapp:cas-server-webapp:build -x check -x test -x javadoc -DskipNestedConfigMetadataGen=true "
 
 if [[ "${TRAVIS_COMMIT_MESSAGE}" == *"[show streams]"* ]]; then
     gradleBuild="$gradleBuild -DshowStandardStreams=true "
