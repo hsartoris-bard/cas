@@ -13,10 +13,10 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.xerces.xs.XSObject;
-import org.jdom.Document;
-import org.jdom.input.DOMBuilder;
-import org.jdom.input.SAXBuilder;
-import org.jdom.output.XMLOutputter;
+import org.jdom2.Document;
+import org.jdom2.input.DOMBuilder;
+import org.jdom2.input.SAXBuilder;
+import org.jdom2.output.XMLOutputter;
 import org.joda.time.DateTime;
 import org.opensaml.core.xml.XMLObject;
 import org.opensaml.core.xml.config.XMLObjectProviderRegistrySupport;
@@ -110,10 +110,11 @@ public abstract class AbstractSamlObjectBuilder implements Serializable {
     public static String signSamlResponse(final String samlResponse, final PrivateKey privateKey, final PublicKey publicKey) {
         val doc = constructDocumentFromXml(samlResponse);
 
+		LOGGER.trace("Received org.jdom2.Document; attempting to sign response");
         if (doc != null) {
             val signedElement = signSamlElement(doc.getRootElement(),
                 privateKey, publicKey);
-            doc.setRootElement((org.jdom.Element) signedElement.detach());
+            doc.setRootElement((org.jdom2.Element) signedElement.detach());
             return new XMLOutputter().outputString(doc);
         }
         throw new IllegalArgumentException("Error signing SAML Response: Null document");
@@ -126,9 +127,10 @@ public abstract class AbstractSamlObjectBuilder implements Serializable {
      * @return the document
      */
     public static Document constructDocumentFromXml(final String xmlString) {
-        LOGGER.trace("Attempting to construct an instance of org.jdom.Document from String xml: [{}]", xmlString);
+        LOGGER.trace("Attempting to construct an instance of org.jdom2.Document from String xml: [{}]", xmlString);
         try {
             val builder = new SAXBuilder();
+			LOGGER.trace("{}reusing SAX parser across parses", builder.getReuseParser() ? "" : "not ");
             builder.setFeature("http://xml.org/sax/features/external-general-entities", false);
             builder.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
             return builder.build(new ByteArrayInputStream(xmlString.getBytes(Charset.defaultCharset())));
@@ -147,8 +149,8 @@ public abstract class AbstractSamlObjectBuilder implements Serializable {
      * @param pubKey  the pub key
      * @return the element
      */
-    private static org.jdom.Element signSamlElement(final org.jdom.Element element, final PrivateKey privKey, final PublicKey pubKey) {
-        LOGGER.trace("Attempting to sign org.jdom.Element: [{}]", element);
+    private static org.jdom2.Element signSamlElement(final org.jdom2.Element element, final PrivateKey privKey, final PublicKey pubKey) {
+        LOGGER.trace("Attempting to sign org.jdom2.Element: [{}]", element);
         try {
             val providerName = System.getProperty("jsr105Provider", SIGNATURE_FACTORY_PROVIDER_CLASS);
 
@@ -224,7 +226,7 @@ public abstract class AbstractSamlObjectBuilder implements Serializable {
      * @param element the element
      * @return the org.w3c.dom. element
      */
-    private static Element toDom(final org.jdom.Element element) {
+    private static Element toDom(final org.jdom2.Element element) {
         return Objects.requireNonNull(toDom(element.getDocument())).getDocumentElement();
     }
 
@@ -264,7 +266,8 @@ public abstract class AbstractSamlObjectBuilder implements Serializable {
      * @param e the e
      * @return the element
      */
-    private static org.jdom.Element toJdom(final Element e) {
+    private static org.jdom2.Element toJdom(final Element e) {
+		LOGGER.trace("Attempting to convert W3C XML Element to jdom2 Element");
         return new DOMBuilder().build(e);
     }
 
