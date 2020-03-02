@@ -27,6 +27,25 @@ public class CasEmbeddedApacheTomcatApachePortableRuntimeProperties implements S
     private boolean enabled;
 
     /**
+     * Enable SSL on APR connector; default value is true.
+     */
+    private boolean sslEnabled = true;
+
+    /**
+     * Set this attribute to true if you wish to have calls to
+     * request.isSecure() return true for requests received by this Connector.
+     * The default value is false; overriden to true if sslEnabled is true.
+     */
+    private boolean secure;
+
+    /**
+     * Set this attribute to the name of the protocol you wish to have returned
+     * by calls to request.getScheme(). For example, you would set this 
+     * attribute to "https" for an SSL Connector.
+     */
+    private String scheme = "http";
+
+    /**
      * SSL verify client.
      */
     private String sslProtocol;

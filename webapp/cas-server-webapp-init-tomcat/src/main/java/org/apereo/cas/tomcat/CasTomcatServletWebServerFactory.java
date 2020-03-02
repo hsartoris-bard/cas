@@ -70,48 +70,52 @@ public class CasTomcatServletWebServerFactory extends TomcatServletWebServerFact
             addConnectorCustomizers(c -> {
                 if (c.getPort() == getPort()) {
                     LOGGER.debug("Enabling APR on connector port [{}]", c.getPort());
-                    c.setSecure(true);
-                    c.setScheme("https");
+
+					val sslEnabled = apr.getSslEnabled();
+                    c.setSecure(sslEnabled ? true : apr.getSecure());
+                    c.setScheme(sslEnabled ? "https" : apr.getScheme());
 
                     val handler = (Http11AprProtocol) c.getProtocolHandler();
-                    handler.setSSLEnabled(true);
-                    if (StringUtils.isNotBlank(apr.getSslProtocol())) {
-                        handler.setSSLProtocol(apr.getSslProtocol());
-                    }
-                    if (apr.getSslVerifyDepth() > 0) {
-                        handler.setSSLVerifyDepth(apr.getSslVerifyDepth());
-                    }
-                    if (StringUtils.isNotBlank(apr.getSslVerifyClient())) {
-                        handler.setSSLVerifyClient(apr.getSslVerifyClient());
-                    }
-                    if (StringUtils.isNotBlank(apr.getSslCipherSuite())) {
-                        handler.setSSLCipherSuite(apr.getSslCipherSuite());
-                    }
-                    if (StringUtils.isNotBlank(apr.getSslPassword())) {
-                        handler.setSSLPassword(apr.getSslPassword());
-                    }
-                    handler.setSSLDisableCompression(apr.isSslDisableCompression());
-                    handler.setSSLHonorCipherOrder(apr.isSslHonorCipherOrder());
+                    handler.setSSLEnabled(sslEnabled);
+					if (sslEnabled) {
+                    	if (StringUtils.isNotBlank(apr.getSslProtocol())) {
+                    	    handler.setSSLProtocol(apr.getSslProtocol());
+                    	}
+                    	if (apr.getSslVerifyDepth() > 0) {
+                    	    handler.setSSLVerifyDepth(apr.getSslVerifyDepth());
+                    	}
+                    	if (StringUtils.isNotBlank(apr.getSslVerifyClient())) {
+                    	    handler.setSSLVerifyClient(apr.getSslVerifyClient());
+                    	}
+                    	if (StringUtils.isNotBlank(apr.getSslCipherSuite())) {
+                    	    handler.setSSLCipherSuite(apr.getSslCipherSuite());
+                    	}
+                    	if (StringUtils.isNotBlank(apr.getSslPassword())) {
+                    	    handler.setSSLPassword(apr.getSslPassword());
+                    	}
+                    	handler.setSSLDisableCompression(apr.isSslDisableCompression());
+                    	handler.setSSLHonorCipherOrder(apr.isSslHonorCipherOrder());
 
-                    try {
-                        if (apr.getSslCaCertificateFile() != null) {
-                            handler.setSSLCACertificateFile(apr.getSslCaCertificateFile().getCanonicalPath());
-                        }
-                        if (apr.getSslCertificateFile() != null) {
-                            handler.setSSLCertificateFile(apr.getSslCertificateFile().getCanonicalPath());
-                        }
-                        if (apr.getSslCertificateKeyFile() != null) {
-                            handler.setSSLCertificateKeyFile(apr.getSslCertificateKeyFile().getCanonicalPath());
-                        }
-                        if (apr.getSslCertificateChainFile() != null) {
-                            handler.setSSLCertificateChainFile(apr.getSslCertificateChainFile().getCanonicalPath());
-                        }
-                        if (apr.getSslCaRevocationFile() != null) {
-                            handler.setSSLCARevocationFile(apr.getSslCaRevocationFile().getCanonicalPath());
-                        }
-                    } catch (final Exception e) {
-                        LOGGER.error(e.getMessage(), e);
-                    }
+                    	try {
+                    	    if (apr.getSslCaCertificateFile() != null) {
+                    	        handler.setSSLCACertificateFile(apr.getSslCaCertificateFile().getCanonicalPath());
+                    	    }
+                    	    if (apr.getSslCertificateFile() != null) {
+                    	        handler.setSSLCertificateFile(apr.getSslCertificateFile().getCanonicalPath());
+                    	    }
+                    	    if (apr.getSslCertificateKeyFile() != null) {
+                    	        handler.setSSLCertificateKeyFile(apr.getSslCertificateKeyFile().getCanonicalPath());
+                    	    }
+                    	    if (apr.getSslCertificateChainFile() != null) {
+                    	        handler.setSSLCertificateChainFile(apr.getSslCertificateChainFile().getCanonicalPath());
+                    	    }
+                    	    if (apr.getSslCaRevocationFile() != null) {
+                    	        handler.setSSLCARevocationFile(apr.getSslCaRevocationFile().getCanonicalPath());
+                    	    }
+                    	} catch (final Exception e) {
+                    	    LOGGER.error(e.getMessage(), e);
+                    	}
+					}
                 }
             });
         }
