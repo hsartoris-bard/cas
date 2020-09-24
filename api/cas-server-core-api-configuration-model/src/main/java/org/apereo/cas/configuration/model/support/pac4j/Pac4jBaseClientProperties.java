@@ -4,6 +4,7 @@ import org.apereo.cas.configuration.support.RequiresModule;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 
@@ -16,6 +17,7 @@ import java.io.Serializable;
 @RequiresModule(name = "cas-server-support-pac4j-webflow")
 @Getter
 @Setter
+@Accessors(chain = true)
 public class Pac4jBaseClientProperties implements Serializable {
 
     private static final long serialVersionUID = -7885975876831784206L;
@@ -43,4 +45,40 @@ public class Pac4jBaseClientProperties implements Serializable {
      * active and enabled for integration purposes.
      */
     private boolean enabled = true;
+
+    /**
+     * CSS class that should be assigned to this client.
+     */
+    private String cssClass;
+
+    /**
+     * Determine how the callback url should be resolved.
+     * Accepted values are:
+     *
+     * <ul>
+     *     <li>{@code PATH_PARAMETER}: The client name is added to the path of the callback URL.</li>
+     *     <li>{@code QUERY_PARAMETER}: The client name is added to the path of a query parameter.</li>
+     *     <li>{@code NONE}: No name is added to the callback URL to be able to distinguish the client.</li>
+     * </ul>
+     * Default is {@link CallbackUrlTypes#QUERY_PARAMETER}.
+     */
+    private CallbackUrlTypes callbackUrlType = CallbackUrlTypes.QUERY_PARAMETER;
+    
+    /**
+     * The callback url types.
+     */
+    public enum CallbackUrlTypes {
+        /**
+         * Path parameter callback url.
+         */
+        PATH_PARAMETER,
+        /**
+         * Query parameter callback url.
+         */
+        QUERY_PARAMETER,
+        /**
+         * No callback url.
+         */
+        NONE
+    }
 }

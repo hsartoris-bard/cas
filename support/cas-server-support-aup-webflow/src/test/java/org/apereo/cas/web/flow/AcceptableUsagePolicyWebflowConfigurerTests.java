@@ -20,15 +20,15 @@ import static org.junit.jupiter.api.Assertions.*;
     CasAcceptableUsagePolicyWebflowConfiguration.class,
     BaseWebflowConfigurerTests.SharedTestConfiguration.class
 })
-@Tag("Webflow")
+@Tag("WebflowConfig")
 public class AcceptableUsagePolicyWebflowConfigurerTests extends BaseWebflowConfigurerTests {
     @Test
     public void verifyOperation() {
         assertFalse(casWebflowExecutionPlan.getWebflowConfigurers().isEmpty());
         val flow = (Flow) this.loginFlowDefinitionRegistry.getFlowDefinition(CasWebflowConfigurer.FLOW_ID_LOGIN);
         assertNotNull(flow);
-        assertTrue(flow.containsState(AcceptableUsagePolicyWebflowConfigurer.STATE_ID_AUP_CHECK));
-        assertTrue(flow.containsState(AcceptableUsagePolicyWebflowConfigurer.VIEW_ID_ACCEPTABLE_USAGE_POLICY_VIEW));
+        assertTrue(flow.containsState(CasWebflowConstants.STATE_ID_AUP_CHECK));
+        assertTrue(flow.containsState(CasWebflowConstants.STATE_ID_ACCEPTABLE_USAGE_POLICY_VIEW));
     }
 }
 

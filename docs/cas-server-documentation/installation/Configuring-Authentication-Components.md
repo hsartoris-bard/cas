@@ -35,10 +35,18 @@ There are a variety of authentication handlers and methods supported by CAS. Use
 
 <div class="alert alert-warning"><strong>Default Credentials</strong><p>To test the default authentication scheme in CAS,
 use <strong>casuser</strong> and <strong>Mellon</strong> as the username and password respectively. These are automatically
-configured via the static authencation handler, and <strong>MUST</strong> be removed from the configuration
+configured via the static authentication handler, and <strong>MUST</strong> be removed from the configuration
 prior to production rollouts.</p></div>
 
 To see the relevant list of CAS properties, please [review this guide](../configuration/Configuration-Properties.html#accept-users-authentication).
+
+### Administrative Endpoints
+
+The following endpoints are provided by CAS:
+ 
+| Endpoint                  | Description
+|---------------------------|------------------------------------------------
+| `authenticationHandlers`  | A `GET` request presents the collection of registered authentication handlers. An individual authentication handler can be queried via `GET` by its name using a selector path (i.e. `authenticationHandlers/{name}`).
 
 ### Resolution Strategy
 
@@ -55,7 +63,7 @@ Each registered application in the registry may be assigned a set of identifiers
 handlers available and configured in CAS. These names can be used to enforce a service definition to only use the 
 authentication strategy carrying that name when an authentication request is submitted to CAS.
 
-Please [review this guide](../services/Configuring-Service-Required-AuthN.html) to learn more.
+Please [review this guide](../services/Configuring-Service-AuthN-Policy.html) to learn more.
 
 #### Groovy Script
 
@@ -106,10 +114,9 @@ collection and controlling its execution sequence.
 
 Each authentication handler in CAS can be named via CAS settings and if left undefined, the short name of 
 the handler component itself is used (i.e. `LdapAuthenticationHandler`). The name itself can be any arbitrary string and typically is used
-to identify and refer to the handler components in areas such as [required authentication for a service](../services/Configuring-Service-Required-AuthN.html), etc.
+to identify and refer to the handler components in areas such as [required authentication for a service](../services/Configuring-Service-AuthN-Policy.html), etc.
 In the event that multiple authentication handlers *of the same type* are defined, it is **RECOMMENDED** that each be given a unique name so as to avoid conflicts.
-Authentication failures are typically collected in CAS by the name of each authentication handler. Leaving the name undefined will likely result in subsequent components
-in the authentication chain overriding previous results.
+Authentication failures are typically collected in CAS by the name of each authentication handler. Leaving the name undefined will likely result in subsequent components in the authentication chain overriding previous results.
 
 ## Authentication Policy
 
@@ -130,6 +137,14 @@ Typical use cases of authentication policies may include:
 3. Ensure that all authentication schemes in the chain are executed successfully, for the entire authentication event to be considered successful.
 
 To see the relevant list of CAS properties, please [review this guide](../configuration/Configuration-Properties.html#authentication-policy).
+
+### Administrative Endpoints
+
+The following endpoints are provided by CAS:
+ 
+| Endpoint                  | Description
+|---------------------------|------------------------------------------------
+| `authenticationPolicies`  | A `GET` request presents the collection of registered authentication policies. An individual authentication policy can be queried via `GET` by its name using a selector path (i.e. `authenticationPolicies/{name}`).
 
 ## Principal Resolution
 
@@ -165,4 +180,4 @@ Please [see this guide](Configuring-Authentication-Throttling.html) for addition
 
 A ticket-granting cookie is an HTTP cookie set by CAS upon the establishment of a single sign-on session.
 This cookie maintains login state for the client, and while it is valid, the client can present it to CAS in lieu of primary credentials.
-Please [see this guide](Configuring-SSO-Session-Cookie.html) for additional details.
+Please [see this guide](Configuring-SSO.html) for additional details.

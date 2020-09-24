@@ -17,6 +17,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.core.MongoTemplate;
 
+import javax.net.ssl.SSLContext;
+
 /**
  * This is {@link CasAcceptableUsagePolicyMongoDbConfiguration} that stores AUP decisions in a mongo database.
  *
@@ -25,7 +27,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
  */
 @Configuration("casAcceptableUsagePolicyMongoDbConfiguration")
 @EnableConfigurationProperties(CasConfigurationProperties.class)
-@ConditionalOnProperty(prefix = "cas.acceptableUsagePolicy", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "cas.acceptable-usage-policy", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class CasAcceptableUsagePolicyMongoDbConfiguration {
 
     @Autowired
@@ -35,23 +37,25 @@ public class CasAcceptableUsagePolicyMongoDbConfiguration {
     @Autowired
     private CasConfigurationProperties casProperties;
 
+    @Autowired
+    @Qualifier("sslContext")
+    private ObjectProvider<SSLContext> sslContext;
+
     @RefreshScope
     @Bean
     public MongoTemplate mongoAcceptableUsagePolicyTemplate() {
         val mongo = casProperties.getAcceptableUsagePolicy().getMongo();
-        val factory = new MongoDbConnectionFactory();
+        val factory = new MongoDbConnectionFactory(sslContext.getObject());
         val mongoTemplate = factory.buildMongoTemplate(mongo);
-        factory.createCollection(mongoTemplate, mongo.getCollection(), mongo.isDropCollection());
+        MongoDbConnectionFactory.createCollection(mongoTemplate, mongo.getCollection(), mongo.isDropCollection());
         return mongoTemplate;
     }
 
     @RefreshScope
     @Bean
     public AcceptableUsagePolicyRepository acceptableUsagePolicyRepository() {
-        val mongo = casProperties.getAcceptableUsagePolicy().getMongo();
         return new MongoDbAcceptableUsagePolicyRepository(ticketRegistrySupport.getObject(),
-            casProperties.getAcceptableUsagePolicy().getAupAttributeName(),
-            mongoAcceptableUsagePolicyTemplate(),
-            mongo.getCollection());
+            casProperties.getAcceptableUsagePolicy(),
+            mongoAcceptableUsagePolicyTemplate());
     }
 }

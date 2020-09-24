@@ -83,6 +83,7 @@ import java.util.regex.Pattern;
  */
 @Setter
 @Getter
+@SuppressWarnings("JdkObsolete")
 public class RequestParameterPolicyEnforcementFilter extends AbstractSecurityFilter implements Filter {
 
     /**
@@ -167,8 +168,9 @@ public class RequestParameterPolicyEnforcementFilter extends AbstractSecurityFil
         recognizedParameterNames.add(PARAMETERS_TO_CHECK);
         recognizedParameterNames.add(ONLY_POST_PARAMETERS);
         recognizedParameterNames.add(CHARACTERS_TO_FORBID);
-        recognizedParameterNames.add(FAIL_SAFE);
+        recognizedParameterNames.add(THROW_ON_ERROR);
         recognizedParameterNames.add(PATTERN_TO_BLOCK);
+
 
         while (initParamNames.hasMoreElements()) {
             val initParamName = (String) initParamNames.nextElement();
@@ -346,7 +348,7 @@ public class RequestParameterPolicyEnforcementFilter extends AbstractSecurityFil
 
     @Override
     public void init(final FilterConfig filterConfig) {
-        val failSafeParam = filterConfig.getInitParameter(FAIL_SAFE);
+        val failSafeParam = filterConfig.getInitParameter(THROW_ON_ERROR);
 
         if (null != failSafeParam) {
             setThrowOnErrors(Boolean.parseBoolean(failSafeParam));

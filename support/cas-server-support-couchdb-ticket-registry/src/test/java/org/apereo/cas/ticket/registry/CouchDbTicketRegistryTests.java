@@ -4,7 +4,7 @@ import org.apereo.cas.config.CasCouchDbCoreConfiguration;
 import org.apereo.cas.config.CouchDbTicketRegistryConfiguration;
 import org.apereo.cas.couchdb.core.CouchDbConnectorFactory;
 import org.apereo.cas.couchdb.tickets.TicketRepository;
-import org.apereo.cas.util.junit.EnabledIfContinuousIntegration;
+import org.apereo.cas.util.junit.EnabledIfPortOpen;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
@@ -24,13 +24,18 @@ import org.springframework.boot.test.context.SpringBootTest;
     BaseTicketRegistryTests.SharedTestConfiguration.class
 },
     properties = {
-        "cas.ticket.registry.couchDb.username=cas",
-        "cas.ticket.registry.couchDb.password=password"
+        "cas.ticket.registry.couch-db.username=cas",
+        "cas.ticket.registry.couch-db.caching=false",
+        "cas.ticket.registry.couch-db.password=password"
     })
 @Tag("CouchDb")
-@EnabledIfContinuousIntegration
+@EnabledIfPortOpen(port = 5984)
 public class CouchDbTicketRegistryTests extends BaseTicketRegistryTests {
 
+    @Autowired
+    @Qualifier("ticketRegistryCouchDbRepository")
+    private TicketRepository ticketRepository;
+    
     @Autowired
     @Qualifier("ticketRegistry")
     private TicketRegistry ticketRegistry;
@@ -38,11 +43,7 @@ public class CouchDbTicketRegistryTests extends BaseTicketRegistryTests {
     @Autowired
     @Qualifier("ticketRegistryCouchDbFactory")
     private CouchDbConnectorFactory couchDbFactory;
-
-    @Autowired
-    @Qualifier("ticketRegistryCouchDbRepository")
-    private TicketRepository ticketRepository;
-
+    
     @AfterEach
     public void afterEachTest() {
         couchDbFactory.getCouchDbInstance().deleteDatabase(couchDbFactory.getCouchDbConnector().getDatabaseName());
@@ -52,6 +53,7 @@ public class CouchDbTicketRegistryTests extends BaseTicketRegistryTests {
     public TicketRegistry getNewTicketRegistry() {
         couchDbFactory.getCouchDbInstance().createDatabaseIfNotExists(couchDbFactory.getCouchDbConnector().getDatabaseName());
         ticketRepository.initStandardDesignDocument();
+
         return ticketRegistry;
     }
 

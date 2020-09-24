@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
  * @author Misagh Moayyed
  * @since 6.1.0
  */
+@SuppressWarnings("JdkObsolete")
 public class RedisThrottledSubmissionHandlerInterceptorAdapter extends AbstractInspektrAuditHandlerInterceptorAdapter {
     private final transient RedisTemplate redisTemplate;
 
@@ -40,6 +41,7 @@ public class RedisThrottledSubmissionHandlerInterceptorAdapter extends AbstractI
         val failures = Objects.requireNonNull(keys)
             .stream()
             .map((Function<String, BoundValueOperations>) this.redisTemplate::boundValueOps)
+            .map(BoundValueOperations::get)
             .map(AuditActionContext.class::cast)
             .filter(audit ->
                 audit.getPrincipal().equalsIgnoreCase(getUsernameParameterFromRequest(request))

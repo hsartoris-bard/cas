@@ -151,9 +151,11 @@ The following fields are available for SAML services:
 | Field                                | Description
 |--------------------------------------|------------------------------------------------------------------
 | `metadataLocation`                   | Location of service metadata defined from system files, classpath, directories or URL resources.
+| `metadataProxyLocation`              | Proxy endpoint (`https://proxy-address:8901`) to fetch service metadata from URL resources.
 | `metadataSignatureLocation`          | Location of the metadata signing certificate/public key to validate the metadata which must be defined from system files or classpath. If defined, will enforce the `SignatureValidationFilter` validation filter on metadata.
 | `metadataExpirationDuration`         | If defined, will expire metadata in the cache after the indicated duration which will force CAS to retrieve and resolve the metadata again.
 | `requireSignedRoot`                  | Whether incoming metadata's root element is required to be signed. Default is `true`.
+| `signUnsolicitedAuthnRequest`        | When dealing with Unsolicited SSO, determine whether the authentication request should be forcefully signed.
 | `signAssertions`                     | Whether assertions should be signed. Default is `false`.
 | `signResponses`                      | Whether responses should be signed. Default is `true`.
 | `encryptionOptional`                 | Encrypt whenever possible (i.e a compatible key is found in the peer's metadata) or skip encryption otherwise. Default is `false`.
@@ -165,13 +167,14 @@ The following fields are available for SAML services:
 | `skewAllowance`                      | If defined, indicates number of seconds used to skew authentication dates such as valid-from and valid-until elements, etc.
 | `metadataCriteriaPattern`            | If defined, will force an entity id filter on the metadata aggregate based on the `PredicateFilter` to include/exclude specific entity ids based on a valid regex pattern.
 | `metadataCriteriaDirection`          | If defined, will force an entity id filter on the metadata aggregate based on `PredicateFilter`. Allowed values are `INCLUDE`,`EXCLUDE`.
-| `metadataCriteriaRoles`              | If defined, will whitelist the defined metadata roles (i.e. `SPSSODescriptor`, `IDPSSODescriptor`). Default is `SPSSODescriptor`.
+| `metadataCriteriaRoles`              | If defined, will allow the defined metadata roles (i.e. `SPSSODescriptor`, `IDPSSODescriptor`). Default is `SPSSODescriptor`.
 | `metadataCriteriaRemoveEmptyEntitiesDescriptors` | Controls whether to keep entities descriptors that contain no entity descriptors. Default is `true`.
 | `metadataCriteriaRemoveRolelessEntityDescriptors` | Controls whether to keep entity descriptors that contain no roles. Default is `true`.
 | `attributeNameFormats` | Map that defines attribute name formats for a given attribute name to be encoded in the SAML response.
 | `attributeFriendlyNames` | Map that defines attribute friendly names for a given attribute name to be encoded in the SAML response.
 | `attributeValueTypes` | Map that defines the type of attribute values for a given attribute name.
 | `nameIdQualifier` | If defined, will overwrite the `NameQualifier` attribute of the produced subject's name id.
+| `logoutResponseBinding` | If defined, will overwrite the binding used to prepare logout responses for the service provider.
 | `issuerEntityId` | If defined, will override the issue value with the given identity provider entity id. This may be useful in cases where CAS needs to maintain multiple identity provider entity ids.
 | `assertionAudiences` | Comma-separated list of audience urls to include in the assertion, in the addition to the entity id.
 | `serviceProviderNameIdQualifier` | If defined, will overwrite the `SPNameQualifier` attribute of the produced subject's name id.
@@ -187,13 +190,13 @@ The following fields are available for SAML services:
 | `signingSignatureReferenceDigestMethods` | Collection of signing signature reference digest methods, if any, to override the global defaults.
 | `signingKeyAlgorithm` | Signing key algorithm to forcibly use for signing operations when loading the private key. Default is `RSA`.
 | `signingSignatureAlgorithms` | Collection of signing signature algorithms, if any, to override the global defaults.
-| `signingSignatureBlackListedAlgorithms` | Collection of signing signature blacklisted algorithms, if any, to override the global defaults.
-| `signingSignatureWhiteListedAlgorithms` | Collection of signing signature whitelisted algorithms, if any, to override the global defaults.
+| `signingSignatureBlackListedAlgorithms` | Collection of rejected signing signature algorithms, if any, to override the global defaults.
+| `signingSignatureWhiteListedAlgorithms` | Collection of allowed signing signature algorithms, if any, to override the global defaults.
 | `signingSignatureCanonicalizationAlgorithm` | The signing signature canonicalization algorithm, if any, to override the global defaults.
 | `encryptionDataAlgorithms` | Collection of encryption data algorithms, if any, to override the global defaults.
 | `encryptionKeyAlgorithms` | Collection of encryption key transport algorithms, if any, to override the global defaults.
-| `encryptionBlackListedAlgorithms` | Collection of encryption blacklisted algorithms, if any, to override the global defaults.
-| `encryptionWhiteListedAlgorithms` | Collection of encryption whitelisted algorithms, if any, to override the global defaults.
+| `encryptionBlackListedAlgorithms` | Collection of rejected encryption algorithms, if any, to override the global defaults.
+| `encryptionWhiteListedAlgorithms` | Collection of allowed encryption algorithms, if any, to override the global defaults.
 | `whiteListBlackListPrecedence` | Preference value indicating which should take precedence when both whitelist and blacklist are non-empty. Accepted values are `WHITELIST` or `BLACKLIST`. Default is `WHITELIST`. 
 
 <div class="alert alert-info"><strong>Keep What You Need!</strong><p>You are encouraged to only keep and maintain properties and settings needed for a 
@@ -240,7 +243,7 @@ To learn more, please [review this guide](Configuring-SAML2-DynamicMetadata.html
 ### Security Configuration
 
 There are several levels of configuration that control the security configuration of objects that are signed, encrypted, etc. These configurations include things 
-like the keys to use, preferred/default algorithms, and algorithm whitelists or blacklists to enforce. 
+like the keys to use, preferred/default algorithms, and algorithms to allow, enforce or reject. 
 
 The configurations are generally determined based on the following order:
 
@@ -374,7 +377,7 @@ Attribute filtering and release policies are defined per SAML service. See [this
 ### Name ID Selection
 
 Each service may specify a required Name ID format. If left undefined, the metadata will be consulted to find the right format.
-The Name ID value is always simply the authenticated user that is designed to be returned to this service. In other words, if you
+The Name ID value is always the authenticated user that is designed to be returned to this service. In other words, if you
 decide to configure CAS to return a particular attribute as
 [the authenticated user name for this service](../integration/Attribute-Release-PrincipalId.html),
 that value will then be used to construct the Name ID along with the right format.
@@ -505,7 +508,7 @@ The service providers are registered with the CAS service registry as such:
 }
 ```
  
-<div class="alert alert-info"><strong>Metadata Location</strong><p>The metadata location in the registration record above simply needs to be specified as <code>json://</code> to signal to CAS that SAML metadata for registered service provider must be fetched from the designated JSON file.</p></div>
+<div class="alert alert-info"><strong>Metadata Location</strong><p>The metadata location in the registration record above needs to be specified as <code>json://</code> to signal to CAS that SAML metadata for registered service provider must be fetched from the designated JSON file.</p></div>
  
 ## Client Libraries
 

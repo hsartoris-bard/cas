@@ -4,6 +4,7 @@ import org.apereo.cas.authentication.principal.Principal;
 import org.apereo.cas.authentication.principal.Service;
 import org.apereo.cas.util.CollectionUtils;
 import org.apereo.cas.util.HttpUtils;
+import org.apereo.cas.util.LoggingUtils;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -18,10 +19,13 @@ import lombok.Setter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
+import org.hjson.JsonValue;
 
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +43,7 @@ import java.util.Map;
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 @AllArgsConstructor
-@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonInclude(JsonInclude.Include.NON_DEFAULT)
 public class ReturnRestfulAttributeReleasePolicy extends AbstractRegisteredServiceAttributeReleasePolicy {
 
     private static final long serialVersionUID = -6249488544306639050L;
@@ -59,11 +63,13 @@ public class ReturnRestfulAttributeReleasePolicy extends AbstractRegisteredServi
             response = HttpUtils.executePost(this.endpoint, writer.toString(),
                 CollectionUtils.wrap("principal", principal.getId(), "service", registeredService.getServiceId()));
             if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
-                return MAPPER.readValue(response.getEntity().getContent(), new TypeReference<>() {
+                val result = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
+                LOGGER.debug("Policy response received: [{}]", result);
+                return MAPPER.readValue(JsonValue.readHjson(result).toString(), new TypeReference<>() {
                 });
             }
         } catch (final Exception e) {
-            LOGGER.error(e.getMessage(), e);
+            LoggingUtils.error(LOGGER, e);
         } finally {
             HttpUtils.close(response);
         }

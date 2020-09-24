@@ -2,7 +2,6 @@ package org.apereo.cas.authentication.policy;
 
 import org.apereo.cas.authentication.Authentication;
 import org.apereo.cas.authentication.AuthenticationHandler;
-import org.apereo.cas.authentication.AuthenticationPolicy;
 import org.apereo.cas.util.CollectionUtils;
 import org.apereo.cas.util.ResourceUtils;
 import org.apereo.cas.util.scripting.ExecutableCompiledGroovyScript;
@@ -11,12 +10,20 @@ import org.apereo.cas.util.scripting.ScriptingUtils;
 import org.apereo.cas.util.scripting.WatchableGroovyScriptResource;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.springframework.context.ConfigurableApplicationContext;
 
 import javax.persistence.Transient;
 
+import java.io.Serializable;
 import java.security.GeneralSecurityException;
 import java.util.Optional;
 import java.util.Set;
@@ -28,9 +35,17 @@ import java.util.Set;
  * @since 5.2.0
  */
 @Slf4j
-public class GroovyScriptAuthenticationPolicy implements AuthenticationPolicy {
+@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
+@NoArgsConstructor(force = true)
+@EqualsAndHashCode(callSuper = true)
+@Setter
+@Getter
+@AllArgsConstructor
+public class GroovyScriptAuthenticationPolicy extends BaseAuthenticationPolicy {
 
-    private final String script;
+    private static final long serialVersionUID = 6948477763790549040L;
+
+    private String script;
 
     @JsonIgnore
     @Transient
@@ -39,11 +54,13 @@ public class GroovyScriptAuthenticationPolicy implements AuthenticationPolicy {
 
     public GroovyScriptAuthenticationPolicy(final String script) {
         this.script = script;
-        initializeWatchableScriptIfNeeded();
     }
 
     @Override
-    public boolean isSatisfiedBy(final Authentication auth, final Set<AuthenticationHandler> authenticationHandlers) throws Exception {
+    public boolean isSatisfiedBy(final Authentication auth,
+                                 final Set<AuthenticationHandler> authenticationHandlers,
+                                 final ConfigurableApplicationContext applicationContext,
+                                 final Optional<Serializable> assertion) throws Exception {
         initializeWatchableScriptIfNeeded();
         val ex = getScriptExecutionResult(auth);
         if (ex != null && ex.isPresent()) {

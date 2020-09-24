@@ -1,5 +1,7 @@
 package org.apereo.cas.web.flow;
 
+import org.apereo.cas.AbstractGraphicalAuthenticationTests;
+
 import lombok.val;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -17,8 +19,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Misagh Moayyed
  * @since 5.3.0
  */
-@Tag("Webflow")
-public class PrepareForGraphicalAuthenticationActionTests extends AbstractGraphicalAuthenticationActionTests {
+@Tag("WebflowActions")
+public class PrepareForGraphicalAuthenticationActionTests extends AbstractGraphicalAuthenticationTests {
     @Test
     public void verifyAction() throws Exception {
         val context = new MockRequestContext();

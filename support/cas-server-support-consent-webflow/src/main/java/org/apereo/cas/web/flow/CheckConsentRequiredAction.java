@@ -2,8 +2,10 @@ package org.apereo.cas.web.flow;
 
 import org.apereo.cas.authentication.Authentication;
 import org.apereo.cas.authentication.AuthenticationServiceSelectionPlan;
+import org.apereo.cas.authentication.attribute.AttributeDefinitionStore;
 import org.apereo.cas.authentication.principal.Service;
 import org.apereo.cas.configuration.CasConfigurationProperties;
+import org.apereo.cas.consent.ConsentActivationStrategy;
 import org.apereo.cas.consent.ConsentEngine;
 import org.apereo.cas.services.RegisteredService;
 import org.apereo.cas.services.ServicesManager;
@@ -11,6 +13,7 @@ import org.apereo.cas.web.support.WebUtils;
 
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.webflow.action.EventFactorySupport;
 import org.springframework.webflow.execution.Event;
 import org.springframework.webflow.execution.RequestContext;
@@ -27,11 +30,18 @@ public class CheckConsentRequiredAction extends AbstractConsentAction {
      */
     public static final String EVENT_ID_CONSENT_REQUIRED = "consentRequired";
 
+    private final ConsentActivationStrategy consentActivationStrategy;
+
     public CheckConsentRequiredAction(final ServicesManager servicesManager,
-                                      final AuthenticationServiceSelectionPlan authenticationRequestServiceSelectionStrategies,
+                                      final AuthenticationServiceSelectionPlan strategies,
                                       final ConsentEngine consentEngine,
-                                      final CasConfigurationProperties casProperties) {
-        super(casProperties, servicesManager, authenticationRequestServiceSelectionStrategies, consentEngine);
+                                      final CasConfigurationProperties casProperties,
+                                      final AttributeDefinitionStore attributeDefinitionStore,
+                                      final ConfigurableApplicationContext applicationContext,
+                                      final ConsentActivationStrategy consentActivationStrategy) {
+        super(casProperties, servicesManager, strategies,
+            consentEngine, attributeDefinitionStore, applicationContext);
+        this.consentActivationStrategy = consentActivationStrategy;
     }
 
     @Override
@@ -58,7 +68,6 @@ public class CheckConsentRequiredAction extends AbstractConsentAction {
         }
 
         val registeredService = getRegisteredServiceForConsent(requestContext, service);
-
         val authentication = WebUtils.getAuthentication(requestContext);
         if (authentication == null) {
             return null;
@@ -76,10 +85,11 @@ public class CheckConsentRequiredAction extends AbstractConsentAction {
      * @param requestContext    the request context
      * @return the event id.
      */
-    protected String isConsentRequired(final Service service, final RegisteredService registeredService,
+    protected String isConsentRequired(final Service service,
+                                       final RegisteredService registeredService,
                                        final Authentication authentication,
                                        final RequestContext requestContext) {
-        val required = this.consentEngine.isConsentRequiredFor(service, registeredService, authentication).isRequired();
+        val required = consentActivationStrategy.isConsentRequired(service, registeredService, authentication, requestContext);
         return required ? EVENT_ID_CONSENT_REQUIRED : null;
     }
 }

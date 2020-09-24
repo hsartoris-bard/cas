@@ -7,6 +7,7 @@ import org.apereo.cas.mfa.accepto.AccepttoEmailCredential;
 import org.apereo.cas.mfa.accepto.web.flow.AccepttoWebflowUtils;
 import org.apereo.cas.util.CollectionUtils;
 import org.apereo.cas.util.HttpUtils;
+import org.apereo.cas.util.LoggingUtils;
 import org.apereo.cas.web.flow.CasWebflowConstants;
 import org.apereo.cas.web.support.WebUtils;
 
@@ -14,10 +15,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
+import org.hjson.JsonValue;
 import org.pac4j.core.context.JEEContext;
 import org.pac4j.core.context.session.SessionStore;
 import org.springframework.webflow.action.AbstractAction;
@@ -26,6 +29,7 @@ import org.springframework.webflow.core.collection.LocalAttributeMap;
 import org.springframework.webflow.execution.Event;
 import org.springframework.webflow.execution.RequestContext;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -72,13 +76,14 @@ public class AccepttoQRCodeValidateWebSocketChannelAction extends AbstractAction
                 LOGGER.debug("Response API status code is [{}]", status);
 
                 if (status == HttpStatus.SC_OK) {
-                    val results = MAPPER.readValue(apiResponse.getEntity().getContent(), Map.class);
+                    val result = IOUtils.toString(apiResponse.getEntity().getContent(), StandardCharsets.UTF_8);
+                    val results = MAPPER.readValue(JsonValue.readHjson(result).toString(), Map.class);
                     LOGGER.debug("Received API results for channel [{}] as [{}]", channel, results);
 
                     val success = BooleanUtils.toBoolean(results.get("success").toString());
                     if (success) {
                         val email = results.get("user_email").toString();
-                        LOGGER.debug("Storing channel [{}] in http session", channel);
+                        LOGGER.trace("Storing channel [{}] in http session", channel);
                         AccepttoWebflowUtils.storeChannelInSessionStore(channel, webContext);
                         WebUtils.putCredential(requestContext, new AccepttoEmailCredential(email));
                         return new EventFactorySupport().event(this, CasWebflowConstants.TRANSITION_ID_FINALIZE);
@@ -95,7 +100,7 @@ public class AccepttoQRCodeValidateWebSocketChannelAction extends AbstractAction
                 }
             }
         } catch (final Exception e) {
-            LOGGER.error(e.getMessage(), e);
+            LoggingUtils.error(LOGGER, e);
             return returnError(e.getMessage());
         } finally {
             HttpUtils.close(apiResponse);

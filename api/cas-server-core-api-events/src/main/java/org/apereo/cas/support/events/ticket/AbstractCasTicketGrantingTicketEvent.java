@@ -24,7 +24,7 @@ public abstract class AbstractCasTicketGrantingTicketEvent extends AbstractCasEv
 
     private final TicketGrantingTicket ticketGrantingTicket;
 
-    public AbstractCasTicketGrantingTicketEvent(final Object source, final TicketGrantingTicket ticketGrantingTicket) {
+    protected AbstractCasTicketGrantingTicketEvent(final Object source, final TicketGrantingTicket ticketGrantingTicket) {
         super(source);
         this.ticketGrantingTicket = ticketGrantingTicket;
     }
@@ -34,7 +34,7 @@ public abstract class AbstractCasTicketGrantingTicketEvent extends AbstractCasEv
      *
      * @return tgt creation time
      */
-    public ZonedDateTime getTgtCreationTime() {
+    public ZonedDateTime getCreationTime() {
         return this.ticketGrantingTicket.getCreationTime();
     }
 
@@ -43,7 +43,7 @@ public abstract class AbstractCasTicketGrantingTicketEvent extends AbstractCasEv
      *
      * @return tgt id
      */
-    public String getTgtId() {
+    public String getId() {
         return this.ticketGrantingTicket.getId();
     }
 

@@ -1,6 +1,6 @@
 package org.apereo.cas.support.oauth.web.views;
 
-import org.apereo.cas.support.oauth.web.AbstractOAuth20Tests;
+import org.apereo.cas.AbstractOAuth20Tests;
 import org.apereo.cas.ticket.accesstoken.OAuth20AccessToken;
 import org.apereo.cas.util.CollectionUtils;
 
@@ -25,7 +25,7 @@ import static org.mockito.Mockito.*;
  * @since 5.2.0
  */
 @Tag("OAuth")
-@TestPropertySource(properties = "cas.authn.oauth.userProfileViewType=FLAT")
+@TestPropertySource(properties = "cas.authn.oauth.user-profile-view-type=FLAT")
 public class OAuth20DefaultUserProfileViewRendererFlatTests extends AbstractOAuth20Tests {
 
     @Autowired

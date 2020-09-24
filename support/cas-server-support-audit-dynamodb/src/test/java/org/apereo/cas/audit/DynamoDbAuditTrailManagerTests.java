@@ -6,7 +6,6 @@ import org.apereo.cas.config.CasCoreUtilConfiguration;
 import org.apereo.cas.config.CasCoreWebConfiguration;
 import org.apereo.cas.config.CasSupportDynamoDbAuditConfiguration;
 import org.apereo.cas.config.support.CasWebApplicationServiceFactoryConfiguration;
-import org.apereo.cas.util.junit.EnabledIfContinuousIntegration;
 import org.apereo.cas.util.junit.EnabledIfPortOpen;
 
 import lombok.Getter;
@@ -16,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
+import software.amazon.awssdk.core.SdkSystemSetting;
 
 /**
  * This is {@link DynamoDbAuditTrailManagerTests}.
@@ -31,22 +31,21 @@ import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
     RefreshAutoConfiguration.class,
     CasCoreWebConfiguration.class},
     properties = {
-        "cas.audit.dynamoDb.endpoint=http://localhost:8000",
-        "cas.audit.dynamoDb.dropTablesOnStartup=true",
-        "cas.audit.dynamoDb.localInstance=true",
-        "cas.audit.dynamoDb.region=us-east-1",
-        "cas.audit.dynamoDb.asynchronous=false"
+        "cas.audit.dynamo-db.endpoint=http://localhost:8000",
+        "cas.audit.dynamo-db.drop-tables-on-startup=true",
+        "cas.audit.dynamo-db.local-instance=true",
+        "cas.audit.dynamo-db.region=us-east-1",
+        "cas.audit.dynamo-db.asynchronous=false"
     }
 )
 @Tag("DynamoDb")
 @Getter
-@EnabledIfContinuousIntegration
 @EnabledIfPortOpen(port = 8000)
 public class DynamoDbAuditTrailManagerTests extends BaseAuditConfigurationTests {
 
     static {
-        System.setProperty("aws.accessKeyId", "AKIAIPPIGGUNIO74C63Z");
-        System.setProperty("aws.secretKey", "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");
+        System.setProperty(SdkSystemSetting.AWS_ACCESS_KEY_ID.property(), "AKIAIPPIGGUNIO74C63Z");
+        System.setProperty(SdkSystemSetting.AWS_SECRET_ACCESS_KEY.property(), "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");
     }
     
     @Autowired

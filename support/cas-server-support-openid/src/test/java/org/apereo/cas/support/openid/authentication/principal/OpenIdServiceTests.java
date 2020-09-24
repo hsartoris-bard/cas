@@ -5,20 +5,23 @@ import org.apereo.cas.authentication.AuthenticationSystemSupport;
 import org.apereo.cas.authentication.CoreAuthenticationTestUtils;
 import org.apereo.cas.services.DefaultServicesManager;
 import org.apereo.cas.services.ServiceRegistry;
+import org.apereo.cas.services.ServicesManagerConfigurationContext;
 import org.apereo.cas.support.openid.AbstractOpenIdTests;
 import org.apereo.cas.support.openid.OpenIdProtocolConstants;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.openid4java.association.Association;
 import org.openid4java.server.ServerManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.mock.web.MockHttpServletRequest;
 
 import java.io.File;
@@ -34,7 +37,8 @@ import static org.mockito.Mockito.*;
  * @deprecated 6.2
  */
 @Slf4j
-@Deprecated
+@Deprecated(since = "6.2.0")
+@Tag("Simple")
 public class OpenIdServiceTests extends AbstractOpenIdTests {
     private static final File JSON_FILE = new File(FileUtils.getTempDirectoryPath(), "openIdService.json");
 
@@ -45,6 +49,9 @@ public class OpenIdServiceTests extends AbstractOpenIdTests {
     private static final String RETURN_TO_URL = "http://www.ja-sig.org/?service=fa";
 
     private final MockHttpServletRequest request = new MockHttpServletRequest();
+
+    @Autowired
+    private ConfigurableApplicationContext applicationContext;
 
     @Autowired
     @Qualifier("serverManager")
@@ -100,7 +107,7 @@ public class OpenIdServiceTests extends AbstractOpenIdTests {
 
             val response = new OpenIdServiceResponseBuilder(OPEN_ID_PREFIX_URL,
                 serverManager, centralAuthenticationService,
-                new DefaultServicesManager(mock(ServiceRegistry.class), mock(ApplicationEventPublisher.class), new HashSet<>()))
+                getServicesManager())
                 .build(openIdService, "something", CoreAuthenticationTestUtils.getAuthentication());
             assertNotNull(response);
 
@@ -110,7 +117,7 @@ public class OpenIdServiceTests extends AbstractOpenIdTests {
 
             val response2 = new OpenIdServiceResponseBuilder(OPEN_ID_PREFIX_URL, serverManager,
                 centralAuthenticationService,
-                new DefaultServicesManager(mock(ServiceRegistry.class), mock(ApplicationEventPublisher.class), new HashSet<>()))
+                getServicesManager())
                 .build(openIdService, null, CoreAuthenticationTestUtils.getAuthentication());
             assertEquals("cancel", response2.getAttributes().get(OpenIdProtocolConstants.OPENID_MODE));
         } catch (final Exception e) {
@@ -139,7 +146,7 @@ public class OpenIdServiceTests extends AbstractOpenIdTests {
             }
             val response = new OpenIdServiceResponseBuilder(OPEN_ID_PREFIX_URL, serverManager,
                 centralAuthenticationService,
-                new DefaultServicesManager(mock(ServiceRegistry.class), mock(ApplicationEventPublisher.class), new HashSet<>()))
+                getServicesManager())
                 .build(openIdService, st, CoreAuthenticationTestUtils.getAuthentication());
             assertNotNull(response);
 
@@ -166,5 +173,15 @@ public class OpenIdServiceTests extends AbstractOpenIdTests {
 
         assertTrue(o1.equals(o2));
         assertFalse(o1.equals(new Object()));
+    }
+
+    private DefaultServicesManager getServicesManager() {
+        val context = ServicesManagerConfigurationContext.builder()
+            .serviceRegistry(mock(ServiceRegistry.class))
+            .applicationContext(applicationContext)
+            .environments(new HashSet<>(0))
+            .servicesCache(Caffeine.newBuilder().build())
+            .build();
+        return new DefaultServicesManager(context);
     }
 }

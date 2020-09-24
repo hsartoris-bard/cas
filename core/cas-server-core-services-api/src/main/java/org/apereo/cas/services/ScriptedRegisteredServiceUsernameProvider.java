@@ -19,6 +19,7 @@ import lombok.val;
  *
  * @author Misagh Moayyed
  * @since 5.2.0
+ * @deprecated Since 6.2
  */
 @Slf4j
 @Getter
@@ -26,7 +27,8 @@ import lombok.val;
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 @AllArgsConstructor
-@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonInclude(JsonInclude.Include.NON_DEFAULT)
+@Deprecated(since = "6.2.0")
 public class ScriptedRegisteredServiceUsernameProvider extends BaseRegisteredServiceUsernameAttributeProvider {
 
     private static final long serialVersionUID = -678554831202936052L;
@@ -35,16 +37,13 @@ public class ScriptedRegisteredServiceUsernameProvider extends BaseRegisteredSer
 
     @Override
     protected String resolveUsernameInternal(final Principal principal, final Service service, final RegisteredService registeredService) {
-        try {
-            LOGGER.debug("Found groovy script to execute");
-            var args = new Object[]{principal.getAttributes(), principal.getId(), LOGGER};
-            val result = ScriptingUtils.executeScriptEngine(SpringExpressionLanguageValueResolver.getInstance().resolve(this.script), args, Object.class);
-            if (result != null) {
-                LOGGER.debug("Found username [{}] from script [{}]", result, this.script);
-                return result.toString();
-            }
-        } catch (final Exception e) {
-            LOGGER.error(e.getMessage(), e);
+        LOGGER.trace("Found groovy script [{}] to execute", this.script);
+        val args = new Object[]{principal.getAttributes(), principal.getId(), LOGGER};
+        val result = ScriptingUtils.executeScriptEngine(
+            SpringExpressionLanguageValueResolver.getInstance().resolve(this.script), args, Object.class);
+        if (result != null) {
+            LOGGER.debug("Found username [{}] from script [{}]", result, this.script);
+            return result.toString();
         }
         LOGGER.warn("Script [{}] returned no value for username attribute. Fallback to default [{}]", this.script, principal.getId());
         return principal.getId();

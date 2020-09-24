@@ -5,6 +5,7 @@ import org.apereo.cas.audit.spi.AuditActionContextJsonSerializer;
 import org.apereo.cas.configuration.model.core.audit.AuditRestProperties;
 import org.apereo.cas.util.CollectionUtils;
 import org.apereo.cas.util.HttpUtils;
+import org.apereo.cas.util.LoggingUtils;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,6 +15,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apereo.inspektr.audit.AuditActionContext;
+import org.hjson.JsonValue;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
@@ -43,10 +45,10 @@ public class RestAuditTrailManager extends AbstractAuditTrailManager {
         HttpResponse response = null;
         try {
             val auditJson = serializer.toString(audit);
-            LOGGER.debug("Sending audit action context to REST endpoint [{}]", properties.getUrl());
+            LOGGER.trace("Sending audit action context to REST endpoint [{}]", properties.getUrl());
             response = HttpUtils.executePost(properties.getUrl(), properties.getBasicAuthUsername(), properties.getBasicAuthPassword(), auditJson);
         } catch (final Exception e) {
-            LOGGER.error(e.getMessage(), e);
+            LoggingUtils.error(LOGGER, e);
         } finally {
             HttpUtils.close(response);
         }
@@ -67,10 +69,10 @@ public class RestAuditTrailManager extends AbstractAuditTrailManager {
                 val result = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
                 final TypeReference<Set<AuditActionContext>> values = new TypeReference<>() {
                 };
-                return MAPPER.readValue(result, values);
+                return MAPPER.readValue(JsonValue.readHjson(result).toString(), values);
             }
         } catch (final Exception e) {
-            LOGGER.error(e.getMessage(), e);
+            LoggingUtils.error(LOGGER, e);
         } finally {
             HttpUtils.close(response);
         }

@@ -3,7 +3,6 @@ package org.apereo.cas.authentication.principal.cache;
 import org.apereo.cas.authentication.AttributeMergingStrategy;
 import org.apereo.cas.authentication.CoreAuthenticationTestUtils;
 import org.apereo.cas.authentication.principal.Principal;
-import org.apereo.cas.authentication.principal.PrincipalAttributesRepository;
 import org.apereo.cas.authentication.principal.PrincipalFactory;
 import org.apereo.cas.authentication.principal.PrincipalFactoryUtils;
 
@@ -21,6 +20,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -28,7 +28,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 /**
- * Parent class for test cases around {@link PrincipalAttributesRepository}.
+ * Parent class for test cases around
+ * {@link org.apereo.cas.authentication.principal.RegisteredServicePrincipalAttributesRepository}.
  *
  * @author Misagh Moayyed
  * @since 4.2
@@ -62,14 +63,13 @@ public abstract class AbstractCachingPrincipalAttributesRepositoryTests {
         when(person.getName()).thenReturn("uid");
         when(person.getAttributes()).thenReturn(attributes);
         when(dao.getPerson(any(String.class), any(IPersonAttributeDaoFilter.class))).thenReturn(person);
+        when(dao.getPeople(any(Map.class), any(IPersonAttributeDaoFilter.class))).thenReturn(Set.of(person));
         when(dao.getId()).thenReturn(new String[]{"Stub"});
 
         email = new ArrayList<>();
         email.add("final@school.com");
         this.principal = this.principalFactory.createPrincipal("uid", Collections.singletonMap(MAIL, email));
     }
-
-    protected abstract AbstractPrincipalAttributesRepository getPrincipalAttributesRepository(String unit, long duration);
 
     @Test
     @SneakyThrows
@@ -140,4 +140,6 @@ public abstract class AbstractCachingPrincipalAttributesRepositoryTests {
             assertTrue(mailAttr.contains("final@school.com"));
         }
     }
+
+    protected abstract AbstractPrincipalAttributesRepository getPrincipalAttributesRepository(String unit, long duration);
 }

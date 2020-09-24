@@ -2,8 +2,7 @@ package org.apereo.cas;
 
 import org.apereo.cas.config.MongoDbCloudConfigBootstrapConfiguration;
 import org.apereo.cas.configuration.CasConfigurationProperties;
-import org.apereo.cas.mongo.MongoDbConnectionFactory;
-import org.apereo.cas.util.junit.EnabledIfContinuousIntegration;
+import org.apereo.cas.util.junit.EnabledIfPortOpen;
 
 import lombok.val;
 import org.junit.jupiter.api.BeforeAll;
@@ -13,6 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.SimpleMongoClientDatabaseFactory;
 
 import java.util.UUID;
 
@@ -25,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @since 6.0.0
  */
 @Tag("MongoDb")
-@EnabledIfContinuousIntegration
+@EnabledIfPortOpen(port = 27017)
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 @SpringBootTest(classes = {
     RefreshAutoConfiguration.class,
@@ -42,8 +43,7 @@ public class MongoDbCloudConfigBootstrapConfigurationTests {
 
     @BeforeAll
     public static void initialize() {
-        val factory = new MongoDbConnectionFactory();
-        val template = factory.buildMongoTemplate(MONGODB_URI);
+        val template = new MongoTemplate(new SimpleMongoClientDatabaseFactory(MONGODB_URI));
         template.dropCollection(MongoDbProperty.class.getSimpleName());
         template.createCollection(MongoDbProperty.class.getSimpleName());
 

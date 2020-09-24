@@ -4,8 +4,9 @@ import org.apereo.cas.adaptors.u2f.storage.U2FDeviceRegistration;
 import org.apereo.cas.adaptors.u2f.storage.U2FDeviceRepository;
 import org.apereo.cas.adaptors.u2f.storage.U2FJpaDeviceRepository;
 import org.apereo.cas.configuration.CasConfigurationProperties;
-import org.apereo.cas.configuration.model.support.jpa.JpaConfigDataHolder;
+import org.apereo.cas.configuration.model.support.jpa.JpaConfigurationContext;
 import org.apereo.cas.configuration.support.JpaBeans;
+import org.apereo.cas.jpa.JpaBeanFactory;
 import org.apereo.cas.util.CollectionUtils;
 import org.apereo.cas.util.crypto.CipherExecutor;
 
@@ -16,15 +17,15 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
-import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.orm.jpa.JpaTransactionManager;
+import org.springframework.orm.jpa.JpaVendorAdapter;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
-import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
@@ -42,8 +43,10 @@ import java.util.List;
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 @EnableTransactionManagement(proxyTargetClass = true)
 public class U2FJpaConfiguration {
+
     @Autowired
-    private ConfigurableApplicationContext applicationContext;
+    @Qualifier("jpaBeanFactory")
+    private ObjectProvider<JpaBeanFactory> jpaBeanFactory;
 
     @Autowired
     private CasConfigurationProperties casProperties;
@@ -54,11 +57,13 @@ public class U2FJpaConfiguration {
 
     @RefreshScope
     @Bean
-    public HibernateJpaVendorAdapter jpaU2fVendorAdapter() {
-        return JpaBeans.newHibernateJpaVendorAdapter(casProperties.getJdbc());
+    public JpaVendorAdapter jpaU2fVendorAdapter() {
+        return jpaBeanFactory.getObject().newJpaVendorAdapter(casProperties.getJdbc());
     }
 
     @Bean
+    @ConditionalOnMissingBean(name = "dataSourceU2f")
+    @RefreshScope
     public DataSource dataSourceU2f() {
         return JpaBeans.newDataSource(casProperties.getAuthn().getMfa().getU2f().getJpa());
     }
@@ -70,15 +75,16 @@ public class U2FJpaConfiguration {
 
     @Lazy
     @Bean
+    @ConditionalOnMissingBean(name = "u2fEntityManagerFactory")
     public LocalContainerEntityManagerFactoryBean u2fEntityManagerFactory() {
-        return JpaBeans.newHibernateEntityManagerFactoryBean(
-            new JpaConfigDataHolder(
-                jpaU2fVendorAdapter(),
-                "jpaU2fRegistryContext",
-                jpaU2fPackagesToScan(),
-                dataSourceU2f()),
-            casProperties.getAuthn().getMfa().getU2f().getJpa(),
-            applicationContext);
+        val factory = jpaBeanFactory.getObject();
+        val ctx = JpaConfigurationContext.builder()
+            .dataSource(dataSourceU2f())
+            .packagesToScan(jpaU2fPackagesToScan())
+            .persistenceUnitName("jpaU2fRegistryContext")
+            .jpaVendorAdapter(jpaU2fVendorAdapter())
+            .build();
+        return factory.newEntityManagerFactoryBean(ctx, casProperties.getAuthn().getMfa().getU2f().getJpa());
     }
 
     @Autowired
@@ -90,17 +96,17 @@ public class U2FJpaConfiguration {
     }
 
     @Bean
-    public U2FDeviceRepository u2fDeviceRepository() {
+    @RefreshScope
+    public U2FDeviceRepository u2fDeviceRepository(@Qualifier("transactionManagerU2f") final PlatformTransactionManager mgr) {
         val u2f = casProperties.getAuthn().getMfa().getU2f();
         final LoadingCache<String, String> requestStorage =
             Caffeine.newBuilder()
                 .expireAfterWrite(u2f.getExpireRegistrations(), u2f.getExpireRegistrationsTimeUnit())
                 .build(key -> StringUtils.EMPTY);
-        val repo = new U2FJpaDeviceRepository(requestStorage,
-            u2f.getExpireRegistrations(),
-            u2f.getExpireDevicesTimeUnit());
-        repo.setCipherExecutor(u2fRegistrationRecordCipherExecutor.getObject());
-        return repo;
+        return new U2FJpaDeviceRepository(requestStorage,
+            u2f.getExpireDevices(),
+            u2f.getExpireDevicesTimeUnit(),
+            u2fRegistrationRecordCipherExecutor.getObject());
     }
 
 }

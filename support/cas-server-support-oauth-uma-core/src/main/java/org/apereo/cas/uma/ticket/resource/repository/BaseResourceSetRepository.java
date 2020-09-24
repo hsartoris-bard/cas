@@ -14,12 +14,14 @@ import java.util.stream.Collectors;
 public abstract class BaseResourceSetRepository implements ResourceSetRepository {
     @Override
     public Collection<ResourceSet> getByOwner(final String owner) {
-        return getAll().stream().filter(s -> s.getOwner().equalsIgnoreCase(owner)).collect(Collectors.toSet());
+        return getAll().stream()
+            .filter(s -> s.getOwner().equalsIgnoreCase(owner)).collect(Collectors.toSet());
     }
 
     @Override
     public Collection<ResourceSet> getByClient(final String clientId) {
-        return getAll().stream().filter(s -> s.getClientId().equalsIgnoreCase(clientId)).collect(Collectors.toSet());
+        return getAll().stream()
+            .filter(s -> s.getClientId().equalsIgnoreCase(clientId)).collect(Collectors.toSet());
     }
 
     @Override
@@ -74,7 +76,7 @@ public abstract class BaseResourceSetRepository implements ResourceSetRepository
      * Validate resource set scopes.
      *
      * @param rs the rs
-     * @return the boolean
+     * @return true/false
      */
     protected boolean validateResourceSetScopes(final ResourceSet rs) {
         if (rs.getPolicies() == null || rs.getPolicies().isEmpty()) {

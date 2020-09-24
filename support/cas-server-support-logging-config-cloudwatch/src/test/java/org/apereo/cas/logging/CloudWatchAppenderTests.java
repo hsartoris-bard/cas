@@ -1,7 +1,6 @@
 package org.apereo.cas.logging;
 
 import org.apereo.cas.configuration.CasConfigurationProperties;
-import org.apereo.cas.util.junit.EnabledIfContinuousIntegration;
 import org.apereo.cas.util.junit.EnabledIfPortOpen;
 
 import lombok.val;
@@ -21,13 +20,12 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Misagh Moayyed
  * @since 6.2.0
  */
-@EnabledIfPortOpen(port = 4586)
-@EnabledIfContinuousIntegration
+@EnabledIfPortOpen(port = 4566)
 @Tag("AmazonWebServices")
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 public class CloudWatchAppenderTests {
     @Test
-    public void verifyOperation() throws Exception {
+    public void verifyOperation() {
         val context = LoggerContext.getContext(false);
         val logger = context.getLogger(CloudWatchAppender.class.getName());
         val appender = (CloudWatchAppender) logger.getAppenders().get("CloudWatchAppender");

@@ -6,6 +6,7 @@ import org.apereo.cas.configuration.support.RequiresModule;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 import java.io.Serializable;
@@ -21,6 +22,7 @@ import java.util.List;
 @RequiresModule(name = "cas-server-support-saml-idp")
 @Getter
 @Setter
+@Accessors(chain = true)
 public class SamlIdPProperties implements Serializable {
 
     private static final long serialVersionUID = -5848075783676789852L;
@@ -33,11 +35,18 @@ public class SamlIdPProperties implements Serializable {
     private boolean attributeQueryProfileEnabled;
 
     /**
+     * Indicates whether saml requests, and other session data,
+     * collected as part of SAML flows and requests
+     * that are kept by the container session, should be replicated
+     * across the cluster.
+     */
+    private boolean replicateSessions;
+
+    /**
      * The SAML entity id for the deployment.
      */
     @RequiredProperty
     private String entityId = "https://cas.example.org/idp";
-
 
     /**
      * A mapping of authentication context class refs.

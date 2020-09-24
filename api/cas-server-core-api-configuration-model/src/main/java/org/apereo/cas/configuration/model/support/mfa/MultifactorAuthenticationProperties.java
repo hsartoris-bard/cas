@@ -1,9 +1,16 @@
 package org.apereo.cas.configuration.model.support.mfa;
 
+import org.apereo.cas.configuration.model.RestEndpointProperties;
+import org.apereo.cas.configuration.model.support.mfa.gauth.GoogleAuthenticatorMultifactorProperties;
+import org.apereo.cas.configuration.model.support.mfa.u2f.U2FMultifactorProperties;
+import org.apereo.cas.configuration.model.support.mfa.webauthn.WebAuthnMultifactorProperties;
+import org.apereo.cas.configuration.model.support.mfa.yubikey.YubiKeyMultifactorProperties;
 import org.apereo.cas.configuration.support.RequiresModule;
 
+import com.fasterxml.jackson.annotation.JsonFilter;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 import org.springframework.core.io.Resource;
 
@@ -20,6 +27,8 @@ import java.util.List;
 @RequiresModule(name = "cas-server-core-authentication", automated = true)
 @Getter
 @Setter
+@Accessors(chain = true)
+@JsonFilter("MultifactorAuthenticationProperties")
 public class MultifactorAuthenticationProperties implements Serializable {
 
     private static final long serialVersionUID = 7416521468929733907L;
@@ -66,7 +75,7 @@ public class MultifactorAuthenticationProperties implements Serializable {
      * The body of the response in the event of a successful 200 status code is
      * expected to be the MFA provider id which CAS should activate.
      */
-    private String restEndpoint;
+    private Rest rest = new Rest();
 
     /**
      * MFA can be triggered based on the results of a groovy script of your own design.
@@ -169,7 +178,7 @@ public class MultifactorAuthenticationProperties implements Serializable {
      * to decide which provider makes the most sense at any given time.
      */
     private boolean providerSelectionEnabled;
-    
+
     /**
      * Activate and configure a multifactor authentication provider via U2F FIDO.
      */
@@ -187,6 +196,12 @@ public class MultifactorAuthenticationProperties implements Serializable {
      */
     @NestedConfigurationProperty
     private YubiKeyMultifactorProperties yubikey = new YubiKeyMultifactorProperties();
+
+    /**
+     * Activate and configure a multifactor authentication provider via WebAuthN.
+     */
+    @NestedConfigurationProperty
+    private WebAuthnMultifactorProperties webAuthn = new WebAuthnMultifactorProperties();
 
     /**
      * Activate and configure a multifactor authentication provider via RADIUS.
@@ -228,4 +243,12 @@ public class MultifactorAuthenticationProperties implements Serializable {
      */
     @NestedConfigurationProperty
     private AccepttoMultifactorProperties acceptto = new AccepttoMultifactorProperties();
+
+    @RequiresModule(name = "cas-server-core-authentication", automated = true)
+    @Getter
+    @Setter
+    @Accessors(chain = true)
+    public static class Rest extends RestEndpointProperties {
+        private static final long serialVersionUID = 3659099897056632608L;
+    }
 }

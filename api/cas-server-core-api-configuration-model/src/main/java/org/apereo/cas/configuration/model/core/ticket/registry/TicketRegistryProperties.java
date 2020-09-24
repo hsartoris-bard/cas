@@ -13,13 +13,14 @@ import org.apereo.cas.configuration.model.support.infinispan.InfinispanPropertie
 import org.apereo.cas.configuration.model.support.jms.JmsTicketRegistryProperties;
 import org.apereo.cas.configuration.model.support.jpa.ticketregistry.JpaTicketRegistryProperties;
 import org.apereo.cas.configuration.model.support.memcached.MemcachedTicketRegistryProperties;
-import org.apereo.cas.configuration.model.support.mongo.ticketregistry.MongoTicketRegistryProperties;
+import org.apereo.cas.configuration.model.support.mongo.ticketregistry.MongoDbTicketRegistryProperties;
 import org.apereo.cas.configuration.model.support.quartz.ScheduledJobProperties;
 import org.apereo.cas.configuration.model.support.redis.RedisTicketRegistryProperties;
 import org.apereo.cas.configuration.support.RequiresModule;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 import java.io.Serializable;
@@ -33,6 +34,7 @@ import java.io.Serializable;
 @RequiresModule(name = "cas-server-core-tickets", automated = true)
 @Getter
 @Setter
+@Accessors(chain = true)
 public class TicketRegistryProperties implements Serializable {
 
     private static final long serialVersionUID = -4735458476452635679L;
@@ -65,7 +67,7 @@ public class TicketRegistryProperties implements Serializable {
      * MongoDb registry settings.
      */
     @NestedConfigurationProperty
-    private MongoTicketRegistryProperties mongo = new MongoTicketRegistryProperties();
+    private MongoDbTicketRegistryProperties mongo = new MongoDbTicketRegistryProperties();
 
     /**
      * Ehcache registry settings.

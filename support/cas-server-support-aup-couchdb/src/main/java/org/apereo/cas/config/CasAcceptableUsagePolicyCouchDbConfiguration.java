@@ -13,6 +13,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.context.annotation.Bean;
@@ -26,6 +27,7 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration(value = "casAcceptableUsagePolicyCoucbDbConfiguration", proxyBeanMethods = false)
 @EnableConfigurationProperties(CasConfigurationProperties.class)
+@ConditionalOnProperty(prefix = "cas.acceptable-usage-policy", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class CasAcceptableUsagePolicyCouchDbConfiguration {
     @Autowired
     private CasConfigurationProperties casProperties;
@@ -50,9 +52,7 @@ public class CasAcceptableUsagePolicyCouchDbConfiguration {
     @RefreshScope
     public ProfileCouchDbRepository aupCouchDbRepository(@Qualifier("aupCouchDbFactory") final CouchDbConnectorFactory aupCouchDbFactory) {
         val couchDb = casProperties.getAcceptableUsagePolicy().getCouchDb();
-        val repository = new ProfileCouchDbRepository(aupCouchDbFactory.getCouchDbConnector(), couchDb.isCreateIfNotExists());
-        repository.initStandardDesignDocument();
-        return repository;
+        return new ProfileCouchDbRepository(aupCouchDbFactory.getCouchDbConnector(), couchDb.isCreateIfNotExists());
     }
 
     @ConditionalOnMissingBean(name = "couchDbAcceptableUsagePolicyRepository")
@@ -61,7 +61,7 @@ public class CasAcceptableUsagePolicyCouchDbConfiguration {
     public AcceptableUsagePolicyRepository acceptableUsagePolicyRepository(
         @Qualifier("aupCouchDbRepository") final ProfileCouchDbRepository profileCouchDbRepository) {
         return new CouchDbAcceptableUsagePolicyRepository(ticketRegistrySupport.getObject(),
-            casProperties.getAcceptableUsagePolicy().getAupAttributeName(),
+            casProperties.getAcceptableUsagePolicy(),
             profileCouchDbRepository,
             casProperties.getAcceptableUsagePolicy().getCouchDb().getRetries());
     }

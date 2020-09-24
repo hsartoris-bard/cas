@@ -2,22 +2,26 @@ version: "3"
 
 services:
   master:
-    image: redis:4.0.10-alpine
+    image: redis:5.0.8-alpine
     container_name: redis_server_master
     ports:
       - 6379:6379
 
   slave_1:
-    image: redis:4.0.10-alpine
+    image: redis:5.0.8-alpine
     container_name: redis_server_slave_1
     command: redis-server --slaveof master 6379
+    ports:
+      - 6380:6379
     depends_on:
       - master
 
   slave_2:
-    image: redis:4.0.10-alpine
+    image: redis:5.0.8-alpine
     container_name: redis_server_slave_2
     command: redis-server --slaveof master 6379
+    ports:
+      - 6381:6379
     depends_on:
       - master
 

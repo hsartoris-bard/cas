@@ -1,10 +1,11 @@
 package org.apereo.cas.configuration.model.core.authentication;
 
+import org.apereo.cas.configuration.model.RestEndpointProperties;
 import org.apereo.cas.configuration.support.RequiresModule;
-import org.apereo.cas.configuration.support.RestEndpointProperties;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 
 /**
  * This is {@link RestPrincipalAttributesProperties}.
@@ -15,6 +16,7 @@ import lombok.Setter;
 @RequiresModule(name = "cas-server-support-person-directory", automated = true)
 @Getter
 @Setter
+@Accessors(chain = true)
 public class RestPrincipalAttributesProperties extends RestEndpointProperties {
 
     private static final long serialVersionUID = -30055974448426360L;

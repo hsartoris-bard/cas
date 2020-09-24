@@ -2,16 +2,20 @@ package org.apereo.cas.impl.account;
 
 import org.apereo.cas.api.PasswordlessUserAccount;
 import org.apereo.cas.api.PasswordlessUserAccountStore;
-import org.apereo.cas.configuration.model.support.passwordless.PasswordlessAuthenticationProperties;
+import org.apereo.cas.configuration.model.support.passwordless.account.PasswordlessAuthenticationRestAccountsProperties;
 import org.apereo.cas.util.HttpUtils;
+import org.apereo.cas.util.LoggingUtils;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpResponse;
+import org.hjson.JsonValue;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Optional;
 
@@ -29,7 +33,7 @@ public class RestfulPasswordlessUserAccountStore implements PasswordlessUserAcco
         .configure(DeserializationFeature.READ_ENUMS_USING_TO_STRING, false)
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-    private final PasswordlessAuthenticationProperties.Rest restProperties;
+    private final PasswordlessAuthenticationRestAccountsProperties restProperties;
 
     @Override
     public Optional<PasswordlessUserAccount> findUser(final String username) {
@@ -42,11 +46,12 @@ public class RestfulPasswordlessUserAccountStore implements PasswordlessUserAcco
                 restProperties.getBasicAuthUsername(), restProperties.getBasicAuthPassword(),
                 parameters, new HashMap<>(0));
             if (response != null && response.getEntity() != null) {
-                val account = MAPPER.readValue(response.getEntity().getContent(), PasswordlessUserAccount.class);
+                val result = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
+                val account = MAPPER.readValue(JsonValue.readHjson(result).toString(), PasswordlessUserAccount.class);
                 return Optional.ofNullable(account);
             }
         } catch (final Exception e) {
-            LOGGER.error(e.getMessage(), e);
+            LoggingUtils.error(LOGGER, e);
         } finally {
             HttpUtils.close(response);
         }

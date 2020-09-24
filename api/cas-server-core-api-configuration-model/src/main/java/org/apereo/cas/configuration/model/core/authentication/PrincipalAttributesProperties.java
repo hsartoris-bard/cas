@@ -5,6 +5,7 @@ import org.apereo.cas.configuration.support.RequiresModule;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -35,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 @RequiresModule(name = "cas-server-core-authentication", automated = true)
 @Getter
 @Setter
+@Accessors(chain = true)
 public class PrincipalAttributesProperties implements Serializable {
 
     private static final long serialVersionUID = -4515569588579072890L;
@@ -71,6 +73,20 @@ public class PrincipalAttributesProperties implements Serializable {
      * </ul>
      */
     private String merger = "REPLACE";
+
+    /**
+     * Indicates how the results of multiple attribute repositories should
+     * be aggregated together. Accepted values are {@code MERGE}, or {@code CASCADE}.
+     * <ul>
+     * <li>{@code MERGE}: Default. Designed to query multiple repositories
+     * in order and merge the results into a single result set.</li>
+     * <li>{@code CASCADE}: Query multiple repositories in order and merge the results into
+     * a single result set. As each repository is queried
+     * the attributes from the first query in the result set are
+     * used as the query for the next repository. </li>
+     * </ul>
+     */
+    private String aggregation = "MERGE";
 
     /**
      * CAS provides the ability to release a bundle of principal attributes to all services by default.
@@ -138,11 +154,11 @@ public class PrincipalAttributesProperties implements Serializable {
      * You will also need to ensure {@code grouper.client.properties}
      * is available on the classpath (i.e. {@code src/main/resources})
      * and it contains the following:
-     * <pre>
-     * grouperClient.webService.url = http://192.168.99.100:32768/grouper-ws/servicesRest
-     * grouperClient.webService.login = banderson
-     * grouperClient.webService.password = password
-     * </pre>
+     *
+     * {@code grouperClient.webService.url = http://192.168.99.100:32768/grouper-ws/servicesRest}
+     * {@code grouperClient.webService.login = banderson}
+     * {@code grouperClient.webService.password = password}
+     *
      */
     private GrouperPrincipalAttributesProperties grouper = new GrouperPrincipalAttributesProperties();
 }

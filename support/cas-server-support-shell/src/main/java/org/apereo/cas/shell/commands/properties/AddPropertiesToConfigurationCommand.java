@@ -70,6 +70,7 @@ public class AddPropertiesToConfigurationCommand {
                 val props = loadPropertiesFromConfigurationFile(filePath);
                 writeConfigurationPropertiesToFile(filePath, results, props);
                 break;
+            case "yaml":
             case "yml":
                 createConfigurationFileIfNeeded(filePath);
                 val yamlProps = CasCoreConfigurationUtils.loadYamlProperties(new FileSystemResource(filePath));
@@ -83,7 +84,7 @@ public class AddPropertiesToConfigurationCommand {
 
     private static void writeYamlConfigurationPropertiesToFile(final File filePath,
                                                                final Map<String, ConfigurationMetadataProperty> results,
-                                                               final Map yamlProps) throws Exception {
+                                                               final Map<String, Object> yamlProps) throws Exception {
         val options = new DumperOptions();
         options.setDefaultFlowStyle(DumperOptions.FlowStyle.AUTO);
         options.setDefaultScalarStyle(DumperOptions.ScalarStyle.PLAIN);
@@ -97,7 +98,7 @@ public class AddPropertiesToConfigurationCommand {
     }
 
     private static void writeConfigurationPropertiesToFile(final File filePath, final Map<String, ConfigurationMetadataProperty> results,
-                                                           final Map<String, String> p) throws Exception {
+                                                           final Map<String, Object> p) throws Exception {
         LOGGER.info("Located [{}] properties in configuration file [{}]", results.size(), filePath.getCanonicalPath());
         putResultsIntoProperties(results, p);
         val lines = p.keySet().stream().map(s -> s + '=' + p.get(s))
@@ -106,7 +107,7 @@ public class AddPropertiesToConfigurationCommand {
         FileUtils.writeLines(filePath, lines);
     }
 
-    private static void putResultsIntoProperties(final Map<String, ConfigurationMetadataProperty> results, final Map<String, String> p) {
+    private static void putResultsIntoProperties(final Map<String, ConfigurationMetadataProperty> results, final Map<String, Object> p) {
         val lines = results.values().stream()
             .sorted(Comparator.comparing(ConfigurationMetadataProperty::getName))
             .collect(Collectors.toList());

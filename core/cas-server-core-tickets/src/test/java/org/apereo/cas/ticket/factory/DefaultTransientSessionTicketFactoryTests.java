@@ -8,6 +8,7 @@ import org.apereo.cas.ticket.expiration.HardTimeoutExpirationPolicy;
 import org.apereo.cas.util.CollectionUtils;
 
 import lombok.val;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.TestPropertySource;
 
@@ -21,7 +22,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Misagh Moayyed
  * @since 6.2.0
  */
-@TestPropertySource(properties = "cas.ticket.tst.timeToKillInSeconds=20")
+@TestPropertySource(properties = "cas.ticket.tst.time-to-kill-in-seconds=20")
+@Tag("Tickets")
 public class DefaultTransientSessionTicketFactoryTests extends BaseTicketFactoryTests {
     @Test
     public void verifyExpirationPolicy() {

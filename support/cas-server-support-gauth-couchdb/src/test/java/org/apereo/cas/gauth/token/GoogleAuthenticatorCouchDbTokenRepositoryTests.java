@@ -10,6 +10,7 @@ import org.apereo.cas.config.CasCoreAuthenticationSupportConfiguration;
 import org.apereo.cas.config.CasCoreConfiguration;
 import org.apereo.cas.config.CasCoreHttpConfiguration;
 import org.apereo.cas.config.CasCoreMultifactorAuthenticationConfiguration;
+import org.apereo.cas.config.CasCoreNotificationsConfiguration;
 import org.apereo.cas.config.CasCoreServicesAuthenticationConfiguration;
 import org.apereo.cas.config.CasCoreServicesConfiguration;
 import org.apereo.cas.config.CasCoreTicketCatalogConfiguration;
@@ -26,7 +27,7 @@ import org.apereo.cas.config.support.authentication.GoogleAuthenticatorAuthentic
 import org.apereo.cas.couchdb.core.CouchDbConnectorFactory;
 import org.apereo.cas.couchdb.gauth.token.GoogleAuthenticatorTokenCouchDbRepository;
 import org.apereo.cas.logout.config.CasCoreLogoutConfiguration;
-import org.apereo.cas.util.junit.EnabledIfContinuousIntegration;
+import org.apereo.cas.util.junit.EnabledIfPortOpen;
 import org.apereo.cas.web.config.CasCookieConfiguration;
 import org.apereo.cas.web.flow.config.CasCoreWebflowConfiguration;
 import org.apereo.cas.web.flow.config.CasMultifactorAuthenticationWebflowConfiguration;
@@ -53,7 +54,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @Tag("CouchDb")
 @SpringBootTest(classes = {
     CasCouchDbCoreConfiguration.class,
-    BaseOneTimeTokenRepositoryTests.BaseTestConfiguration.class,
+    BaseOneTimeTokenRepositoryTests.BaseOneTimeTokenRepositoryTestConfiguration.class,
     GoogleAuthenticatorCouchDbConfiguration.class,
     GoogleAuthenticatorAuthenticationMultifactorProviderBypassConfiguration.class,
     CasWebflowContextConfiguration.class,
@@ -65,6 +66,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
     CasCoreTicketCatalogConfiguration.class,
     CasCoreLogoutConfiguration.class,
     CasCoreHttpConfiguration.class,
+    CasCoreNotificationsConfiguration.class,
     CasCoreServicesConfiguration.class,
     CasWebApplicationServiceFactoryConfiguration.class,
     CasCoreAuthenticationConfiguration.class,
@@ -86,14 +88,14 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 },
     properties = {
         "cas.authn.mfa.gauth.crypto.enabled=false",
-        "cas.authn.mfa.gauth.couchDb.dbName=gauth_token",
-        "cas.authn.mfa.gauth.couchDb.username=cas",
-        "cas.authn.mfa.gauth.couchdb.password=password"
+        "cas.authn.mfa.gauth.couch-db.dbName=gauth_token",
+        "cas.authn.mfa.gauth.couch-db.username=cas",
+        "cas.authn.mfa.gauth.couch-db.password=password"
     })
 @EnableAspectJAutoProxy(proxyTargetClass = true)
 @EnableScheduling
 @Getter
-@EnabledIfContinuousIntegration
+@EnabledIfPortOpen(port = 5984)
 public class GoogleAuthenticatorCouchDbTokenRepositoryTests extends BaseOneTimeTokenRepositoryTests {
 
     @Autowired
@@ -108,7 +110,7 @@ public class GoogleAuthenticatorCouchDbTokenRepositoryTests extends BaseOneTimeT
     public void setUp() {
         couchDbFactory.getCouchDbInstance().createDatabaseIfNotExists(couchDbFactory.getCouchDbConnector().getDatabaseName());
         couchDbRepository.initStandardDesignDocument();
-        oneTimeTokenAuthenticatorTokenRepository.getObject().removeAll();
+        oneTimeTokenAuthenticatorTokenRepository.removeAll();
     }
 
     @AfterEach

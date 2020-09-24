@@ -43,6 +43,9 @@ public class SamlRegisteredService extends RegexRegisteredService {
     @Column
     private String metadataLocation;
 
+    @Column
+    private String metadataProxyLocation;
+
     /**
      * Defines a filter that requires the presence of a validUntil
      * attribute on the root element of the metadata document.
@@ -68,6 +71,9 @@ public class SamlRegisteredService extends RegexRegisteredService {
     private String metadataSignatureLocation;
 
     @Column
+    private String logoutResponseBinding;
+    
+    @Column
     private boolean requireSignedRoot = true;
 
     @Column(name = "spNameIdQualifier")
@@ -91,6 +97,9 @@ public class SamlRegisteredService extends RegexRegisteredService {
     @Column
     private boolean signAssertions;
 
+    @Column
+    private boolean signUnsolicitedAuthnRequest;
+
     @Column(name = "skipGenAssertionNameId")
     private boolean skipGeneratingAssertionNameId;
 
@@ -108,6 +117,9 @@ public class SamlRegisteredService extends RegexRegisteredService {
 
     @Column(name = "skipGenSubConfNameId")
     private boolean skipGeneratingSubjectConfirmationNameId = true;
+
+    @Column(name = "skipGenNameIdQualifiers")
+    private boolean skipGeneratingNameIdQualifiers;
 
     @Column
     private boolean skipGeneratingTransientNameId;
@@ -211,5 +223,11 @@ public class SamlRegisteredService extends RegexRegisteredService {
     @Override
     public String getFriendlyName() {
         return "SAML2 Service Provider";
+    }
+
+    @Override
+    @JsonIgnore
+    public int getEvaluationPriority() {
+        return 0;
     }
 }

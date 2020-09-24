@@ -3,6 +3,7 @@ package org.apereo.cas.authentication.adaptive;
 import org.apereo.cas.authentication.adaptive.geo.GeoLocationRequest;
 import org.apereo.cas.authentication.adaptive.geo.GeoLocationResponse;
 import org.apereo.cas.authentication.adaptive.geo.GeoLocationService;
+import org.apereo.cas.authentication.adaptive.intel.IPAddressIntelligenceResponse;
 import org.apereo.cas.authentication.adaptive.intel.IPAddressIntelligenceService;
 import org.apereo.cas.configuration.model.core.authentication.AdaptiveAuthenticationProperties;
 import org.apereo.cas.util.HttpRequestUtils;
@@ -10,6 +11,7 @@ import org.apereo.cas.util.HttpRequestUtils;
 import lombok.val;
 import org.apereo.inspektr.common.web.ClientInfo;
 import org.apereo.inspektr.common.web.ClientInfoHolder;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.webflow.test.MockRequestContext;
@@ -23,6 +25,7 @@ import static org.mockito.Mockito.*;
  * @author Misagh Moayyed
  * @since 5.3.0
  */
+@Tag("Authentication")
 public class DefaultAdaptiveAuthenticationPolicyTests {
     private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.71 Safari/537.36 Edge/12.0";
 
@@ -37,8 +40,15 @@ public class DefaultAdaptiveAuthenticationPolicyTests {
         val props = new AdaptiveAuthenticationProperties();
         props.setRejectIpAddresses("185\\.86.+");
         val service = mock(GeoLocationService.class);
-        val p = new DefaultAdaptiveAuthenticationPolicy(service, IPAddressIntelligenceService.banned(), props);
-        assertFalse(p.apply(new MockRequestContext(), USER_AGENT, new GeoLocationRequest(51.5, -0.118)));
+        var policy = new DefaultAdaptiveAuthenticationPolicy(service, IPAddressIntelligenceService.banned(), props);
+        val location = new GeoLocationRequest(51.5, -0.118);
+        assertFalse(policy.apply(new MockRequestContext(), USER_AGENT, location));
+
+        policy = new DefaultAdaptiveAuthenticationPolicy(service, (context, clientIpAddress) -> IPAddressIntelligenceResponse.builder()
+            .status(IPAddressIntelligenceResponse.IPAddressIntelligenceStatus.RANKED)
+            .score(12.15)
+            .build(), props);
+        assertFalse(policy.apply(new MockRequestContext(), USER_AGENT, location));
     }
 
     @Test

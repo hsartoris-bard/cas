@@ -1,7 +1,6 @@
 package org.apereo.cas.web.flow.configurer;
 
 import org.apereo.cas.configuration.CasConfigurationProperties;
-import org.apereo.cas.util.CollectionUtils;
 import org.apereo.cas.web.flow.CasWebflowConstants;
 import org.apereo.cas.web.support.WebUtils;
 
@@ -12,7 +11,6 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.Ordered;
 import org.springframework.util.StringUtils;
 import org.springframework.webflow.definition.registry.FlowDefinitionRegistry;
-import org.springframework.webflow.engine.ActionState;
 import org.springframework.webflow.engine.Flow;
 import org.springframework.webflow.engine.SubflowState;
 import org.springframework.webflow.engine.Transition;
@@ -23,10 +21,9 @@ import org.springframework.webflow.engine.support.DefaultTargetStateResolver;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * The {@link AbstractCasMultifactorWebflowConfigurer} is responsible for
@@ -52,28 +49,39 @@ public abstract class AbstractCasMultifactorWebflowConfigurer extends AbstractCa
      */
     protected final List<FlowDefinitionRegistry> multifactorAuthenticationFlowDefinitionRegistries = new ArrayList<>();
 
-    public AbstractCasMultifactorWebflowConfigurer(final FlowBuilderServices flowBuilderServices,
+    private final List<CasMultifactorWebflowCustomizer> multifactorAuthenticationFlowCustomizers = new ArrayList<>();
+
+    protected AbstractCasMultifactorWebflowConfigurer(final FlowBuilderServices flowBuilderServices,
                                                    final FlowDefinitionRegistry loginFlowDefinitionRegistry,
                                                    final ConfigurableApplicationContext applicationContext,
                                                    final CasConfigurationProperties casProperties,
-                                                   final Optional<FlowDefinitionRegistry> mfaFlowDefinitionRegistry) {
-        this(flowBuilderServices, loginFlowDefinitionRegistry, applicationContext, casProperties, mfaFlowDefinitionRegistry.orElse(null));
+                                                   final Optional<FlowDefinitionRegistry> mfaFlowDefinitionRegistry,
+                                                   final List<CasMultifactorWebflowCustomizer> mfaFlowCustomizers) {
+        this(flowBuilderServices,
+            loginFlowDefinitionRegistry,
+            applicationContext,
+            casProperties,
+            mfaFlowDefinitionRegistry.map(List::of).orElseGet(List::of),
+            mfaFlowCustomizers);
     }
 
-    public AbstractCasMultifactorWebflowConfigurer(final FlowBuilderServices flowBuilderServices,
-                                                   final FlowDefinitionRegistry loginFlowDefinitionRegistry,
-                                                   final ConfigurableApplicationContext applicationContext,
-                                                   final CasConfigurationProperties casProperties,
-                                                   final FlowDefinitionRegistry... mfaFlowDefinitionRegistry) {
+    private AbstractCasMultifactorWebflowConfigurer(final FlowBuilderServices flowBuilderServices,
+                                                    final FlowDefinitionRegistry loginFlowDefinitionRegistry,
+                                                    final ConfigurableApplicationContext applicationContext,
+                                                    final CasConfigurationProperties casProperties,
+                                                    final List<FlowDefinitionRegistry> mfaFlowDefinitionRegistry,
+                                                    final List<CasMultifactorWebflowCustomizer> mfaFlowCustomizers) {
         super(flowBuilderServices, loginFlowDefinitionRegistry, applicationContext, casProperties);
         setOrder(Ordered.LOWEST_PRECEDENCE);
-        multifactorAuthenticationFlowDefinitionRegistries.addAll(Arrays.stream(mfaFlowDefinitionRegistry)
-            .filter(Objects::nonNull)
-            .collect(Collectors.toList()));
+        multifactorAuthenticationFlowDefinitionRegistries.addAll(mfaFlowDefinitionRegistry);
+        multifactorAuthenticationFlowCustomizers.addAll(mfaFlowCustomizers);
     }
 
-    private static Collection<String> getCandidateStatesForMultifactorAuthentication() {
-        return CollectionUtils.wrapSet(CasWebflowConstants.STATE_ID_REAL_SUBMIT);
+    private Collection<String> getCandidateStatesForMultifactorAuthentication() {
+        val candidates = new LinkedHashSet<String>();
+        candidates.add(CasWebflowConstants.STATE_ID_REAL_SUBMIT);
+        multifactorAuthenticationFlowCustomizers.forEach(c -> candidates.addAll(c.getCandidateStatesForMultifactorAuthentication()));
+        return candidates;
     }
 
     /**
@@ -86,7 +94,7 @@ public abstract class AbstractCasMultifactorWebflowConfigurer extends AbstractCa
                 val definition = registry.getFlowDefinition(flowId);
                 if (definition != null) {
                     LOGGER.trace("Registering flow definition [{}]", flowId);
-                    this.loginFlowDefinitionRegistry.registerFlowDefinition(definition);
+                    this.mainFlowDefinitionRegistry.registerFlowDefinition(definition);
                 }
             }
         });
@@ -126,7 +134,7 @@ public abstract class AbstractCasMultifactorWebflowConfigurer extends AbstractCa
                             ensureEndStateTransitionExists(state, flow,
                                 CasWebflowConstants.TRANSITION_ID_DENY, CasWebflowConstants.STATE_ID_MFA_DENIED);
                         } else {
-                            LOGGER.error("Unable to locate state definition [{}] in flow [{}]", s, flow.getId());
+                            LOGGER.debug("Unable to locate state definition [{}] in flow [{}]", s, flow.getId());
                         }
                     });
                 }
@@ -156,7 +164,7 @@ public abstract class AbstractCasMultifactorWebflowConfigurer extends AbstractCa
             });
             mfaFlow.getStartActionList().add(createSetAction("flowScope.".concat(CasWebflowConstants.VAR_ID_MFA_PROVIDER_ID), StringUtils.quote(providerId)));
 
-            val initStartState = (ActionState) mfaFlow.getStartState();
+            val initStartState = (TransitionableState) mfaFlow.getStartState();
             val transition = (Transition) initStartState.getTransition(CasWebflowConstants.TRANSITION_ID_SUCCESS);
             val targetStateId = transition.getTargetStateId();
             transition.setTargetStateResolver(new DefaultTargetStateResolver(CasWebflowConstants.STATE_ID_MFA_CHECK_BYPASS));

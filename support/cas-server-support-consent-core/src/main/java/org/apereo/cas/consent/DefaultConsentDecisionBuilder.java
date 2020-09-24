@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
+import org.hjson.JsonValue;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
@@ -20,6 +21,7 @@ import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -88,7 +90,7 @@ public class DefaultConsentDecisionBuilder implements ConsentDecisionBuilder {
                 return new HashMap<>(0);
             }
             val names = EncodingUtils.decodeBase64ToString(result);
-            return MAPPER.readValue(names, Map.class);
+            return MAPPER.readValue(JsonValue.readHjson(names).toString(), Map.class);
         } catch (final Exception e) {
             throw new IllegalArgumentException("Could not serialize attributes for consent decision");
         }
@@ -115,8 +117,9 @@ public class DefaultConsentDecisionBuilder implements ConsentDecisionBuilder {
      */
     protected String buildAndEncodeConsentAttributes(final Map<String, List<Object>> attributes) {
         try {
-            val json = MAPPER.writer(new MinimalPrettyPrinter()).writeValueAsString(attributes);
-            val base64 = EncodingUtils.encodeBase64(json);
+            val json = MAPPER.writer(new MinimalPrettyPrinter()).writeValueAsString(Objects.requireNonNull(attributes));
+            LOGGER.trace("Consentable attributes are [{}]", json);
+            val base64 = EncodingUtils.encodeBase64(Objects.requireNonNull(json));
             return this.consentCipherExecutor.encode(base64);
         } catch (final Exception e) {
             throw new IllegalArgumentException("Could not serialize attributes for consent decision");

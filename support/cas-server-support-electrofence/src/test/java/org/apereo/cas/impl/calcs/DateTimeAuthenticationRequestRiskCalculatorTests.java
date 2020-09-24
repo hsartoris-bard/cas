@@ -2,9 +2,9 @@ package org.apereo.cas.impl.calcs;
 
 import org.apereo.cas.authentication.CoreAuthenticationTestUtils;
 import org.apereo.cas.services.RegisteredServiceTestUtils;
-import org.apereo.cas.util.junit.EnabledIfStandalone;
 
 import lombok.val;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.context.TestPropertySource;
@@ -17,8 +17,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Misagh Moayyed
  * @since 5.1.0
  */
-@TestPropertySource(properties = {"cas.authn.adaptive.risk.dateTime.enabled=true", "cas.authn.adaptive.risk.dateTime.windowInHours=4"})
-@EnabledIfStandalone
+@TestPropertySource(properties = {"cas.authn.adaptive.risk.date-time.enabled=true", "cas.authn.adaptive.risk.date-time.window-in-hours=4"})
+@Tag("Authentication")
 public class DateTimeAuthenticationRequestRiskCalculatorTests extends BaseAuthenticationRequestRiskCalculatorTests {
     @Test
     public void verifyTestWhenNoAuthnEventsFoundForUser() {

@@ -2,6 +2,8 @@ package org.apereo.cas.support.oauth.web.endpoints;
 
 import org.apereo.cas.audit.AuditableContext;
 import org.apereo.cas.authentication.Authentication;
+import org.apereo.cas.authentication.AuthenticationCredentialsThreadLocalBinder;
+import org.apereo.cas.authentication.PreventedException;
 import org.apereo.cas.authentication.PrincipalException;
 import org.apereo.cas.authentication.principal.Service;
 import org.apereo.cas.services.RegisteredServiceAccessStrategyUtils;
@@ -11,7 +13,10 @@ import org.apereo.cas.support.oauth.OAuth20GrantTypes;
 import org.apereo.cas.support.oauth.services.OAuthRegisteredService;
 import org.apereo.cas.support.oauth.util.OAuth20Utils;
 import org.apereo.cas.support.oauth.web.response.accesstoken.ext.AccessTokenRequestDataHolder;
+import org.apereo.cas.ticket.TicketGrantingTicket;
+import org.apereo.cas.util.LoggingUtils;
 import org.apereo.cas.web.support.CookieUtils;
+import org.apereo.cas.web.support.WebUtils;
 
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -40,11 +45,6 @@ public class OAuth20AuthorizeEndpointController extends BaseOAuth20Controller {
         super(oAuthConfigurationContext);
     }
 
-    private static boolean isRequestAuthenticated(final ProfileManager manager) {
-        val opt = manager.get(true);
-        return opt.isPresent();
-    }
-
     /**
      * Handle request via GET.
      *
@@ -56,6 +56,9 @@ public class OAuth20AuthorizeEndpointController extends BaseOAuth20Controller {
     @GetMapping(path = OAuth20Constants.BASE_OAUTH20_URL + '/' + OAuth20Constants.AUTHORIZE_URL)
     public ModelAndView handleRequest(final HttpServletRequest request,
                                       final HttpServletResponse response) throws Exception {
+
+        ensureSessionReplicationIsAutoconfiguredIfNeedBe(request);
+
         val context = new JEEContext(request, response, getOAuthConfigurationContext().getSessionStore());
         val manager = new ProfileManager<CommonProfile>(context, context.getSessionStore());
 
@@ -72,7 +75,7 @@ public class OAuth20AuthorizeEndpointController extends BaseOAuth20Controller {
         try {
             RegisteredServiceAccessStrategyUtils.ensureServiceAccessIsAllowed(clientId, registeredService);
         } catch (final Exception e) {
-            LOGGER.error(e.getMessage(), e);
+            LoggingUtils.error(LOGGER, e);
             return OAuth20Utils.produceUnauthorizedErrorView();
         }
 
@@ -83,6 +86,25 @@ public class OAuth20AuthorizeEndpointController extends BaseOAuth20Controller {
         }
 
         return redirectToCallbackRedirectUrl(manager, registeredService, context, clientId);
+    }
+
+    protected void ensureSessionReplicationIsAutoconfiguredIfNeedBe(final HttpServletRequest request) {
+        val casProperties = getOAuthConfigurationContext().getCasProperties();
+        val replicationRequested = casProperties.getAuthn().getOauth().isReplicateSessions();
+        val cookieAutoconfigured = casProperties.getSessionReplication().getCookie().isAutoConfigureCookiePath();
+        if (replicationRequested && cookieAutoconfigured) {
+            val contextPath = request.getContextPath();
+            val cookiePath = StringUtils.isNotBlank(contextPath) ? contextPath + '/' : "/";
+
+            val path = getOAuthConfigurationContext().getOauthDistributedSessionCookieGenerator().getCookiePath();
+            if (StringUtils.isBlank(path)) {
+                LOGGER.debug("Setting path for cookies for OAuth distributed session cookie generator to: [{}]", cookiePath);
+                getOAuthConfigurationContext().getOauthDistributedSessionCookieGenerator().setCookiePath(cookiePath);
+            } else {
+                LOGGER.trace("OAuth distributed cookie domain is [{}] with path [{}]",
+                        getOAuthConfigurationContext().getOauthDistributedSessionCookieGenerator().getCookieDomain(), path);
+            }
+        }
     }
 
     /**
@@ -96,6 +118,30 @@ public class OAuth20AuthorizeEndpointController extends BaseOAuth20Controller {
     @PostMapping(path = OAuth20Constants.BASE_OAUTH20_URL + '/' + OAuth20Constants.AUTHORIZE_URL)
     public ModelAndView handleRequestPost(final HttpServletRequest request, final HttpServletResponse response) throws Exception {
         return handleRequest(request, response);
+    }
+
+    private static boolean isRequestAuthenticated(final ProfileManager manager) {
+        val opt = manager.get(true);
+        return opt.isPresent();
+    }
+
+    /**
+     * Verify the authorize request.
+     *
+     * @param context the context
+     * @return whether the authorize request is valid
+     */
+    private boolean verifyAuthorizeRequest(final JEEContext context) {
+        val validator = getOAuthConfigurationContext().getOauthRequestValidators()
+            .stream()
+            .filter(b -> b.supports(context))
+            .findFirst()
+            .orElse(null);
+        if (validator == null) {
+            LOGGER.warn("Ignoring malformed request [{}] since it cannot be validated/recognized.", context.getFullRequestURL());
+            return false;
+        }
+        return validator.validate(context);
     }
 
     /**
@@ -136,6 +182,7 @@ public class OAuth20AuthorizeEndpointController extends BaseOAuth20Controller {
         LOGGER.trace("Created OAuth authentication [{}] for service [{}]", service, authentication);
 
         try {
+            AuthenticationCredentialsThreadLocalBinder.bindCurrent(authentication);
             val audit = AuditableContext.builder()
                 .service(service)
                 .authentication(authentication)
@@ -145,7 +192,7 @@ public class OAuth20AuthorizeEndpointController extends BaseOAuth20Controller {
             val accessResult = getOAuthConfigurationContext().getRegisteredServiceAccessStrategyEnforcer().execute(audit);
             accessResult.throwExceptionIfNeeded();
         } catch (final UnauthorizedServiceException | PrincipalException e) {
-            LOGGER.error(e.getMessage(), e);
+            LoggingUtils.error(LOGGER, e);
             return OAuth20Utils.produceUnauthorizedErrorView();
         }
 
@@ -153,7 +200,7 @@ public class OAuth20AuthorizeEndpointController extends BaseOAuth20Controller {
         if (modelAndView != null && modelAndView.hasView()) {
             return modelAndView;
         }
-        LOGGER.debug("No explicit view was defined as part of the authorization response");
+        LOGGER.trace("No explicit view was defined as part of the authorization response");
         return null;
     }
 
@@ -173,16 +220,29 @@ public class OAuth20AuthorizeEndpointController extends BaseOAuth20Controller {
                                                         final String clientId,
                                                         final Service service,
                                                         final Authentication authentication) {
-        val builder = getOAuthConfigurationContext().getOauthAuthorizationResponseBuilders()
+        val configContext = getOAuthConfigurationContext();
+
+        val builder = configContext.getOauthAuthorizationResponseBuilders()
             .stream()
             .filter(b -> b.supports(context))
             .findFirst()
             .orElseThrow(() -> new IllegalArgumentException("Could not build the callback url. Response type likely not supported"));
 
-        val ticketGrantingTicket = CookieUtils.getTicketGrantingTicketFromRequest(
-            getOAuthConfigurationContext().getTicketGrantingTicketCookieGenerator(),
-            getOAuthConfigurationContext().getTicketRegistry(), context.getNativeRequest());
+        var ticketGrantingTicket = CookieUtils.getTicketGrantingTicketFromRequest(
+            configContext.getTicketGrantingTicketCookieGenerator(),
+            configContext.getTicketRegistry(), context.getNativeRequest());
 
+        if (ticketGrantingTicket == null) {
+            ticketGrantingTicket = configContext.getSessionStore()
+                .get(context, WebUtils.PARAMETER_TICKET_GRANTING_TICKET_ID)
+                .map(ticketId -> configContext.getCentralAuthenticationService().getTicket(ticketId.toString(), TicketGrantingTicket.class))
+                .orElse(null);
+        }
+        if (ticketGrantingTicket == null) {
+            val message = String.format("Unable to determine ticket-granting-ticket for client id [%s] and service [%s]", clientId, registeredService.getName());
+            LOGGER.error(message);
+            return OAuth20Utils.produceErrorView(new PreventedException(message));
+        }
         val grantType = context.getRequestParameter(OAuth20Constants.GRANT_TYPE)
             .map(String::valueOf)
             .orElseGet(OAuth20GrantTypes.AUTHORIZATION_CODE::getType)
@@ -196,7 +256,6 @@ public class OAuth20AuthorizeEndpointController extends BaseOAuth20Controller {
             .toUpperCase();
 
         val claims = OAuth20Utils.parseRequestClaims(context);
-
         val holder = AccessTokenRequestDataHolder.builder()
             .service(service)
             .authentication(authentication)
@@ -212,25 +271,6 @@ public class OAuth20AuthorizeEndpointController extends BaseOAuth20Controller {
 
         LOGGER.debug("Building authorization response for grant type [{}] with scopes [{}] for client id [{}]", grantType, scopes, clientId);
         return builder.build(context, clientId, holder);
-    }
-
-    /**
-     * Verify the authorize request.
-     *
-     * @param context the context
-     * @return whether the authorize request is valid
-     */
-    private boolean verifyAuthorizeRequest(final JEEContext context) {
-        val validator = getOAuthConfigurationContext().getOauthRequestValidators()
-            .stream()
-            .filter(b -> b.supports(context))
-            .findFirst()
-            .orElse(null);
-        if (validator == null) {
-            LOGGER.warn("Ignoring malformed request [{}] as no OAuth20 validator could declare support for its syntax", context.getFullRequestURL());
-            return false;
-        }
-        return validator.validate(context);
     }
 }
 

@@ -16,6 +16,7 @@ import org.apereo.cas.support.oauth.web.endpoints.OAuth20ConfigurationContext;
 import org.apereo.cas.support.oauth.web.response.accesstoken.response.OAuth20JwtAccessTokenEncoder;
 import org.apereo.cas.ticket.accesstoken.OAuth20AccessToken;
 import org.apereo.cas.util.HttpUtils;
+import org.apereo.cas.util.LoggingUtils;
 import org.apereo.cas.util.RandomUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -25,6 +26,7 @@ import lombok.val;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpResponse;
+import org.hjson.JsonValue;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -205,7 +207,7 @@ public class OidcDynamicClientRegistrationEndpointController extends BaseOAuth20
             getOAuthConfigurationContext().getServicesManager().save(registeredService);
             return new ResponseEntity<>(clientResponse, HttpStatus.CREATED);
         } catch (final Exception e) {
-            LOGGER.error(e.getMessage(), e);
+            LoggingUtils.error(LOGGER, e);
             val map = new HashMap<String, String>();
             map.put("error", "invalid_client_metadata");
             map.put("error_description", StringUtils.defaultString(e.getMessage(), "None"));
@@ -221,7 +223,7 @@ public class OidcDynamicClientRegistrationEndpointController extends BaseOAuth20
                 sectorResponse = HttpUtils.executeGet(registeredService.getSectorIdentifierUri());
                 if (sectorResponse != null && sectorResponse.getStatusLine().getStatusCode() == org.apache.http.HttpStatus.SC_OK) {
                     val result = IOUtils.toString(sectorResponse.getEntity().getContent(), StandardCharsets.UTF_8);
-                    val urls = MAPPER.readValue(result, List.class);
+                    val urls = MAPPER.readValue(JsonValue.readHjson(result).toString(), List.class);
                     if (!urls.equals(registrationRequest.getRedirectUris())) {
                         throw new IllegalArgumentException("Invalid sector identifier uri");
                     }

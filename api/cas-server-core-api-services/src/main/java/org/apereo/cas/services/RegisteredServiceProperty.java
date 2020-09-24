@@ -3,7 +3,6 @@ package org.apereo.cas.services;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.google.common.base.Predicates;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
@@ -85,10 +84,6 @@ public interface RegisteredServiceProperty extends Serializable {
     @Getter
     @RequiredArgsConstructor
     enum RegisteredServiceProperties {
-        /**
-         * Whether terms of use/acceptable use policy should be enabled for this service.
-         */
-        ACCEPTABLE_USAGE_POLICY_ENABLED("acceptableUsagePolicyEnabled", "true"),
         /**
          * used when delegating authentication to ADFS to indicate the relying party identifier.
          */
@@ -191,6 +186,7 @@ public interface RegisteredServiceProperty extends Serializable {
         HTTP_HEADER_ENABLE_XSS_PROTECTION("httpHeaderEnableXSSProtection", "true");
 
         private final String propertyName;
+
         private final String defaultValue;
 
         /**
@@ -308,7 +304,7 @@ public interface RegisteredServiceProperty extends Serializable {
          */
         @JsonIgnore
         public boolean isAssignedTo(final RegisteredService service) {
-            return isAssignedTo(service, Predicates.alwaysTrue());
+            return isAssignedTo(service, s -> true);
         }
 
         /**

@@ -4,7 +4,6 @@ import org.apereo.cas.audit.AuditableContext;
 import org.apereo.cas.audit.AuditableExecution;
 import org.apereo.cas.aup.AcceptableUsagePolicyRepository;
 import org.apereo.cas.authentication.Credential;
-import org.apereo.cas.services.RegisteredServiceProperty;
 import org.apereo.cas.web.support.WebUtils;
 
 import lombok.RequiredArgsConstructor;
@@ -35,13 +34,12 @@ public class AcceptableUsagePolicyVerifyServiceAction extends AbstractAction {
      * @return success if policy is accepted. {@link CasWebflowConstants#TRANSITION_ID_AUP_MUST_ACCEPT} otherwise.
      */
     private Event verify(final RequestContext context, final Credential credential) {
-
         val registeredService = WebUtils.getRegisteredService(context);
-        val authentication = WebUtils.getAuthentication(context);
-        val service = WebUtils.getService(context);
-        val eventFactorySupport = new EventFactorySupport();
 
         if (registeredService != null) {
+            val authentication = WebUtils.getAuthentication(context);
+            val service = WebUtils.getService(context);
+            val eventFactorySupport = new EventFactorySupport();
             val audit = AuditableContext.builder()
                 .service(service)
                 .authentication(authentication)
@@ -51,12 +49,10 @@ public class AcceptableUsagePolicyVerifyServiceAction extends AbstractAction {
             val accessResult = registeredServiceAccessStrategyEnforcer.execute(audit);
             accessResult.throwExceptionIfNeeded();
 
-            val property = RegisteredServiceProperty.RegisteredServiceProperties.ACCEPTABLE_USAGE_POLICY_ENABLED;
-            if (property.isAssignedTo(registeredService)) {
-                val aupEnabled = property.getPropertyBooleanValue(registeredService);
-                if (aupEnabled && !repository.verify(context, credential).isAccepted()) {
-                    return eventFactorySupport.event(this, CasWebflowConstants.TRANSITION_ID_AUP_MUST_ACCEPT);
-                }
+            val aupEnabled = registeredService.getAcceptableUsagePolicy() != null
+                && registeredService.getAcceptableUsagePolicy().isEnabled();
+            if (aupEnabled && !repository.verify(context, credential).isAccepted()) {
+                return eventFactorySupport.event(this, CasWebflowConstants.TRANSITION_ID_AUP_MUST_ACCEPT);
             }
         }
         return null;

@@ -50,11 +50,8 @@ import static org.junit.jupiter.api.Assertions.*;
     BaseCasCoreTests.SharedTestConfiguration.class,
     TokenAuthenticationConfiguration.class,
     TokenAuthenticationWebflowConfiguration.class
-}, properties = {
-    "spring.mail.host=localhost",
-    "spring.mail.port=25000"
 })
-@Tag("Webflow")
+@Tag("WebflowActions")
 public class TokenAuthenticationActionTests extends AbstractCentralAuthenticationServiceTests {
     private static final RandomStringGenerator RANDOM_STRING_GENERATOR = new DefaultRandomStringGenerator();
 
@@ -104,6 +101,6 @@ public class TokenAuthenticationActionTests extends AbstractCentralAuthenticatio
         val context = new MockRequestContext();
         context.setExternalContext(new ServletExternalContext(new MockServletContext(), request, new MockHttpServletResponse()));
         WebUtils.putServiceIntoFlowScope(context, RegisteredServiceTestUtils.getService("https://example.token.org"));
-        assertEquals("success", this.action.getObject().execute(context).getId());
+        assertEquals(CasWebflowConstants.TRANSITION_ID_SUCCESS, this.action.getObject().execute(context).getId());
     }
 }

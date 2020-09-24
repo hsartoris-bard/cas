@@ -2,8 +2,10 @@ package org.apereo.cas.otp.config;
 
 import org.apereo.cas.CentralAuthenticationService;
 import org.apereo.cas.audit.AuditableExecution;
+import org.apereo.cas.authentication.AuthenticationEventExecutionPlan;
 import org.apereo.cas.authentication.AuthenticationServiceSelectionPlan;
 import org.apereo.cas.authentication.AuthenticationSystemSupport;
+import org.apereo.cas.authentication.MultifactorAuthenticationContextValidator;
 import org.apereo.cas.authentication.OneTimeToken;
 import org.apereo.cas.configuration.CasConfigurationProperties;
 import org.apereo.cas.otp.repository.token.CachingOneTimeTokenRepository;
@@ -15,6 +17,8 @@ import org.apereo.cas.services.ServicesManager;
 import org.apereo.cas.ticket.registry.TicketRegistry;
 import org.apereo.cas.ticket.registry.TicketRegistrySupport;
 import org.apereo.cas.web.cookie.CasCookieBuilder;
+import org.apereo.cas.web.flow.SingleSignOnParticipationStrategy;
+import org.apereo.cas.web.flow.resolver.CasDelegatingWebflowEventResolver;
 import org.apereo.cas.web.flow.resolver.CasWebflowEventResolver;
 import org.apereo.cas.web.flow.resolver.impl.CasWebflowEventResolutionConfigurationContext;
 
@@ -51,6 +55,7 @@ public class OneTimeTokenAuthenticationConfiguration {
     private static final int EXPIRE_TOKENS_IN_SECONDS = 30;
 
     private static final int INITIAL_CACHE_SIZE = 50;
+
     private static final long MAX_CACHE_SIZE = 1_000_000;
 
     @Autowired
@@ -61,6 +66,10 @@ public class OneTimeTokenAuthenticationConfiguration {
     @Qualifier("defaultAuthenticationSystemSupport")
     private ObjectProvider<AuthenticationSystemSupport> authenticationSystemSupport;
 
+    @Autowired
+    @Qualifier("authenticationContextValidator")
+    private ObjectProvider<MultifactorAuthenticationContextValidator> authenticationContextValidator;
+    
     @Autowired
     @Qualifier("defaultTicketRegistrySupport")
     private ObjectProvider<TicketRegistrySupport> ticketRegistrySupport;
@@ -91,21 +100,36 @@ public class OneTimeTokenAuthenticationConfiguration {
     @Qualifier("ticketRegistry")
     private ObjectProvider<TicketRegistry> ticketRegistry;
 
+    @Autowired
+    @Qualifier("singleSignOnParticipationStrategy")
+    private ObjectProvider<SingleSignOnParticipationStrategy> webflowSingleSignOnParticipationStrategy;
+
+    @Autowired
+    @Qualifier("authenticationEventExecutionPlan")
+    private ObjectProvider<AuthenticationEventExecutionPlan> authenticationEventExecutionPlan;
+    
+    @Autowired
+    @Qualifier("initialAuthenticationAttemptWebflowEventResolver")
+    private ObjectProvider<CasDelegatingWebflowEventResolver> initialAuthenticationAttemptWebflowEventResolver;
+
     @Bean
     @RefreshScope
     public CasWebflowEventResolver oneTimeTokenAuthenticationWebflowEventResolver() {
         val context = CasWebflowEventResolutionConfigurationContext.builder()
+            .casDelegatingWebflowEventResolver(initialAuthenticationAttemptWebflowEventResolver.getObject())
+            .authenticationContextValidator(authenticationContextValidator.getObject())
             .authenticationSystemSupport(authenticationSystemSupport.getObject())
             .centralAuthenticationService(centralAuthenticationService.getObject())
             .servicesManager(servicesManager.getObject())
+            .singleSignOnParticipationStrategy(webflowSingleSignOnParticipationStrategy.getObject())
             .ticketRegistrySupport(ticketRegistrySupport.getObject())
             .warnCookieGenerator(warnCookieGenerator.getObject())
             .authenticationRequestServiceSelectionStrategies(authenticationRequestServiceSelectionStrategies.getObject())
             .registeredServiceAccessStrategyEnforcer(registeredServiceAccessStrategyEnforcer.getObject())
             .casProperties(casProperties)
             .ticketRegistry(ticketRegistry.getObject())
-            .eventPublisher(applicationContext)
             .applicationContext(applicationContext)
+            .authenticationEventExecutionPlan(authenticationEventExecutionPlan.getObject())
             .build();
 
         return new OneTimeTokenAuthenticationWebflowEventResolver(context);

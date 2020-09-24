@@ -33,9 +33,11 @@ public class SearchModeSearchDatabaseAuthenticationHandler extends AbstractJdbcU
     private final String fieldPassword;
     private final String tableUsers;
 
-    public SearchModeSearchDatabaseAuthenticationHandler(final String name, final ServicesManager servicesManager, final PrincipalFactory principalFactory,
+    public SearchModeSearchDatabaseAuthenticationHandler(final String name, final ServicesManager servicesManager,
+                                                         final PrincipalFactory principalFactory,
                                                          final Integer order, final DataSource datasource,
-                                                         final String fieldUser, final String fieldPassword, final String tableUsers) {
+                                                         final String fieldUser, final String fieldPassword,
+                                                         final String tableUsers) {
         super(name, servicesManager, principalFactory, order, datasource);
         this.fieldUser = fieldUser;
         this.fieldPassword = fieldPassword;
@@ -46,21 +48,18 @@ public class SearchModeSearchDatabaseAuthenticationHandler extends AbstractJdbcU
     protected AuthenticationHandlerExecutionResult authenticateUsernamePasswordInternal(final UsernamePasswordCredential credential,
                                                                                         final String originalPassword)
         throws GeneralSecurityException, PreventedException {
-
         val sql = "SELECT COUNT('x') FROM ".concat(this.tableUsers).concat(" WHERE ").concat(this.fieldUser)
             .concat(" = ? AND ").concat(this.fieldPassword).concat("= ?");
-
         val username = credential.getUsername();
         try {
             LOGGER.debug("Executing SQL query [{}]", sql);
-
             val count = getJdbcTemplate().queryForObject(sql, Integer.class, username, credential.getPassword());
             if (count == null || count == 0) {
                 throw new FailedLoginException(username + " not found with SQL query.");
             }
             return createHandlerResult(credential, this.principalFactory.createPrincipal(username), new ArrayList<>(0));
         } catch (final DataAccessException e) {
-            throw new PreventedException("SQL exception while executing query for " + username, e);
+            throw new PreventedException(e);
         }
     }
 }

@@ -1,7 +1,9 @@
 package org.apereo.cas.authentication.adaptive.intel;
 
+import org.apereo.cas.authentication.AuthenticationException;
 import org.apereo.cas.configuration.model.core.authentication.AdaptiveAuthenticationProperties;
 import org.apereo.cas.util.HttpUtils;
+import org.apereo.cas.util.LoggingUtils;
 
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -41,7 +43,7 @@ public class RestfulIPAddressIntelligenceService extends BaseIPAddressIntelligen
             if (response != null) {
                 val status = HttpStatus.valueOf(response.getStatusLine().getStatusCode());
                 if (status.equals(HttpStatus.FORBIDDEN) || status.equals(HttpStatus.UNAUTHORIZED)) {
-                    return IPAddressIntelligenceResponse.banned();
+                    throw new AuthenticationException("Unable to accept response status " + status);
                 }
                 if (status.equals(HttpStatus.OK) || status.equals(HttpStatus.ACCEPTED)) {
                     return IPAddressIntelligenceResponse.allowed();
@@ -53,7 +55,7 @@ public class RestfulIPAddressIntelligenceService extends BaseIPAddressIntelligen
                     .build();
             }
         } catch (final Exception e) {
-            LOGGER.error(e.getMessage(), e);
+            LoggingUtils.error(LOGGER, e);
         } finally {
             HttpUtils.close(response);
         }

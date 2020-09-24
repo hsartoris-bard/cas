@@ -29,15 +29,68 @@ import java.util.Map;
 @Getter
 public class DefaultConsentEngine implements ConsentEngine {
     private static final long serialVersionUID = -617809298856160625L;
+
     private static final int MAP_SIZE = 8;
 
     private final ConsentRepository consentRepository;
+
     private final ConsentDecisionBuilder consentDecisionBuilder;
+
+    @Audit(action = "SAVE_CONSENT",
+        actionResolverName = "SAVE_CONSENT_ACTION_RESOLVER",
+        resourceResolverName = "SAVE_CONSENT_RESOURCE_RESOLVER")
+    @Override
+    public ConsentDecision storeConsentDecision(final Service service,
+                                                final RegisteredService registeredService,
+                                                final Authentication authentication,
+                                                final long reminder,
+                                                final ChronoUnit reminderTimeUnit,
+                                                final ConsentReminderOptions options) {
+        val attributes = resolveConsentableAttributesFrom(authentication, service, registeredService);
+        val principalId = authentication.getPrincipal().getId();
+
+        val decisionFound = findConsentDecision(service, registeredService, authentication);
+        val supplier = FunctionUtils.doIfNull(decisionFound,
+            () -> consentDecisionBuilder.build(service, registeredService, principalId, attributes),
+            () -> consentDecisionBuilder.update(decisionFound, attributes));
+
+        val decision = supplier.get();
+        decision.setOptions(options);
+        decision.setReminder(reminder);
+        decision.setReminderTimeUnit(reminderTimeUnit);
+        return consentRepository.storeConsentDecision(decision);
+    }
+
+    @Override
+    public ConsentDecision findConsentDecision(final Service service,
+                                               final RegisteredService registeredService,
+                                               final Authentication authentication) {
+        return consentRepository.findConsentDecision(service, registeredService, authentication);
+    }
+
+    @Override
+    public Map<String, List<Object>> resolveConsentableAttributesFrom(final Authentication authentication,
+                                                                      final Service service,
+                                                                      final RegisteredService registeredService) {
+        LOGGER.debug("Retrieving consentable attributes for [{}]", registeredService);
+        val policy = registeredService.getAttributeReleasePolicy();
+        if (policy != null) {
+            return policy.getConsentableAttributes(authentication.getPrincipal(), service, registeredService);
+        }
+        return new LinkedHashMap<>(MAP_SIZE);
+    }
+
+    @Override
+    public Map<String, List<Object>> resolveConsentableAttributesFrom(final ConsentDecision decision) {
+        LOGGER.debug("Retrieving consentable attributes from existing decision made by [{}] for [{}]",
+            decision.getPrincipal(), decision.getService());
+        return this.consentDecisionBuilder.getConsentableAttributesFrom(decision);
+    }
 
     @Override
     public ConsentQueryResult isConsentRequiredFor(final Service service,
-                                                               final RegisteredService registeredService,
-                                                               final Authentication authentication) {
+                                                   final RegisteredService registeredService,
+                                                   final Authentication authentication) {
         val attributes = resolveConsentableAttributesFrom(authentication, service, registeredService);
 
         if (attributes == null || attributes.isEmpty()) {
@@ -72,61 +125,5 @@ public class DefaultConsentEngine implements ConsentEngine {
 
         LOGGER.debug("Consent is not required for service [{}]", service);
         return ConsentQueryResult.ignored();
-    }
-
-    @Audit(action = "SAVE_CONSENT",
-        actionResolverName = "SAVE_CONSENT_ACTION_RESOLVER",
-        resourceResolverName = "SAVE_CONSENT_RESOURCE_RESOLVER")
-    @Override
-    public ConsentDecision storeConsentDecision(final Service service,
-                                                final RegisteredService registeredService,
-                                                final Authentication authentication,
-                                                final long reminder,
-                                                final ChronoUnit reminderTimeUnit,
-                                                final ConsentReminderOptions options) {
-        val attributes = resolveConsentableAttributesFrom(authentication, service, registeredService);
-        val principalId = authentication.getPrincipal().getId();
-
-        val decisionFound = findConsentDecision(service, registeredService, authentication);
-
-        val supplier = FunctionUtils.doIfNull(decisionFound,
-            () -> consentDecisionBuilder.build(service, registeredService, principalId, attributes),
-            () -> consentDecisionBuilder.update(decisionFound, attributes));
-
-        val decision = supplier.get();
-        decision.setOptions(options);
-        decision.setReminder(reminder);
-        decision.setReminderTimeUnit(reminderTimeUnit);
-
-        if (consentRepository.storeConsentDecision(decision)) {
-            return decision;
-        }
-        throw new IllegalArgumentException("Could not store consent decision");
-    }
-
-    @Override
-    public ConsentDecision findConsentDecision(final Service service,
-                                               final RegisteredService registeredService,
-                                               final Authentication authentication) {
-        return consentRepository.findConsentDecision(service, registeredService, authentication);
-    }
-
-    @Override
-    public Map<String, List<Object>> resolveConsentableAttributesFrom(final ConsentDecision decision) {
-        LOGGER.debug("Retrieving consentable attributes from existing decision made by [{}] for [{}]",
-            decision.getPrincipal(), decision.getService());
-        return this.consentDecisionBuilder.getConsentableAttributesFrom(decision);
-    }
-
-    @Override
-    public Map<String, List<Object>> resolveConsentableAttributesFrom(final Authentication authentication,
-                                                                      final Service service,
-                                                                      final RegisteredService registeredService) {
-        LOGGER.debug("Retrieving consentable attributes for [{}]", registeredService);
-        val policy = registeredService.getAttributeReleasePolicy();
-        if (policy != null) {
-            return policy.getConsentableAttributes(authentication.getPrincipal(), service, registeredService);
-        }
-        return new LinkedHashMap<>(MAP_SIZE);
     }
 }

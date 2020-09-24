@@ -10,6 +10,7 @@ import org.apereo.cas.authentication.exceptions.AccountPasswordMustChangeExcepti
 import org.apereo.cas.authentication.handler.support.AbstractUsernamePasswordAuthenticationHandler;
 import org.apereo.cas.authentication.principal.PrincipalFactory;
 import org.apereo.cas.services.ServicesManager;
+import org.apereo.cas.util.LoggingUtils;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -51,8 +52,9 @@ public class JsonResourceAuthenticationHandler extends AbstractUsernamePasswordA
             .findAndRegisterModules()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true)
             .configure(DeserializationFeature.READ_ENUMS_USING_TO_STRING, false)
-            .configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true)
-            .enableDefaultTyping(ObjectMapper.DefaultTyping.NON_FINAL, JsonTypeInfo.As.PROPERTY);
+            .configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true);
+        this.mapper.activateDefaultTyping(mapper.getPolymorphicTypeValidator(),
+            ObjectMapper.DefaultTyping.NON_FINAL, JsonTypeInfo.As.PROPERTY);
     }
 
     @Override
@@ -113,7 +115,7 @@ public class JsonResourceAuthenticationHandler extends AbstractUsernamePasswordA
                 new TypeReference<>() {
                 });
         } catch (final Exception e) {
-            LOGGER.error(e.getMessage(), e);
+            LoggingUtils.error(LOGGER, e);
             throw new PreventedException(e);
         }
     }

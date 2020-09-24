@@ -1,14 +1,16 @@
 package org.apereo.cas.authentication.principal.cache;
 
 import org.apereo.cas.authentication.AttributeMergingStrategy;
-import org.apereo.cas.authentication.CoreAuthenticationUtils;
+import org.apereo.cas.authentication.attribute.PrincipalAttributeRepositoryFetcher;
 import org.apereo.cas.authentication.principal.Principal;
-import org.apereo.cas.authentication.principal.PrincipalAttributesRepository;
+import org.apereo.cas.authentication.principal.RegisteredServicePrincipalAttributesRepository;
 import org.apereo.cas.services.RegisteredService;
 import org.apereo.cas.util.CollectionUtils;
 import org.apereo.cas.util.spring.ApplicationContextProvider;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -40,9 +42,10 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @ToString(exclude = "lock")
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EqualsAndHashCode(of = {"mergingStrategy", "attributeRepositoryIds"})
-public abstract class AbstractPrincipalAttributesRepository implements PrincipalAttributesRepository, AutoCloseable {
+@JsonInclude(JsonInclude.Include.NON_DEFAULT)
+public abstract class AbstractPrincipalAttributesRepository implements RegisteredServicePrincipalAttributesRepository, AutoCloseable {
     private static final long serialVersionUID = 6350245643948535906L;
 
     @JsonIgnore
@@ -70,31 +73,9 @@ public abstract class AbstractPrincipalAttributesRepository implements Principal
     @Override
     public abstract Map<String, List<Object>> getAttributes(Principal principal, RegisteredService registeredService);
 
-    /**
-     * Convert attributes to principal attributes and cache.
-     *
-     * @param principal         the principal
-     * @param sourceAttributes  the source attributes
-     * @param registeredService the registered service
-     * @return the map
-     */
-    protected Map<String, List<Object>> convertAttributesToPrincipalAttributesAndCache(final Principal principal,
-                                                                                       final Map<String, List<Object>> sourceAttributes,
-                                                                                       final RegisteredService registeredService) {
-        val finalAttributes = convertPersonAttributesToPrincipalAttributes(sourceAttributes);
-        addPrincipalAttributes(principal.getId(), finalAttributes, registeredService);
-        return finalAttributes;
+    @Override
+    public void close() {
     }
-
-    /**
-     * Add principal attributes into the underlying cache instance.
-     *
-     * @param id                identifier used by the cache as key.
-     * @param attributes        attributes to cache
-     * @param registeredService the registered service
-     * @since 4.2
-     */
-    protected abstract void addPrincipalAttributes(String id, Map<String, List<Object>> attributes, RegisteredService registeredService);
 
     /**
      * Gets attribute repository.
@@ -105,26 +86,6 @@ public abstract class AbstractPrincipalAttributesRepository implements Principal
     protected static IPersonAttributeDao getAttributeRepository() {
         val repositories = ApplicationContextProvider.getAttributeRepository();
         return repositories.orElse(null);
-    }
-
-    /**
-     * Calculate merging strategy attribute merging strategy.
-     *
-     * @return the attribute merging strategy
-     */
-    protected AttributeMergingStrategy determineMergingStrategy() {
-        return ObjectUtils.defaultIfNull(getMergingStrategy(), AttributeMergingStrategy.MULTIVALUED);
-    }
-
-
-    /**
-     * Are attribute repository ids defined boolean.
-     *
-     * @return the boolean
-     */
-    @JsonIgnore
-    protected boolean areAttributeRepositoryIdsDefined() {
-        return attributeRepositoryIds != null && !attributeRepositoryIds.isEmpty();
     }
 
     /***
@@ -160,20 +121,72 @@ public abstract class AbstractPrincipalAttributesRepository implements Principal
     }
 
     /**
+     * Convert attributes to principal attributes and cache.
+     *
+     * @param principal         the principal
+     * @param sourceAttributes  the source attributes
+     * @param registeredService the registered service
+     * @return the map
+     */
+    protected Map<String, List<Object>> convertAttributesToPrincipalAttributesAndCache(final Principal principal,
+                                                                                       final Map<String, List<Object>> sourceAttributes,
+                                                                                       final RegisteredService registeredService) {
+        val finalAttributes = convertPersonAttributesToPrincipalAttributes(sourceAttributes);
+        addPrincipalAttributes(principal.getId(), finalAttributes, registeredService);
+        return finalAttributes;
+    }
+
+    /**
+     * Add principal attributes into the underlying cache instance.
+     *
+     * @param id                identifier used by the cache as key.
+     * @param attributes        attributes to cache
+     * @param registeredService the registered service
+     * @since 4.2
+     */
+    protected abstract void addPrincipalAttributes(String id, Map<String, List<Object>> attributes, RegisteredService registeredService);
+
+    /**
+     * Calculate merging strategy attribute merging strategy.
+     *
+     * @return the attribute merging strategy
+     */
+    protected AttributeMergingStrategy determineMergingStrategy() {
+        return ObjectUtils.defaultIfNull(getMergingStrategy(), AttributeMergingStrategy.MULTIVALUED);
+    }
+
+    /**
+     * Are attribute repository ids defined boolean.
+     *
+     * @return true/false
+     */
+    @JsonIgnore
+    protected boolean areAttributeRepositoryIdsDefined() {
+        return attributeRepositoryIds != null && !attributeRepositoryIds.isEmpty();
+    }
+
+    /**
      * Obtains attributes first from the repository by calling
      * {@link IPersonAttributeDao#getPerson(String, org.apereo.services.persondir.IPersonAttributeDaoFilter)}.
      *
-     * @param id the person id to locate in the attribute repository
+     * @param principal the person to locate in the attribute repository
      * @return the map of attributes
      */
-    protected Map<String, List<Object>> retrievePersonAttributesFromAttributeRepository(final String id) {
+    protected Map<String, List<Object>> retrievePersonAttributesFromAttributeRepository(final Principal principal) {
         synchronized (lock) {
             val repository = getAttributeRepository();
             if (repository == null) {
                 LOGGER.warn("No attribute repositories could be fetched from application context");
                 return new HashMap<>(0);
             }
-            return CoreAuthenticationUtils.retrieveAttributesFromAttributeRepository(repository, id, this.attributeRepositoryIds);
+
+            return PrincipalAttributeRepositoryFetcher.builder()
+                .attributeRepository(repository)
+                .principalId(principal.getId())
+                .activeAttributeRepositoryIdentifiers(this.attributeRepositoryIds)
+                .currentPrincipal(principal)
+                .build()
+                .retrieve();
         }
     }
 
@@ -189,9 +202,5 @@ public abstract class AbstractPrincipalAttributesRepository implements Principal
             return new HashMap<>(0);
         }
         return convertPrincipalAttributesToPersonAttributes(principal.getAttributes());
-    }
-
-    @Override
-    public void close() {
     }
 }

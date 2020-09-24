@@ -8,6 +8,7 @@ import org.apereo.cas.support.oauth.web.endpoints.OAuth20ConfigurationContext;
 import org.apereo.cas.support.oauth.web.response.accesstoken.OAuth20TokenGenerator;
 import org.apereo.cas.ticket.ExpirationPolicyBuilder;
 import org.apereo.cas.ticket.IdTokenGeneratorService;
+import org.apereo.cas.ticket.TicketFactoryExecutionPlanConfigurer;
 import org.apereo.cas.ticket.UniqueTicketIdGenerator;
 import org.apereo.cas.ticket.registry.TicketRegistry;
 import org.apereo.cas.token.JwtBuilder;
@@ -39,6 +40,7 @@ import org.apereo.cas.uma.web.controllers.resource.UmaFindResourceSetRegistratio
 import org.apereo.cas.uma.web.controllers.resource.UmaUpdateResourceSetRegistrationEndpointController;
 import org.apereo.cas.uma.web.controllers.rpt.UmaRequestingPartyTokenJwksEndpointController;
 import org.apereo.cas.util.DefaultUniqueTicketIdGenerator;
+import org.apereo.cas.web.cookie.CasCookieBuilder;
 
 import lombok.val;
 import org.pac4j.core.authorization.authorizer.DefaultAuthorizers;
@@ -55,6 +57,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
@@ -75,6 +78,8 @@ import static org.apereo.cas.support.oauth.OAuth20Constants.BASE_OAUTH20_URL;
 @Configuration("casOAuthUmaConfiguration")
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 public class CasOAuthUmaConfiguration implements WebMvcConfigurer {
+    @Autowired
+    private ConfigurableApplicationContext applicationContext;
 
     @Autowired
     @Qualifier("accessTokenJwtBuilder")
@@ -87,6 +92,10 @@ public class CasOAuthUmaConfiguration implements WebMvcConfigurer {
     @Autowired
     @Qualifier("ticketRegistry")
     private ObjectProvider<TicketRegistry> ticketRegistry;
+
+    @Autowired
+    @Qualifier("oauthDistributedSessionCookieGenerator")
+    private ObjectProvider<CasCookieBuilder> oauthDistributedSessionCookieGenerator;
 
     @Autowired
     @Qualifier("oauthDistributedSessionStore")
@@ -123,10 +132,12 @@ public class CasOAuthUmaConfiguration implements WebMvcConfigurer {
             .ticketRegistry(ticketRegistry.getObject())
             .servicesManager(servicesManager.getObject())
             .idTokenSigningAndEncryptionService(signingService)
+            .oauthDistributedSessionCookieGenerator(oauthDistributedSessionCookieGenerator.getObject())
             .sessionStore(oauthDistributedSessionStore.getObject())
             .casProperties(casProperties)
             .accessTokenJwtBuilder(accessTokenJwtBuilder.getObject())
             .accessTokenGenerator(oauthTokenGenerator.getObject())
+            .applicationContext(applicationContext)
             .build();
         return new UmaIdTokenGeneratorService(context);
     }
@@ -222,6 +233,13 @@ public class CasOAuthUmaConfiguration implements WebMvcConfigurer {
     @ConditionalOnMissingBean(name = "defaultUmaPermissionTicketFactory")
     public UmaPermissionTicketFactory defaultUmaPermissionTicketFactory() {
         return new DefaultUmaPermissionTicketFactory(umaPermissionTicketIdGenerator(), umaPermissionTicketExpirationPolicy());
+    }
+
+    @ConditionalOnMissingBean(name = "defaultUmaPermissionTicketFactoryConfigurer")
+    @Bean
+    @RefreshScope
+    public TicketFactoryExecutionPlanConfigurer defaultUmaPermissionTicketFactoryConfigurer() {
+        return this::defaultUmaPermissionTicketFactory;
     }
 
     @Bean

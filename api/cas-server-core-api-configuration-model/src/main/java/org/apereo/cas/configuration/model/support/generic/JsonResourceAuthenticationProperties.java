@@ -1,13 +1,14 @@
 package org.apereo.cas.configuration.model.support.generic;
 
+import org.apereo.cas.configuration.model.SpringResourceProperties;
 import org.apereo.cas.configuration.model.core.authentication.PasswordEncoderProperties;
 import org.apereo.cas.configuration.model.core.authentication.PasswordPolicyProperties;
 import org.apereo.cas.configuration.model.core.authentication.PrincipalTransformationProperties;
 import org.apereo.cas.configuration.support.RequiresModule;
-import org.apereo.cas.configuration.support.SpringResourceProperties;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 /**
@@ -19,6 +20,7 @@ import org.springframework.boot.context.properties.NestedConfigurationProperty;
 @RequiresModule(name = "cas-server-support-generic")
 @Getter
 @Setter
+@Accessors(chain = true)
 public class JsonResourceAuthenticationProperties extends SpringResourceProperties {
 
     private static final long serialVersionUID = 1079027841236526083L;

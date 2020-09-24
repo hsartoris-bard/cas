@@ -23,7 +23,7 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration(value = "casAcceptableUsagePolicyRestConfiguration", proxyBeanMethods = false)
 @EnableConfigurationProperties(CasConfigurationProperties.class)
-@ConditionalOnProperty(prefix = "cas.acceptableUsagePolicy", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "cas.acceptable-usage-policy", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class CasAcceptableUsagePolicyRestConfiguration {
 
     @Autowired
@@ -37,6 +37,6 @@ public class CasAcceptableUsagePolicyRestConfiguration {
     @Bean
     public AcceptableUsagePolicyRepository acceptableUsagePolicyRepository() {
         val aup = casProperties.getAcceptableUsagePolicy();
-        return new RestAcceptableUsagePolicyRepository(ticketRegistrySupport.getObject(), aup.getAupAttributeName(), aup.getRest());
+        return new RestAcceptableUsagePolicyRepository(ticketRegistrySupport.getObject(), aup);
     }
 }

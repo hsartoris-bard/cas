@@ -1,11 +1,11 @@
 package org.apereo.cas.services;
 
 import org.apereo.cas.authentication.principal.Service;
-import org.apereo.cas.services.domain.DomainServicesManager;
 
 import lombok.Getter;
 import lombok.val;
 import org.apereo.inspektr.audit.annotation.Audit;
+import org.springframework.core.annotation.AnnotationAwareOrderComparator;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -14,6 +14,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * This is {@link ChainingServicesManager}.
@@ -22,7 +23,7 @@ import java.util.stream.Collectors;
  * @since 6.2.0
  */
 @Getter
-public class ChainingServicesManager implements ServicesManager {
+public class ChainingServicesManager implements ServicesManager, DomainAwareServicesManager {
 
     private final List<ServicesManager> serviceManagers = new ArrayList<>();
 
@@ -33,18 +34,7 @@ public class ChainingServicesManager implements ServicesManager {
      */
     public void registerServiceManager(final ServicesManager manager) {
         this.serviceManagers.add(manager);
-    }
-
-    private Optional<ServicesManager> findServicesManager(final RegisteredService service) {
-        return serviceManagers.stream().filter(s -> s.supports(service)).findFirst();
-    }
-
-    private Optional<ServicesManager> findServicesManager(final Service service) {
-        return serviceManagers.stream().filter(s -> s.supports(service)).findFirst();
-    }
-
-    private Optional<ServicesManager> findServicesManager(final Class<?> clazz) {
-        return serviceManagers.stream().filter(s -> s.supports(clazz)).findFirst();
+        AnnotationAwareOrderComparator.sortIfNecessary(serviceManagers);
     }
 
     @Audit(action = "SAVE_SERVICE",
@@ -111,7 +101,6 @@ public class ChainingServicesManager implements ServicesManager {
         return serviceManagers.stream()
             .flatMap(s -> s.findServiceBy(clazz).stream())
             .collect(Collectors.toList());
-
     }
 
     @Override
@@ -136,6 +125,44 @@ public class ChainingServicesManager implements ServicesManager {
     }
 
     @Override
+    public <T extends RegisteredService> T findServiceBy(final long id, final Class<T> clazz) {
+        val manager = findServicesManager(clazz);
+        return manager.map(servicesManager -> servicesManager.findServiceBy(id, clazz)).orElse(null);
+    }
+
+    @Override
+    public RegisteredService findServiceByName(final String name) {
+        return serviceManagers.stream()
+            .map(s -> s.findServiceByName(name))
+            .filter(Objects::nonNull)
+            .findFirst()
+            .orElse(null);
+    }
+
+    @Override
+    public <T extends RegisteredService> T findServiceByName(final String name, final Class<T> clazz) {
+        val manager = findServicesManager(clazz);
+        return manager.map(servicesManager -> servicesManager.findServiceByName(name, clazz)).orElse(null);
+    }
+
+    @Override
+    public RegisteredService findServiceByExactServiceId(final String serviceId) {
+        return serviceManagers.stream()
+            .map(s -> s.findServiceByExactServiceId(serviceId))
+            .filter(Objects::nonNull)
+            .findFirst()
+            .orElse(null);
+    }
+
+    @Override
+    public Stream<String> getDomains() {
+        return serviceManagers.stream()
+            .filter(mgr -> mgr instanceof DomainAwareServicesManager)
+            .map(DomainAwareServicesManager.class::cast)
+            .flatMap(DomainAwareServicesManager::getDomains);
+    }
+
+    @Override
     public Collection<RegisteredService> getAllServices() {
         return serviceManagers.stream()
             .flatMap(s -> s.getAllServices().stream())
@@ -152,17 +179,17 @@ public class ChainingServicesManager implements ServicesManager {
     @Override
     public Collection<RegisteredService> getServicesForDomain(final String domain) {
         return serviceManagers.stream()
-            .filter(m -> m instanceof DomainServicesManager)
+            .filter(mgr -> mgr instanceof DomainAwareServicesManager)
+            .map(DomainAwareServicesManager.class::cast)
             .flatMap(d -> d.getServicesForDomain(domain).stream())
             .collect(Collectors.toList());
     }
 
     @Override
-    public Collection<String> getDomains() {
+    public long count() {
         return serviceManagers.stream()
-            .filter(m -> m instanceof DomainServicesManager)
-            .flatMap(d -> d.getDomains().stream())
-            .collect(Collectors.toList());
+            .mapToLong(ServicesManager::count)
+            .sum();
     }
 
     @Override
@@ -179,4 +206,17 @@ public class ChainingServicesManager implements ServicesManager {
     public boolean supports(final Class clazz) {
         return findServicesManager(clazz).isPresent();
     }
+
+    private Optional<ServicesManager> findServicesManager(final RegisteredService service) {
+        return serviceManagers.stream().filter(s -> s.supports(service)).findFirst();
+    }
+
+    private Optional<ServicesManager> findServicesManager(final Service service) {
+        return serviceManagers.stream().filter(s -> s.supports(service)).findFirst();
+    }
+
+    private Optional<ServicesManager> findServicesManager(final Class<?> clazz) {
+        return serviceManagers.stream().filter(s -> s.supports(clazz)).findFirst();
+    }
+
 }

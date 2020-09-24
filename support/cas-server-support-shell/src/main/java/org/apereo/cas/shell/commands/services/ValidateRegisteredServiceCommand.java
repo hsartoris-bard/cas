@@ -36,17 +36,12 @@ public class ValidateRegisteredServiceCommand {
      */
     @ShellMethod(key = "validate-service", value = "Validate a given JSON/YAML service definition by path or directory")
     public static void validateService(
-        @ShellOption(value = { "file", "--file" },
+        @ShellOption(value = {"file", "--file"},
             help = "Path to the JSON/YAML service definition file",
-            defaultValue = StringUtils.EMPTY) final String file,
-        @ShellOption(value = { "directory", "--directory" },
+            defaultValue = "/etc/cas/services/service.json") final String file,
+        @ShellOption(value = {"directory", "--directory"},
             help = "Path to the JSON/YAML service definitions directory",
             defaultValue = "/etc/cas/services") final String directory) {
-
-        if (StringUtils.isBlank(file) && StringUtils.isBlank(directory)) {
-            LOGGER.warn("Either file or directory must be specified");
-            return;
-        }
 
         if (StringUtils.isNotBlank(file)) {
             val filePath = new File(file);
@@ -58,16 +53,14 @@ public class ValidateRegisteredServiceCommand {
             if (directoryPath.isDirectory()) {
                 FileUtils.listFiles(directoryPath, new String[]{"json", "yml", "yaml"}, false).forEach(ValidateRegisteredServiceCommand::validate);
             }
-            return;
         }
-
     }
 
     private static void validate(final File filePath) {
         try {
             var validator = (RegisteredServiceJsonSerializer) null;
             if (filePath.isFile() && filePath.exists() && filePath.canRead() && filePath.length() > 0) {
-                switch (FilenameUtils.getExtension(filePath.getPath())) {
+                switch (FilenameUtils.getExtension(filePath.getPath()).toLowerCase()) {
                     case "json":
                         validator = new RegisteredServiceJsonSerializer();
                         break;
@@ -88,6 +81,5 @@ public class ValidateRegisteredServiceCommand {
         } finally {
             LOGGER.info("-".repeat(SEP_LINE_LENGTH));
         }
-
     }
 }

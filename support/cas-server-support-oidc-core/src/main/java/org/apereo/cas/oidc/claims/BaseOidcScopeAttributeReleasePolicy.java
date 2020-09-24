@@ -38,7 +38,7 @@ import java.util.TreeMap;
 @Getter
 @EqualsAndHashCode(callSuper = true)
 @Setter
-@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonInclude(JsonInclude.Include.NON_DEFAULT)
 public abstract class BaseOidcScopeAttributeReleasePolicy extends AbstractRegisteredServiceAttributeReleasePolicy {
 
     private static final long serialVersionUID = -7302163334687300920L;
@@ -48,7 +48,7 @@ public abstract class BaseOidcScopeAttributeReleasePolicy extends AbstractRegist
     @JsonIgnore
     private String scopeType;
 
-    public BaseOidcScopeAttributeReleasePolicy(final String scopeType) {
+    protected BaseOidcScopeAttributeReleasePolicy(final String scopeType) {
         this.scopeType = scopeType;
     }
 

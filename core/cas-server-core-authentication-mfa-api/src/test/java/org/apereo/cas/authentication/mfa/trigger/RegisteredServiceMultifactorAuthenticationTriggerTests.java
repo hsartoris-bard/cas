@@ -2,7 +2,6 @@ package org.apereo.cas.authentication.mfa.trigger;
 
 import org.apereo.cas.authentication.mfa.TestMultifactorAuthenticationProvider;
 import org.apereo.cas.authentication.principal.Service;
-import org.apereo.cas.authentication.trigger.RegisteredServiceMultifactorAuthenticationTrigger;
 import org.apereo.cas.configuration.CasConfigurationProperties;
 import org.apereo.cas.services.RegisteredServiceMultifactorPolicy;
 
@@ -33,8 +32,20 @@ public class RegisteredServiceMultifactorAuthenticationTriggerTests extends Base
     }
 
     @Test
+    public void verifyBadInput() {
+        val props = new CasConfigurationProperties();
+        val trigger = new RegisteredServiceMultifactorAuthenticationTrigger(props,
+            (providers, service, principal) -> providers.iterator().next());
+        assertNotNull(trigger.getCasProperties());
+        assertNotNull(trigger.getMultifactorAuthenticationProviderSelector());
+        val result = trigger.isActivated(null, null, this.httpRequest, mock(Service.class));
+        assertFalse(result.isPresent());
+    }
+    
+    @Test
     public void verifyOperationByPolicyForPrincipal() {
         val policy = mock(RegisteredServiceMultifactorPolicy.class);
+        when(policy.getMultifactorAuthenticationProviders()).thenReturn(Set.of("mfa-dummy"));
         when(policy.getPrincipalAttributeNameTrigger()).thenReturn("email");
         when(policy.getPrincipalAttributeValueToMatch()).thenReturn("@example.org");
         when(this.registeredService.getMultifactorPolicy()).thenReturn(policy);

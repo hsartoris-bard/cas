@@ -1,5 +1,7 @@
 package org.apereo.cas.configuration.model.support.mfa;
 
+import org.apereo.cas.configuration.model.RestEndpointProperties;
+import org.apereo.cas.configuration.model.SpringResourceProperties;
 import org.apereo.cas.configuration.model.core.util.EncryptionJwtSigningJwtCryptographyProperties;
 import org.apereo.cas.configuration.model.support.couchdb.BaseCouchDbProperties;
 import org.apereo.cas.configuration.model.support.dynamodb.DynamoDbMultifactorTrustProperties;
@@ -8,16 +10,14 @@ import org.apereo.cas.configuration.model.support.mfa.trusteddevice.DeviceFinger
 import org.apereo.cas.configuration.model.support.mongo.SingleCollectionMongoDbProperties;
 import org.apereo.cas.configuration.model.support.quartz.ScheduledJobProperties;
 import org.apereo.cas.configuration.support.RequiresModule;
-import org.apereo.cas.configuration.support.RestEndpointProperties;
-import org.apereo.cas.configuration.support.SpringResourceProperties;
 import org.apereo.cas.util.crypto.CipherExecutor;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 import java.io.Serializable;
-import java.util.concurrent.TimeUnit;
 
 /**
  * This is {@link TrustedDevicesMultifactorProperties}.
@@ -48,14 +48,11 @@ public class TrustedDevicesMultifactorProperties implements Serializable {
     private boolean deviceRegistrationEnabled = true;
 
     /**
-     * Indicates how long should record/devices be remembered as trusted devices.
+     * Indicates how record keys for trusted devices would be generated
+     * so they can be signed/verified on fetch operations.
+     * Acceptable values are {@code default}, {@code legacy}.
      */
-    private long expiration = 30;
-
-    /**
-     * Indicates the time unit by which record/devices are remembered as trusted devices.
-     */
-    private TimeUnit timeUnit = TimeUnit.DAYS;
+    private String keyGeneratorType = "default";
 
     /**
      * Store devices records via REST.
@@ -112,6 +109,7 @@ public class TrustedDevicesMultifactorProperties implements Serializable {
 
     @Getter
     @Setter
+    @Accessors(chain = true)
     @RequiresModule(name = "cas-server-support-trusted-rest")
     public static class Rest extends RestEndpointProperties {
         private static final long serialVersionUID = 3659099897056632608L;
@@ -119,6 +117,7 @@ public class TrustedDevicesMultifactorProperties implements Serializable {
 
     @Getter
     @Setter
+    @Accessors(chain = true)
     @RequiresModule(name = "cas-server-support-trusted-jdbc")
     public static class Jpa extends AbstractJpaProperties {
         private static final long serialVersionUID = -8329950619696176349L;
@@ -127,6 +126,7 @@ public class TrustedDevicesMultifactorProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-trusted-mfa-couchdb")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class CouchDb extends BaseCouchDbProperties {
 
         private static final long serialVersionUID = 5887850351177564308L;
@@ -138,6 +138,7 @@ public class TrustedDevicesMultifactorProperties implements Serializable {
 
     @Getter
     @Setter
+    @Accessors(chain = true)
     @RequiresModule(name = "cas-server-support-trusted-mongo")
     public static class MongoDb extends SingleCollectionMongoDbProperties {
 
@@ -150,6 +151,7 @@ public class TrustedDevicesMultifactorProperties implements Serializable {
 
     @Getter
     @Setter
+    @Accessors(chain = true)
     @RequiresModule(name = "cas-server-support-trusted-mfa")
     public static class Json extends SpringResourceProperties {
         private static final long serialVersionUID = 3599367681439517829L;

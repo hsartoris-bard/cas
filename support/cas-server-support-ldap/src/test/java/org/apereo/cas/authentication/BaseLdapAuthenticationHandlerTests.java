@@ -9,6 +9,7 @@ import org.apereo.cas.config.CasCoreAuthenticationPrincipalConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationSupportConfiguration;
 import org.apereo.cas.config.CasCoreConfiguration;
 import org.apereo.cas.config.CasCoreHttpConfiguration;
+import org.apereo.cas.config.CasCoreNotificationsConfiguration;
 import org.apereo.cas.config.CasCoreServicesAuthenticationConfiguration;
 import org.apereo.cas.config.CasCoreServicesConfiguration;
 import org.apereo.cas.config.CasCoreTicketCatalogConfiguration;
@@ -20,12 +21,10 @@ import org.apereo.cas.config.CasPersonDirectoryConfiguration;
 import org.apereo.cas.config.LdapAuthenticationConfiguration;
 import org.apereo.cas.config.support.CasWebApplicationServiceFactoryConfiguration;
 import org.apereo.cas.logout.config.CasCoreLogoutConfiguration;
-import org.apereo.cas.util.junit.EnabledIfContinuousIntegration;
 
 import lombok.val;
 import org.jooq.lambda.Unchecked;
 import org.jooq.lambda.UncheckedException;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -36,7 +35,7 @@ import javax.security.auth.login.FailedLoginException;
 import java.util.Arrays;
 import java.util.Collection;
 
-import static org.apereo.cas.util.junit.Assertions.*;
+import static org.apereo.cas.util.junit.Assertions.assertThrowsWithRootCause;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -63,13 +62,12 @@ import static org.junit.jupiter.api.Assertions.*;
     CasCoreTicketIdGeneratorsConfiguration.class,
     CasCoreWebConfiguration.class,
     CasCoreServicesAuthenticationConfiguration.class,
+    CasCoreNotificationsConfiguration.class,
     CasCoreServicesConfiguration.class,
     CasCoreLogoutConfiguration.class,
     CasCoreConfiguration.class,
     LdapAuthenticationConfiguration.class
 })
-@Tag("Ldap")
-@EnabledIfContinuousIntegration
 public abstract class BaseLdapAuthenticationHandlerTests {
     @Autowired
     @Qualifier("ldapAuthenticationHandlers")
@@ -97,7 +95,7 @@ public abstract class BaseLdapAuthenticationHandlerTests {
     }
 
     String[] getPrincipalAttributes() {
-        return new String[] {"cn", "description"};
+        return new String[]{"cn", "description"};
     }
 
     String getUsername() {

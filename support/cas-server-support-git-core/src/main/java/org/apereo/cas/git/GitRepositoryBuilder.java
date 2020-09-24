@@ -3,6 +3,9 @@ package org.apereo.cas.git;
 import org.apereo.cas.configuration.model.support.git.services.BaseGitProperties;
 import org.apereo.cas.configuration.support.Beans;
 import org.apereo.cas.util.CollectionUtils;
+import org.apereo.cas.util.LoggingUtils;
+import org.apereo.cas.util.spring.SpringExpressionLanguageValueResolver;
+
 
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
@@ -70,9 +73,10 @@ public class GitRepositoryBuilder {
      */
     @SneakyThrows
     public static GitRepositoryBuilder newInstance(final BaseGitProperties props) {
+        val resolver = SpringExpressionLanguageValueResolver.getInstance();
         val builder = GitRepositoryBuilder.builder()
-            .repositoryUri(props.getRepositoryUrl())
-            .activeBranch(props.getActiveBranch())
+            .repositoryUri(resolver.resolve(props.getRepositoryUrl()))
+            .activeBranch(resolver.resolve(props.getActiveBranch()))
             .branchesToClone(props.getBranchesToClone())
             .repositoryDirectory(props.getCloneDirectory())
             .privateKeyPassphrase(props.getPrivateKeyPassphrase())
@@ -115,8 +119,10 @@ public class GitRepositoryBuilder {
             }
         };
         return transport -> {
-            val sshTransport = (SshTransport) transport;
-            sshTransport.setSshSessionFactory(sshSessionFactory);
+            if (transport instanceof SshTransport) {
+                val sshTransport = (SshTransport) transport;
+                sshTransport.setSshSessionFactory(sshSessionFactory);
+            }
         };
     }
 
@@ -131,37 +137,48 @@ public class GitRepositoryBuilder {
             val transportCallback = buildTransportConfigCallback();
             val providers = this.credentialsProviders.toArray(CredentialsProvider[]::new);
             if (this.repositoryDirectory.exists()) {
-                val git = Git.open(this.repositoryDirectory);
-                LOGGER.debug("Checking out the branch [{}] at [{}]", this.activeBranch, this.repositoryDirectory);
-                git.checkout()
-                    .setName(this.activeBranch)
-                    .call();
-                return new GitRepository(git, this.credentialsProviders, transportCallback,
-                    this.timeoutInSeconds, this.signCommits);
+                LOGGER.debug("Using existing repository at [{}]", this.repositoryDirectory);
+                return getExistingGitRepository(transportCallback);
             }
-
-            val cloneCommand = Git.cloneRepository()
-                .setProgressMonitor(new LoggingGitProgressMonitor())
-                .setURI(this.repositoryUri)
-                .setDirectory(this.repositoryDirectory)
-                .setBranch(this.activeBranch)
-                .setTimeout((int) this.timeoutInSeconds)
-                .setTransportConfigCallback(transportCallback)
-                .setCredentialsProvider(new ChainingCredentialsProvider(providers));
-
-            if (StringUtils.hasText(this.branchesToClone) || "*".equals(branchesToClone)) {
-                cloneCommand.setCloneAllBranches(true);
-            } else {
-                cloneCommand.setBranchesToClone(StringUtils.commaDelimitedListToSet(this.branchesToClone)
-                    .stream()
-                    .map(GitRepositoryBuilder::getBranchPath)
-                    .collect(Collectors.toList()));
-            }
-            LOGGER.debug("Cloning repository at [{}] with branch [{}]", this.activeBranch, this.repositoryDirectory);
-            return new GitRepository(cloneCommand.call(), credentialsProviders,
-                transportCallback, this.timeoutInSeconds, this.signCommits);
+            return cloneGitRepository(transportCallback, providers);
         } catch (final Exception e) {
+            LoggingUtils.error(LOGGER, e);
             throw new IllegalArgumentException(e.getMessage(), e);
         }
+    }
+
+    private GitRepository cloneGitRepository(final TransportConfigCallback transportCallback,
+                                             final CredentialsProvider[] providers) throws Exception {
+        val cloneCommand = Git.cloneRepository()
+            .setProgressMonitor(new LoggingGitProgressMonitor())
+            .setURI(this.repositoryUri)
+            .setDirectory(this.repositoryDirectory)
+            .setBranch(this.activeBranch)
+            .setTimeout((int) this.timeoutInSeconds)
+            .setTransportConfigCallback(transportCallback)
+            .setCredentialsProvider(new ChainingCredentialsProvider(providers));
+
+        if (!StringUtils.hasText(this.branchesToClone) || "*".equals(branchesToClone)) {
+            cloneCommand.setCloneAllBranches(true);
+        } else {
+            cloneCommand.setBranchesToClone(StringUtils.commaDelimitedListToSet(this.branchesToClone)
+                .stream()
+                .map(GitRepositoryBuilder::getBranchPath)
+                .collect(Collectors.toList()));
+        }
+        LOGGER.debug("Cloning repository at [{}] with branch [{}]", this.repositoryDirectory, this.activeBranch);
+        return new GitRepository(cloneCommand.call(), credentialsProviders,
+            transportCallback, this.timeoutInSeconds, this.signCommits);
+    }
+
+
+    private GitRepository getExistingGitRepository(final TransportConfigCallback transportCallback) throws Exception {
+        val git = Git.open(this.repositoryDirectory);
+        LOGGER.debug("Checking out the branch [{}] at [{}]", this.activeBranch, this.repositoryDirectory);
+        git.checkout()
+            .setName(this.activeBranch)
+            .call();
+        return new GitRepository(git, this.credentialsProviders, transportCallback,
+            this.timeoutInSeconds, this.signCommits);
     }
 }

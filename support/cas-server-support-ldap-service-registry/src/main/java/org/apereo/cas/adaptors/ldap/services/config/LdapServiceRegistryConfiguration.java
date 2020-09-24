@@ -30,7 +30,7 @@ import java.util.Collection;
  * @since 5.0.0
  */
 @Configuration("ldapServiceRegistryConfiguration")
-@ConditionalOnProperty(prefix = "cas.serviceRegistry.ldap", name = "ldapUrl")
+@ConditionalOnProperty(prefix = "cas.service-registry.ldap", name = "ldap-url")
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 public class LdapServiceRegistryConfiguration {
 
@@ -55,14 +55,15 @@ public class LdapServiceRegistryConfiguration {
     @RefreshScope
     public ServiceRegistry ldapServiceRegistry() {
         val ldap = casProperties.getServiceRegistry().getLdap();
-        val connectionFactory = LdapUtils.newLdaptivePooledConnectionFactory(ldap);
+        val connectionFactory = LdapUtils.newLdaptiveConnectionFactory(ldap);
         return new LdapServiceRegistry(connectionFactory, ldap.getBaseDn(), ldapServiceRegistryMapper(),
             ldap, applicationContext, serviceRegistryListeners.getObject());
     }
 
     @Bean
     @ConditionalOnMissingBean(name = "ldapServiceRegistryExecutionPlanConfigurer")
-    public ServiceRegistryExecutionPlanConfigurer ldaplServiceRegistryExecutionPlanConfigurer() {
+    @RefreshScope
+    public ServiceRegistryExecutionPlanConfigurer ldapServiceRegistryExecutionPlanConfigurer() {
         return plan -> plan.registerServiceRegistry(ldapServiceRegistry());
     }
 }

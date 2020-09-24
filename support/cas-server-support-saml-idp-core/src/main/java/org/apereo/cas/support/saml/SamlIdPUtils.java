@@ -6,7 +6,6 @@ import org.apereo.cas.support.saml.services.idp.metadata.SamlRegisteredServiceSe
 import org.apereo.cas.support.saml.services.idp.metadata.cache.SamlRegisteredServiceCachingMetadataResolver;
 import org.apereo.cas.util.CollectionUtils;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +26,7 @@ import org.opensaml.saml.metadata.resolver.RoleDescriptorResolver;
 import org.opensaml.saml.metadata.resolver.impl.PredicateRoleDescriptorResolver;
 import org.opensaml.saml.saml2.core.AuthnRequest;
 import org.opensaml.saml.saml2.core.LogoutRequest;
+import org.opensaml.saml.saml2.core.NameIDPolicy;
 import org.opensaml.saml.saml2.core.RequestAbstractType;
 import org.opensaml.saml.saml2.core.StatusResponseType;
 import org.opensaml.saml.saml2.metadata.AssertionConsumerService;
@@ -96,35 +96,36 @@ public class SamlIdPUtils {
         if (authnRequest instanceof LogoutRequest) {
             endpoint = adaptor.getSingleLogoutService(binding);
         } else {
-            val endpointReq = getAssertionConsumerServiceFromRequest(authnRequest, binding);
-            endpoint = Optional.ofNullable(endpointReq).orElseGet(() -> adaptor.getAssertionConsumerService(binding));
+            val acsEndpointFromReq = getAssertionConsumerServiceFromRequest(authnRequest, binding);
+            val acsEndpointFromMetadata = adaptor.getAssertionConsumerService(binding);
+            if (acsEndpointFromReq != null) {
+                if (authnRequest.isSigned()) {
+                    endpoint = acsEndpointFromReq;
+                } else {
+                    if (acsEndpointFromMetadata == null
+                        || !adaptor.getAssertionConsumerServiceLocations(binding).contains(acsEndpointFromReq.getLocation())) {
+                        throw new SamlException(String.format("Assertion consumer service from unsigned request [%s], does not match ACS from SP metadata [%s]",
+                            acsEndpointFromReq.getLocation(), adaptor.getAssertionConsumerServiceLocations(binding)));
+                    }
+                    endpoint = acsEndpointFromReq;
+                }
+            } else {
+                endpoint = acsEndpointFromMetadata;
+            }
         }
 
         if (endpoint == null || StringUtils.isBlank(endpoint.getBinding())) {
-            throw new SamlException("Assertion consumer service does not define a binding");
+            throw new SamlException("Endpoint for "
+                + authnRequest.getSchemaType().toString()
+                + " is not available or does not define a binding for " + binding);
         }
         val location = StringUtils.isBlank(endpoint.getResponseLocation()) ? endpoint.getLocation() : endpoint.getResponseLocation();
         if (StringUtils.isBlank(location)) {
-            throw new SamlException("Assertion consumer service does not define a target location");
+            throw new SamlException("Endpoint for"
+                + authnRequest.getSchemaType().toString()
+                + " does not define a target location for " + binding);
         }
         return endpoint;
-    }
-
-    private static AssertionConsumerService getAssertionConsumerServiceFromRequest(final RequestAbstractType authnRequest, final String binding) {
-        if (authnRequest instanceof AuthnRequest) {
-            val acsUrl = AuthnRequest.class.cast(authnRequest).getAssertionConsumerServiceURL();
-            if (StringUtils.isBlank(acsUrl)) {
-                return null;
-            }
-            LOGGER.debug("Using assertion consumer service url [{}] with binding [{}] from authentication request", acsUrl, binding);
-            val builder = new AssertionConsumerServiceBuilder();
-            val endpoint = builder.buildObject(AssertionConsumerService.DEFAULT_ELEMENT_NAME);
-            endpoint.setBinding(binding);
-            endpoint.setResponseLocation(acsUrl);
-            endpoint.setLocation(acsUrl);
-            return endpoint;
-        }
-        return null;
     }
 
     /**
@@ -136,7 +137,6 @@ public class SamlIdPUtils {
      * @return the chaining metadata resolver for all saml services
      */
     @SneakyThrows
-    @SuppressFBWarnings("PRMC_POSSIBLY_REDUNDANT_METHOD_CALLS")
     public static MetadataResolver getMetadataResolverForAllSamlServices(final ServicesManager servicesManager,
                                                                          final String entityID,
                                                                          final SamlRegisteredServiceCachingMetadataResolver resolver) {
@@ -222,16 +222,6 @@ public class SamlIdPUtils {
     }
 
     /**
-     * Gets issuer from saml request.
-     *
-     * @param request the request
-     * @return the issuer from saml request
-     */
-    private static String getIssuerFromSamlRequest(final RequestAbstractType request) {
-        return request.getIssuer().getValue();
-    }
-
-    /**
      * Gets issuer from saml object.
      *
      * @param object the object
@@ -276,6 +266,46 @@ public class SamlIdPUtils {
         roleDescriptorResolver.setRequireValidMetadata(requireValidMetadata);
         roleDescriptorResolver.initialize();
         return roleDescriptorResolver;
+    }
+
+    /**
+     * Gets name id policy.
+     *
+     * @param authnRequest the authn request
+     * @return the name id policy
+     */
+    public static Optional<NameIDPolicy> getNameIDPolicy(final RequestAbstractType authnRequest) {
+        if (authnRequest instanceof AuthnRequest) {
+            return Optional.ofNullable(AuthnRequest.class.cast(authnRequest).getNameIDPolicy());
+        }
+        return Optional.empty();
+    }
+
+    private static AssertionConsumerService getAssertionConsumerServiceFromRequest(final RequestAbstractType authnRequest, final String binding) {
+        if (authnRequest instanceof AuthnRequest) {
+            val acsUrl = AuthnRequest.class.cast(authnRequest).getAssertionConsumerServiceURL();
+            if (StringUtils.isBlank(acsUrl)) {
+                return null;
+            }
+            LOGGER.debug("Fetched assertion consumer service url [{}] with binding [{}] from authentication request", acsUrl, binding);
+            val builder = new AssertionConsumerServiceBuilder();
+            val endpoint = builder.buildObject(AssertionConsumerService.DEFAULT_ELEMENT_NAME);
+            endpoint.setBinding(binding);
+            endpoint.setResponseLocation(acsUrl);
+            endpoint.setLocation(acsUrl);
+            return endpoint;
+        }
+        return null;
+    }
+
+    /**
+     * Gets issuer from saml request.
+     *
+     * @param request the request
+     * @return the issuer from saml request
+     */
+    private static String getIssuerFromSamlRequest(final RequestAbstractType request) {
+        return request.getIssuer().getValue();
     }
 }
 

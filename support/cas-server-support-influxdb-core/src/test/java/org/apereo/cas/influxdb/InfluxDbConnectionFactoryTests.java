@@ -1,6 +1,6 @@
 package org.apereo.cas.influxdb;
 
-import org.apereo.cas.util.junit.EnabledIfContinuousIntegration;
+import org.apereo.cas.util.junit.EnabledIfPortOpen;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -14,8 +14,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
@@ -28,9 +26,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Misagh Moayyed
  * @since 5.2.0
  */
-@SpringBootTest(classes = RefreshAutoConfiguration.class)
 @Tag("InfluxDb")
-@EnabledIfContinuousIntegration
+@EnabledIfPortOpen(port = 8086)
 public class InfluxDbConnectionFactoryTests {
     private static final String CAS_EVENTS_DATABASE = "casEventsDatabase";
 

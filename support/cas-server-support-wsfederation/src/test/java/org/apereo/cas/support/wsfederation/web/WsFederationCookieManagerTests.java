@@ -8,8 +8,8 @@ import org.apereo.cas.util.HttpRequestUtils;
 import lombok.val;
 import org.apereo.inspektr.common.web.ClientInfo;
 import org.apereo.inspektr.common.web.ClientInfoHolder;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockServletContext;
@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Misagh Moayyed
  * @since 5.3.0
  */
-@SpringBootTest(classes = AbstractWsFederationTests.SharedTestConfiguration.class)
+@Tag("WSFederation")
 public class WsFederationCookieManagerTests extends AbstractWsFederationTests {
     @Test
     public void verifyOperation() {
@@ -52,5 +52,26 @@ public class WsFederationCookieManagerTests extends AbstractWsFederationTests {
         val service = wsFederationCookieManager.retrieve(context);
         assertNotNull(service);
         assertEquals(original.getId(), service.getId());
+    }
+
+    @Test
+    public void verifyNoContext() {
+        val context = new MockRequestContext();
+        val request = new MockHttpServletRequest();
+        val response = new MockHttpServletResponse();
+        context.setExternalContext(new ServletExternalContext(new MockServletContext(), request, response));
+        assertThrows(IllegalArgumentException.class, () -> wsFederationCookieManager.retrieve(context));
+    }
+
+    @Test
+    public void verifyNoCookieValue() {
+        val context = new MockRequestContext();
+        val request = new MockHttpServletRequest();
+        val response = new MockHttpServletResponse();
+        context.setExternalContext(new ServletExternalContext(new MockServletContext(), request, response));
+        val config = wsFederationConfigurations.iterator().next();
+        val wctx = config.getId();
+        request.addParameter(WsFederationCookieManager.WCTX, wctx);
+        assertThrows(IllegalArgumentException.class, () -> wsFederationCookieManager.retrieve(context));
     }
 }

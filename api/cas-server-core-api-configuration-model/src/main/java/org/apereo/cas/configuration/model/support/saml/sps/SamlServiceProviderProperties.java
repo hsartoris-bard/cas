@@ -5,6 +5,7 @@ import org.apereo.cas.configuration.support.RequiresModule;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 import java.util.List;
@@ -19,6 +20,7 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
+@Accessors(chain = true)
 public class SamlServiceProviderProperties implements Serializable {
 
     private static final long serialVersionUID = 8602328179113963081L;
@@ -356,6 +358,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Dropbox extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = -8275173711355379058L;
@@ -368,6 +371,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Box extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = -5320292115253509284L;
@@ -382,6 +386,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class SAManage extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = -8695176237527302883L;
@@ -394,6 +399,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Workday extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = 3484810792914261584L;
@@ -407,6 +413,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Famis extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = 4685484530782109454L;
@@ -415,6 +422,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Salesforce extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = 4685484530782109454L;
@@ -427,6 +435,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class ServiceNow extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = 4329681021653966734L;
@@ -439,6 +448,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class NetPartner extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = 5262806306575955633L;
@@ -451,6 +461,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Office365 extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = 5878458463269060163L;
@@ -466,6 +477,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class WebAdvisor extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = 8449304623099588610L;
@@ -478,6 +490,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Webex extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = 1957066095836617091L;
@@ -493,6 +506,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Tableau extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = -2426590644028989950L;
@@ -505,6 +519,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Zoom extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = -4877129302021248398L;
@@ -519,6 +534,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class ArcGIS extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = 2976006720801066953L;
@@ -532,6 +548,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class InCommon extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = -6336757169059216490L;
@@ -548,6 +565,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Evernote extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = -1333379518527897627L;
@@ -561,6 +579,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Asana extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = 6392492484052314295L;
@@ -574,12 +593,12 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class OpenAthens extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = 7295249577313928465L;
 
         public OpenAthens() {
-            //setMetadata("https://login.openathens.net/saml/2/metadata-sp");
             addAttributes(CommonAttributeNames.EMAIL.getAttributeName(), CommonAttributeNames.EDU_PERSON_PRINCIPAL_NAME.getAttributeName());
         }
     }
@@ -587,6 +606,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class BenefitFocus extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = -6518570556068267724L;
@@ -599,6 +619,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class AdobeCloud extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = -5466434234795577247L;
@@ -612,6 +633,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class AcademicWorks extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = 5855725238963607605L;
@@ -624,6 +646,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class EasyIep extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = 6177866628049579956L;
@@ -636,6 +659,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class InfiniteCampus extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = -9023417844664430533L;
@@ -648,6 +672,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class SecuringTheHuman extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = -1688194227471468248L;
@@ -661,6 +686,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Slack extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = -1996859011579246804L;
@@ -675,6 +701,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Zendesk extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = -4668960591734555087L;
@@ -689,6 +716,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Bynder extends AbstractSamlSPProperties {
         private static final long serialVersionUID = -3168960591734555088L;
     }
@@ -696,6 +724,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class CherWell extends AbstractSamlSPProperties {
         private static final long serialVersionUID = -3168960591734555088L;
     }
@@ -703,6 +732,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class NewRelic extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = -3268960591734555088L;
@@ -711,6 +741,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Yuja extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = -1168960591734555088L;
@@ -719,6 +750,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Symplicity extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = -3178960591734555088L;
@@ -727,6 +759,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Egnyte extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = -3168760591734555088L;
@@ -735,6 +768,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class EverBridge extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = -5168960591734555088L;
@@ -743,6 +777,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class SunshineStateEdResearchAlliance extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = -5558960591734555088L;
@@ -751,6 +786,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Gartner extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = -6141931806328699054L;
@@ -763,6 +799,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Gitlab extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = -6141931806328699054L;
@@ -775,6 +812,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Hipchat extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = -6141931806328699054L;
@@ -787,6 +825,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class AppDynamics extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = -6141931806328699054L;
@@ -799,6 +838,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Amazon extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = -6141931806328699054L;
@@ -813,6 +853,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class PollEverywhere extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = -6141931806328699054L;
@@ -827,6 +868,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class ConcurSolutions extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = -6141931806328699054L;
@@ -841,6 +883,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class BlackBaud extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = -6141931806328699054L;
@@ -855,6 +898,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class GiveCampus extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = -6141931806328699054L;
@@ -872,6 +916,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class RocketChat extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = -6141931806328699054L;
@@ -888,6 +933,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class WarpWire extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = -6141931806328699054L;
@@ -907,6 +953,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class ArmsSoftware extends AbstractSamlSPProperties {
 
         private static final long serialVersionUID = -6141931806328699054L;
@@ -923,6 +970,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class AcademicHealthPlans extends AbstractSamlSPProperties {
         private static final long serialVersionUID = -6141931806328699054L;
 
@@ -937,6 +985,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class NeoGov extends AbstractSamlSPProperties {
         private static final long serialVersionUID = -6141931806328699054L;
 
@@ -950,6 +999,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class CraniumCafe extends AbstractSamlSPProperties {
         private static final long serialVersionUID = -6141931806328699054L;
 
@@ -966,6 +1016,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class CaliforniaCommunityColleges extends AbstractSamlSPProperties {
         private static final long serialVersionUID = -6141931806328699054L;
 
@@ -985,6 +1036,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Confluence extends AbstractSamlSPProperties {
         private static final long serialVersionUID = -6141931806328699054L;
 
@@ -1000,6 +1052,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Jira extends AbstractSamlSPProperties {
         private static final long serialVersionUID = -6141931806328699054L;
 
@@ -1015,6 +1068,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class CrashPlan extends AbstractSamlSPProperties {
         private static final long serialVersionUID = -6141931806328699054L;
 
@@ -1028,6 +1082,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class DocuSign extends AbstractSamlSPProperties {
         private static final long serialVersionUID = -6141931806328699054L;
 
@@ -1042,6 +1097,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class SafariOnline extends AbstractSamlSPProperties {
         private static final long serialVersionUID = -6141931806328699054L;
 
@@ -1058,6 +1114,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class PagerDuty extends AbstractSamlSPProperties {
         private static final long serialVersionUID = -6141931806328699054L;
 
@@ -1069,6 +1126,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Zimbra extends AbstractSamlSPProperties {
         private static final long serialVersionUID = -6141931806328699054L;
 
@@ -1080,6 +1138,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class TopHat extends AbstractSamlSPProperties {
         private static final long serialVersionUID = -6141931806328699054L;
 
@@ -1092,6 +1151,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Emma extends AbstractSamlSPProperties {
         private static final long serialVersionUID = -6141931806328699054L;
 
@@ -1105,6 +1165,7 @@ public class SamlServiceProviderProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-saml-sp-integrations")
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class Qualtrics extends AbstractSamlSPProperties {
         private static final long serialVersionUID = -6141931806328699054L;
 

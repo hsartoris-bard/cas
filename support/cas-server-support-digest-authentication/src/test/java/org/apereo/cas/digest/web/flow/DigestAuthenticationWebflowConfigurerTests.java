@@ -29,15 +29,14 @@ import static org.junit.jupiter.api.Assertions.*;
     CasMultifactorAuthenticationWebflowConfiguration.class,
     BaseWebflowConfigurerTests.SharedTestConfiguration.class
 })
-@Tag("Webflow")
+@Tag("WebflowConfig")
 public class DigestAuthenticationWebflowConfigurerTests extends BaseWebflowConfigurerTests {
     @Test
     public void verifyOperation() {
         assertFalse(casWebflowExecutionPlan.getWebflowConfigurers().isEmpty());
         val flow = (Flow) this.loginFlowDefinitionRegistry.getFlowDefinition(CasWebflowConfigurer.FLOW_ID_LOGIN);
         assertNotNull(flow);
-
-        var state = (TransitionableState) flow.getState(DigestAuthenticationWebflowConfigurer.STATE_ID_DIGEST_AUTHENTICATION_CHECK);
+        val state = (TransitionableState) flow.getState(DigestAuthenticationWebflowConfigurer.STATE_ID_DIGEST_AUTHENTICATION_CHECK);
         assertNotNull(state);
     }
 }

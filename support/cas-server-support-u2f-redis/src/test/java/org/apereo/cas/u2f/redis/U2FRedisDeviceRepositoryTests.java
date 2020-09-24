@@ -5,14 +5,17 @@ import org.apereo.cas.adaptors.u2f.storage.U2FDeviceRepository;
 import org.apereo.cas.config.U2FConfiguration;
 import org.apereo.cas.config.U2FRedisConfiguration;
 import org.apereo.cas.config.support.CasWebApplicationServiceFactoryConfiguration;
-import org.apereo.cas.util.junit.EnabledIfContinuousIntegration;
+import org.apereo.cas.util.junit.EnabledIfPortOpen;
 
 import lombok.Getter;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * This is {@link U2FRedisDeviceRepositoryTests}.
@@ -32,10 +35,15 @@ import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
     })
 @Tag("Redis")
 @Getter
-@EnabledIfContinuousIntegration
+@EnabledIfPortOpen(port = 6379)
 public class U2FRedisDeviceRepositoryTests extends AbstractU2FDeviceRepositoryTests {
     @Autowired
     @Qualifier("u2fDeviceRepository")
     private U2FDeviceRepository deviceRepository;
+
+    @Test
+    public void verifyOperation() {
+        assertNotNull(deviceRepository);
+    }
 }
 

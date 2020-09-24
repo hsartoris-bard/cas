@@ -2,6 +2,7 @@ package org.apereo.cas.web.support.filters;
 
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockFilterConfig;
@@ -34,6 +35,7 @@ import static org.mockito.Mockito.*;
  * @author Misagh Moayyed
  * @since 6.1
  */
+@Tag("Web")
 public class RequestParameterPolicyEnforcementFilterTests {
 
     private static void internalTestOnlyPostParameter(final String method) {
@@ -89,13 +91,13 @@ public class RequestParameterPolicyEnforcementFilterTests {
         val filter = new RequestParameterPolicyEnforcementFilter();
 
         val initParameterNames = new HashSet<String>();
-        initParameterNames.add(RequestParameterPolicyEnforcementFilter.FAIL_SAFE);
+        initParameterNames.add(RequestParameterPolicyEnforcementFilter.THROW_ON_ERROR);
         val parameterNamesEnumeration = Collections.enumeration(initParameterNames);
 
         val filterConfig = mock(FilterConfig.class);
         when(filterConfig.getInitParameterNames()).thenReturn(parameterNamesEnumeration);
 
-        when(filterConfig.getInitParameter(RequestParameterPolicyEnforcementFilter.FAIL_SAFE)).thenReturn("true");
+        when(filterConfig.getInitParameter(RequestParameterPolicyEnforcementFilter.THROW_ON_ERROR)).thenReturn("true");
 
         filter.init(filterConfig);
         assertTrue(AbstractSecurityFilter.isThrowOnErrors());
@@ -107,13 +109,13 @@ public class RequestParameterPolicyEnforcementFilterTests {
         val filter = new RequestParameterPolicyEnforcementFilter();
 
         val initParameterNames = new HashSet<String>();
-        initParameterNames.add(RequestParameterPolicyEnforcementFilter.FAIL_SAFE);
+        initParameterNames.add(RequestParameterPolicyEnforcementFilter.THROW_ON_ERROR);
         val parameterNamesEnumeration = Collections.enumeration(initParameterNames);
 
         val filterConfig = mock(FilterConfig.class);
         when(filterConfig.getInitParameterNames()).thenReturn(parameterNamesEnumeration);
 
-        when(filterConfig.getInitParameter(RequestParameterPolicyEnforcementFilter.FAIL_SAFE))
+        when(filterConfig.getInitParameter(RequestParameterPolicyEnforcementFilter.THROW_ON_ERROR))
             .thenReturn("false");
 
         filter.init(filterConfig);

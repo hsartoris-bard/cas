@@ -1,7 +1,9 @@
 package org.apereo.cas.logout.slo;
 
 import org.apereo.cas.authentication.principal.WebApplicationService;
-import org.apereo.cas.ticket.TicketGrantingTicket;
+import org.apereo.cas.logout.SingleLogoutExecutionRequest;
+
+import org.springframework.core.Ordered;
 
 import java.util.Collection;
 
@@ -12,17 +14,18 @@ import java.util.Collection;
  * @author Misagh Moayyed
  * @since 5.0.0
  */
-public interface SingleLogoutServiceMessageHandler {
+public interface SingleLogoutServiceMessageHandler extends Ordered {
 
     /**
      * Handle logout for slo service.
      *
-     * @param singleLogoutService  the service
-     * @param ticketId             the ticket id
-     * @param ticketGrantingTicket the ticket granting ticket
+     * @param singleLogoutService the service
+     * @param sessionIdentifier            the ticket id
+     * @param context             the ticket granting ticket
      * @return the logout request
      */
-    Collection<SingleLogoutRequest> handle(WebApplicationService singleLogoutService, String ticketId, TicketGrantingTicket ticketGrantingTicket);
+    Collection<SingleLogoutRequestContext> handle(WebApplicationService singleLogoutService,
+                                                  String sessionIdentifier, SingleLogoutExecutionRequest context);
 
     /**
      * Gets name.
@@ -36,10 +39,11 @@ public interface SingleLogoutServiceMessageHandler {
     /**
      * Supports handling the logout message.
      *
+     * @param context the context
      * @param service the service
-     * @return the boolean
+     * @return true /false
      */
-    default boolean supports(final WebApplicationService service) {
+    default boolean supports(final SingleLogoutExecutionRequest context, final WebApplicationService service) {
         return service != null;
     }
 
@@ -49,7 +53,7 @@ public interface SingleLogoutServiceMessageHandler {
      * @param request the logout request.
      * @return if the logout has been performed.
      */
-    boolean performBackChannelLogout(SingleLogoutRequest request);
+    boolean performBackChannelLogout(SingleLogoutRequestContext request);
 
     /**
      * Create a logout message typically for front channel logout.
@@ -57,5 +61,10 @@ public interface SingleLogoutServiceMessageHandler {
      * @param logoutRequest the logout request.
      * @return the single logout message payload
      */
-    SingleLogoutMessage createSingleLogoutMessage(SingleLogoutRequest logoutRequest);
+    SingleLogoutMessage createSingleLogoutMessage(SingleLogoutRequestContext logoutRequest);
+
+    @Override
+    default int getOrder() {
+        return Ordered.LOWEST_PRECEDENCE;
+    }
 }

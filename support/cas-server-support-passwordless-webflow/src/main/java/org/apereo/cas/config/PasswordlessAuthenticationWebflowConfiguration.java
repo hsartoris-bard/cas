@@ -7,8 +7,8 @@ import org.apereo.cas.authentication.MultifactorAuthenticationTriggerSelectionSt
 import org.apereo.cas.authentication.adaptive.AdaptiveAuthenticationPolicy;
 import org.apereo.cas.authentication.principal.PrincipalFactory;
 import org.apereo.cas.configuration.CasConfigurationProperties;
+import org.apereo.cas.notifications.CommunicationsManager;
 import org.apereo.cas.services.ServicesManager;
-import org.apereo.cas.util.io.CommunicationsManager;
 import org.apereo.cas.util.scripting.WatchableGroovyScriptResource;
 import org.apereo.cas.web.flow.AcceptPasswordlessAuthenticationAction;
 import org.apereo.cas.web.flow.CasWebflowConfigurer;
@@ -162,7 +162,7 @@ public class PasswordlessAuthenticationWebflowConfiguration {
 
     @Bean
     public Action initializeLoginAction() {
-        return new PrepareForPasswordlessAuthenticationAction(servicesManager.getObject());
+        return new PrepareForPasswordlessAuthenticationAction(servicesManager.getObject(), casProperties);
     }
 
     @ConditionalOnMissingBean(name = "passwordlessAuthenticationWebflowConfigurer")

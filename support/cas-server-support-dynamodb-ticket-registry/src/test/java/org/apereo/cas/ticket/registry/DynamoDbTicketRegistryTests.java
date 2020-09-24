@@ -13,15 +13,17 @@ import org.apereo.cas.ticket.refreshtoken.OAuth20DefaultRefreshTokenFactory;
 import org.apereo.cas.token.JwtBuilder;
 import org.apereo.cas.util.CollectionUtils;
 import org.apereo.cas.util.crypto.CipherExecutor;
-import org.apereo.cas.util.junit.EnabledIfContinuousIntegration;
 import org.apereo.cas.util.junit.EnabledIfPortOpen;
 
+import lombok.Getter;
 import lombok.val;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
+import software.amazon.awssdk.core.SdkSystemSetting;
 
 import java.util.HashMap;
 
@@ -41,41 +43,35 @@ import static org.junit.jupiter.api.Assertions.*;
     BaseTicketRegistryTests.SharedTestConfiguration.class
 },
     properties = {
-        "cas.ticket.registry.dynamoDb.endpoint=http://localhost:8000",
-        "cas.ticket.registry.dynamoDb.dropTablesOnStartup=true",
-        "cas.ticket.registry.dynamoDb.localInstance=true",
-        "cas.ticket.registry.dynamoDb.region=us-east-1"
+        "cas.ticket.registry.dynamo-db.endpoint=http://localhost:8000",
+        "cas.ticket.registry.dynamo-db.drop-tables-on-startup=true",
+        "cas.ticket.registry.dynamo-db.local-instance=true",
+        "cas.ticket.registry.dynamo-db.region=us-east-1"
     })
-@EnabledIfContinuousIntegration
 @EnabledIfPortOpen(port = 8000)
+@Getter
 public class DynamoDbTicketRegistryTests extends BaseTicketRegistryTests {
     static {
-        System.setProperty("aws.accessKeyId", "AKIAIPPIGGUNIO74C63Z");
-        System.setProperty("aws.secretKey", "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");
+        System.setProperty(SdkSystemSetting.AWS_ACCESS_KEY_ID.property(), "AKIAIPPIGGUNIO74C63Z");
+        System.setProperty(SdkSystemSetting.AWS_SECRET_ACCESS_KEY.property(), "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");
     }
 
     @Autowired
     @Qualifier("ticketRegistry")
-    private TicketRegistry ticketRegistry;
-
+    private TicketRegistry newTicketRegistry;
     @Autowired
     @Qualifier("servicesManager")
     private ServicesManager servicesManager;
-
-    @Override
-    public TicketRegistry getNewTicketRegistry() {
-        return ticketRegistry;
-    }
-
+    
     @RepeatedTest(2)
     public void verifyOAuthCodeCanBeAdded() {
         val code = new OAuth20DefaultOAuthCodeFactory(neverExpiresExpirationPolicyBuilder(), servicesManager)
             .create(RegisteredServiceTestUtils.getService(),
             RegisteredServiceTestUtils.getAuthentication(), new MockTicketGrantingTicket("casuser"),
             CollectionUtils.wrapSet("1", "2"), "code-challenge", "code-challenge-method", "clientId1234567", new HashMap<>());
-        ticketRegistry.addTicket(code);
-        assertSame(1, ticketRegistry.deleteTicket(code.getId()), "Wrong ticket count");
-        assertNull(ticketRegistry.getTicket(code.getId()));
+        newTicketRegistry.addTicket(code);
+        assertSame(1, newTicketRegistry.deleteTicket(code.getId()), "Wrong ticket count");
+        assertNull(newTicketRegistry.getTicket(code.getId()));
     }
 
     @RepeatedTest(2)
@@ -86,9 +82,9 @@ public class DynamoDbTicketRegistryTests extends BaseTicketRegistryTests {
             .create(RegisteredServiceTestUtils.getService(),
                 RegisteredServiceTestUtils.getAuthentication(), new MockTicketGrantingTicket("casuser"),
                 CollectionUtils.wrapSet("1", "2"), "clientId1234567", new HashMap<>());
-        ticketRegistry.addTicket(token);
-        assertSame(1, ticketRegistry.deleteTicket(token.getId()), "Wrong ticket count");
-        assertNull(ticketRegistry.getTicket(token.getId()));
+        newTicketRegistry.addTicket(token);
+        assertSame(1, newTicketRegistry.deleteTicket(token.getId()), "Wrong ticket count");
+        assertNull(newTicketRegistry.getTicket(token.getId()));
     }
 
     @RepeatedTest(2)
@@ -96,9 +92,9 @@ public class DynamoDbTicketRegistryTests extends BaseTicketRegistryTests {
         val token = new OAuth20DefaultRefreshTokenFactory(neverExpiresExpirationPolicyBuilder(), servicesManager)
             .create(RegisteredServiceTestUtils.getService(),
                 RegisteredServiceTestUtils.getAuthentication(), new MockTicketGrantingTicket("casuser"),
-                CollectionUtils.wrapSet("1", "2"), "clientId1234567", new HashMap<>());
-        ticketRegistry.addTicket(token);
-        assertSame(1, ticketRegistry.deleteTicket(token.getId()), "Wrong ticket count");
-        assertNull(ticketRegistry.getTicket(token.getId()));
+                CollectionUtils.wrapSet("1", "2"), "clientId1234567", StringUtils.EMPTY, new HashMap<>());
+        newTicketRegistry.addTicket(token);
+        assertSame(1, newTicketRegistry.deleteTicket(token.getId()), "Wrong ticket count");
+        assertNull(newTicketRegistry.getTicket(token.getId()));
     }
 }

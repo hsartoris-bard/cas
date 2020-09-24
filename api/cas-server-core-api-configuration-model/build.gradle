@@ -1,5 +1,5 @@
 description = "Apereo CAS Core Configuration Model"
-def skipConfigurationMetadata = Boolean.getBoolean("skipNestedConfigMetadataGen")
+def skipConfigurationMetadata = providers.systemProperty("skipNestedConfigMetadataGen").forUseAtConfigurationTime().present
 
 sourceSets.test.resources.srcDirs += sourceSets.main.resources.srcDirs
 
@@ -7,7 +7,7 @@ dependencies {
     implementation libraries.jasypt
     implementation libraries.bouncycastle
 
-    compile libraries.springbootconfigmetadata
+    implementation libraries.springbootconfigmetadata
 
     api project(":api:cas-server-core-api-util")
     api project(":api:cas-server-core-api-authentication")
@@ -35,6 +35,6 @@ if (!skipConfigurationMetadata) {
         args buildDir, projectDir.canonicalPath
     }
 
-    compileJava.dependsOn(processResources)
+    compileJava.inputs.files(processResources)
     jar.dependsOn(generateConfigurationMetadata)
 }

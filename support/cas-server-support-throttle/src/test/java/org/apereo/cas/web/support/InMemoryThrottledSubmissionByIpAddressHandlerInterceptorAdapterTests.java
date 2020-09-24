@@ -1,6 +1,7 @@
 package org.apereo.cas.web.support;
 
 import lombok.Getter;
+import org.junit.jupiter.api.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -15,11 +16,10 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  */
 @EnableScheduling
 @SpringBootTest(classes = BaseThrottledSubmissionHandlerInterceptorAdapterTests.SharedTestConfiguration.class,
-properties = {
-    "spring.mail.host=localhost",
-    "spring.mail.port=25000"
-})
+    properties = "cas.authn.throttle.failure.range-seconds=5"
+)
 @Getter
+@Tag("Simple")
 public class InMemoryThrottledSubmissionByIpAddressHandlerInterceptorAdapterTests
     extends BaseThrottledSubmissionHandlerInterceptorAdapterTests {
 

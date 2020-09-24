@@ -1,10 +1,13 @@
 package org.apereo.cas.configuration.model.core.authentication;
 
+import org.apereo.cas.configuration.model.SpringResourceProperties;
 import org.apereo.cas.configuration.support.RequiresModule;
-import org.apereo.cas.configuration.support.SpringResourceProperties;
 
+import com.fasterxml.jackson.annotation.JsonFilter;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
+import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 import java.io.Serializable;
 
@@ -17,6 +20,8 @@ import java.io.Serializable;
 @RequiresModule(name = "cas-server-core-authentication", automated = true)
 @Getter
 @Setter
+@Accessors(chain = true)
+@JsonFilter("CoreAuthenticationProperties")
 public class CoreAuthenticationProperties implements Serializable {
     private static final long serialVersionUID = -2244126985007049516L;
 
@@ -35,9 +40,16 @@ public class CoreAuthenticationProperties implements Serializable {
      */
     private GroovyAuthenticationHandlerResolution groovyAuthenticationResolution = new GroovyAuthenticationHandlerResolution();
 
+    /**
+     * Customization of authentication engine and pre/post processing.
+     */
+    @NestedConfigurationProperty
+    private AuthenticationEngineProperties engine = new AuthenticationEngineProperties();
+    
     @RequiresModule(name = "cas-server-support-authentication", automated = true)
     @Getter
     @Setter
+    @Accessors(chain = true)
     public static class GroovyAuthenticationHandlerResolution extends SpringResourceProperties {
         private static final long serialVersionUID = 8079027843747126083L;
 
@@ -50,6 +62,8 @@ public class CoreAuthenticationProperties implements Serializable {
     @RequiresModule(name = "cas-server-support-authentication", automated = true)
     @Getter
     @Setter
+    @Accessors(chain = true)
+    @JsonFilter("RegisteredServiceAuthenticationHandlerResolution")
     public static class RegisteredServiceAuthenticationHandlerResolution implements Serializable {
         private static final long serialVersionUID = 8079027843747126083L;
 

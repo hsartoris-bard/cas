@@ -13,7 +13,7 @@ import lombok.val;
 import org.apereo.inspektr.common.web.ClientInfo;
 import org.apereo.inspektr.common.web.ClientInfoHolder;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.TestInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.aop.AopAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -40,7 +40,6 @@ import static org.mockito.Mockito.*;
 })
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 @DirtiesContext
-@Tag("MFA")
 public abstract class BaseMultifactorAuthenticationTriggerTests {
     @Autowired
     protected ConfigurableApplicationContext applicationContext;
@@ -56,15 +55,18 @@ public abstract class BaseMultifactorAuthenticationTriggerTests {
     protected TestMultifactorAuthenticationProvider multifactorAuthenticationProvider;
 
     @BeforeEach
-    public void setup() {
+    public void setup(final TestInfo info) {
         ApplicationContextProvider.holdApplicationContext(applicationContext);
-        this.multifactorAuthenticationProvider = TestMultifactorAuthenticationProvider.registerProviderIntoApplicationContext(applicationContext);
+
+        if (!info.getTags().contains("DisableProviderRegistration")) {
+            this.multifactorAuthenticationProvider = TestMultifactorAuthenticationProvider.registerProviderIntoApplicationContext(applicationContext);
+        }
 
         this.authentication = mock(Authentication.class);
         val principal = mock(Principal.class);
         when(principal.getId()).thenReturn("casuser");
         when(principal.getAttributes()).thenReturn(Map.of("email", List.of("casuser@example.org")));
-        when(authentication.getAttributes()).thenReturn(Map.of("category", List.of("user-object")));
+        when(authentication.getAttributes()).thenReturn(Map.of("category", List.of("user-object"), "mfa-mode", List.of("mfa-other")));
         when(authentication.getPrincipal()).thenReturn(principal);
 
         this.registeredService = mock(RegisteredService.class);

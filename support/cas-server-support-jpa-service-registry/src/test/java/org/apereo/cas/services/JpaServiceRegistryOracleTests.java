@@ -1,6 +1,5 @@
 package org.apereo.cas.services;
 
-import org.apereo.cas.util.junit.EnabledIfContinuousIntegration;
 import org.apereo.cas.util.junit.EnabledIfPortOpen;
 
 import org.junit.jupiter.api.Tag;
@@ -13,13 +12,14 @@ import org.springframework.test.context.TestPropertySource;
  * @since 6.0.0
  */
 @TestPropertySource(properties = {
-    "cas.serviceRegistry.jpa.user=system",
-    "cas.serviceRegistry.jpa.password=Oradoc_db1",
-    "cas.serviceRegistry.jpa.driverClass=oracle.jdbc.driver.OracleDriver",
-    "cas.serviceRegistry.jpa.url=jdbc:oracle:thin:@localhost:1521:ORCLCDB",
-    "cas.serviceRegistry.jpa.dialect=org.hibernate.dialect.Oracle12cDialect"
+    "cas.jdbc.show-sql=true",
+    "cas.service-registry.jpa.ddl-auto=create",
+    "cas.service-registry.jpa.user=system",
+    "cas.service-registry.jpa.password=Oradoc_db1",
+    "cas.service-registry.jpa.driver-class=oracle.jdbc.driver.OracleDriver",
+    "cas.service-registry.jpa.url=jdbc:oracle:thin:@localhost:1521:ORCLCDB",
+    "cas.service-registry.jpa.dialect=org.hibernate.dialect.Oracle12cDialect"
 })
-@EnabledIfContinuousIntegration
 @EnabledIfPortOpen(port = 1521)
 @Tag("Oracle")
 public class JpaServiceRegistryOracleTests extends JpaServiceRegistryTests {

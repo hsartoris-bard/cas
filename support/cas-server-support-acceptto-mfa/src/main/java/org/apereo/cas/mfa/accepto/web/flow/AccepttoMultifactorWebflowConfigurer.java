@@ -3,6 +3,7 @@ package org.apereo.cas.mfa.accepto.web.flow;
 import org.apereo.cas.configuration.CasConfigurationProperties;
 import org.apereo.cas.web.flow.CasWebflowConstants;
 import org.apereo.cas.web.flow.configurer.AbstractCasMultifactorWebflowConfigurer;
+import org.apereo.cas.web.flow.configurer.CasMultifactorWebflowCustomizer;
 
 import lombok.val;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -15,6 +16,7 @@ import org.springframework.webflow.engine.builder.support.FlowBuilderServices;
 import org.springframework.webflow.execution.Event;
 import org.springframework.webflow.execution.RequestContext;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -34,14 +36,63 @@ public class AccepttoMultifactorWebflowConfigurer extends AbstractCasMultifactor
                                                 final FlowDefinitionRegistry loginFlowDefinitionRegistry,
                                                 final FlowDefinitionRegistry flowDefinitionRegistry,
                                                 final ConfigurableApplicationContext applicationContext,
-                                                final CasConfigurationProperties casProperties) {
-        super(flowBuilderServices, loginFlowDefinitionRegistry, applicationContext, casProperties, Optional.of(flowDefinitionRegistry));
+                                                final CasConfigurationProperties casProperties,
+                                                final List<CasMultifactorWebflowCustomizer> mfaFlowCustomizers) {
+        super(flowBuilderServices, loginFlowDefinitionRegistry, applicationContext,
+            casProperties, Optional.of(flowDefinitionRegistry), mfaFlowCustomizers);
+    }
+
+    private static class AccepttoFinalizeAuthenticationAction extends AbstractAction {
+        @Override
+        protected Event doExecute(final RequestContext requestContext) {
+            return new EventFactorySupport().success(this);
+        }
     }
 
     @Override
     protected void doInitialize() {
-        val flow = getLoginFlow();
+        multifactorAuthenticationFlowDefinitionRegistries.forEach(registry -> {
+            val flow = getFlow(registry, MFA_ACCEPTTO_EVENT_ID);
+            flow.getStartActionList().add(createEvaluateAction(CasWebflowConstants.ACTION_ID_INITIAL_FLOW_SETUP));
 
+            val initLoginFormState = createActionState(flow, CasWebflowConstants.STATE_ID_INIT_LOGIN_FORM,
+                createEvaluateAction(CasWebflowConstants.ACTION_ID_INIT_LOGIN_ACTION));
+            createTransitionForState(initLoginFormState, CasWebflowConstants.TRANSITION_ID_SUCCESS, "fetchUserAccountStatus");
+            setStartState(flow, initLoginFormState);
+
+            val fetchAccountState = createActionState(flow, "fetchUserAccountStatus",
+                createEvaluateAction("mfaAccepttoMultifactorDetermineUserAccountStatusAction"));
+            createTransitionForState(fetchAccountState, CasWebflowConstants.TRANSITION_ID_UNAVAILABLE, CasWebflowConstants.STATE_ID_MFA_FAILURE);
+            createTransitionForState(fetchAccountState, CasWebflowConstants.TRANSITION_ID_DENY, CasWebflowConstants.STATE_ID_DENY);
+            createTransitionForState(fetchAccountState, CasWebflowConstants.TRANSITION_ID_REGISTER, CasWebflowConstants.STATE_ID_REGISTER_DEVICE);
+            createTransitionForState(fetchAccountState, CasWebflowConstants.TRANSITION_ID_SUCCESS, "authenticateAndFetchChannel");
+            createTransitionForState(fetchAccountState, CasWebflowConstants.TRANSITION_ID_APPROVE, CasWebflowConstants.STATE_ID_REAL_SUBMIT);
+
+            val fetchChannelState = createActionState(flow, "authenticateAndFetchChannel",
+                createEvaluateAction("mfaAccepttoMultifactorFetchChannelAction"));
+            createTransitionForState(fetchChannelState, CasWebflowConstants.TRANSITION_ID_SUCCESS, "redirectToAcceptto");
+
+            val validateState = createActionState(flow, "validateUser",
+                createEvaluateAction("mfaAccepttoMultifactorValidateUserDeviceRegistrationAction"));
+            createTransitionForState(validateState, CasWebflowConstants.TRANSITION_ID_FINALIZE, CasWebflowConstants.STATE_ID_REAL_SUBMIT);
+            createTransitionForState(validateState, CasWebflowConstants.TRANSITION_ID_ERROR, CasWebflowConstants.STATE_ID_DENY);
+            createTransitionForState(validateState, CasWebflowConstants.TRANSITION_ID_DENY, CasWebflowConstants.STATE_ID_DENY);
+
+            val realSubmitState = createActionState(flow, CasWebflowConstants.STATE_ID_REAL_SUBMIT,
+                createEvaluateAction("mfaAccepttoMultifactorFinalizeAuthenticationWebflowAction"));
+            createTransitionForState(realSubmitState, CasWebflowConstants.TRANSITION_ID_SUCCESS, CasWebflowConstants.STATE_ID_SUCCESS);
+            createTransitionForState(realSubmitState, CasWebflowConstants.TRANSITION_ID_ERROR, CasWebflowConstants.STATE_ID_VIEW_LOGIN_FORM);
+
+            val redirectState = createViewState(flow, "redirectToAcceptto",
+                createExternalRedirectViewFactory("requestScope.accepttoRedirectUrl"));
+            createStateDefaultTransition(redirectState, CasWebflowConstants.STATE_ID_SUCCESS);
+
+            val registerState = createViewState(flow, CasWebflowConstants.STATE_ID_REGISTER_DEVICE, "casAccepttoRegistrationView");
+            createTransitionForState(registerState, CasWebflowConstants.TRANSITION_ID_SUCCESS, "validateUser");
+        });
+
+
+        val flow = getLoginFlow();
         if (flow != null) {
             registerMultifactorProviderAuthenticationWebflow(flow, MFA_ACCEPTTO_EVENT_ID,
                 casProperties.getAuthn().getMfa().getAcceptto().getId());
@@ -71,12 +122,5 @@ public class AccepttoMultifactorWebflowConfigurer extends AbstractCasMultifactor
             }
         }
 
-    }
-
-    private static class AccepttoFinalizeAuthenticationAction extends AbstractAction {
-        @Override
-        protected Event doExecute(final RequestContext requestContext) {
-            return new EventFactorySupport().success(this);
-        }
     }
 }

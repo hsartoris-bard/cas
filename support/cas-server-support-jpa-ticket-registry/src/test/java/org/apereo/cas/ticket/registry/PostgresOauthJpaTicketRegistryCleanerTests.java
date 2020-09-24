@@ -1,6 +1,5 @@
 package org.apereo.cas.ticket.registry;
 
-import org.apereo.cas.util.junit.EnabledIfContinuousIntegration;
 import org.apereo.cas.util.junit.EnabledIfPortOpen;
 
 import org.junit.jupiter.api.Tag;
@@ -15,12 +14,11 @@ import org.springframework.test.context.TestPropertySource;
 @TestPropertySource(properties = {
     "cas.ticket.registry.jpa.user=postgres",
     "cas.ticket.registry.jpa.password=password",
-    "cas.ticket.registry.jpa.driverClass=org.postgresql.Driver",
+    "cas.ticket.registry.jpa.driver-class=org.postgresql.Driver",
     "cas.ticket.registry.jpa.url=jdbc:postgresql://localhost:5432/tickets",
     "cas.ticket.registry.jpa.dialect=org.hibernate.dialect.PostgreSQL95Dialect"
 })
 @EnabledIfPortOpen(port = 5432)
-@EnabledIfContinuousIntegration
 @Tag("Postgres")
-public class PostgresOauthJpaTicketRegistryCleanerTests extends OauthJpaTicketRegistryCleanerTests {
+public class PostgresOauthJpaTicketRegistryCleanerTests extends OAuthJpaTicketRegistryCleanerTests {
 }

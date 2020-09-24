@@ -2,29 +2,30 @@ package org.apereo.cas.authentication.policy;
 
 import org.apereo.cas.authentication.Authentication;
 import org.apereo.cas.authentication.AuthenticationHandler;
-import org.apereo.cas.authentication.AuthenticationPolicy;
 import org.apereo.cas.authentication.exceptions.AccountDisabledException;
 import org.apereo.cas.authentication.exceptions.AccountPasswordMustChangeException;
 import org.apereo.cas.authentication.principal.Principal;
-import org.apereo.cas.util.CollectionUtils;
+import org.apereo.cas.util.HttpUtils;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.val;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
+import org.apache.http.HttpResponse;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.RestTemplate;
 
 import javax.security.auth.login.AccountExpiredException;
 import javax.security.auth.login.AccountLockedException;
 import javax.security.auth.login.AccountNotFoundException;
 import javax.security.auth.login.FailedLoginException;
+import java.io.Serializable;
 import java.security.GeneralSecurityException;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -33,35 +34,46 @@ import java.util.Set;
  * @author Misagh Moayyed
  * @since 5.2.0
  */
-@Slf4j
-@RequiredArgsConstructor
-public class RestfulAuthenticationPolicy implements AuthenticationPolicy {
-    private final transient RestTemplate restTemplate;
-    private final String endpoint;
+@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
+@NoArgsConstructor(force = true)
+@EqualsAndHashCode(callSuper = true)
+@Setter
+@Getter
+@AllArgsConstructor
+public class RestfulAuthenticationPolicy extends BaseAuthenticationPolicy {
+    private static final long serialVersionUID = -7688729533538097898L;
+
+    private static final ObjectMapper MAPPER = new ObjectMapper().findAndRegisterModules();
+
+    private String endpoint;
+
+    private String basicAuthUsername;
+
+    private String basicAuthPassword;
+
+    public RestfulAuthenticationPolicy(final String endpoint) {
+        this.endpoint = endpoint;
+    }
 
     @Override
-    public boolean isSatisfiedBy(final Authentication authentication, final Set<AuthenticationHandler> authenticationHandlers) throws Exception {
+    public boolean isSatisfiedBy(final Authentication authentication,
+                                 final Set<AuthenticationHandler> authenticationHandlers,
+                                 final ConfigurableApplicationContext applicationContext,
+                                 final Optional<Serializable> assertion) throws Exception {
+        HttpResponse response = null;
         val principal = authentication.getPrincipal();
         try {
-            val acceptHeaders = new HttpHeaders();
-            acceptHeaders.setAccept(CollectionUtils.wrap(MediaType.APPLICATION_JSON_UTF8));
-            acceptHeaders.setContentType(MediaType.APPLICATION_JSON_UTF8);
-            val entity = new HttpEntity<Principal>(principal, acceptHeaders);
-            LOGGER.debug("Checking authentication policy for [{}] via POST at [{}]", principal, this.endpoint);
-            val resp = restTemplate.exchange(this.endpoint, HttpMethod.POST, entity, String.class);
-            val statusCode = resp.getStatusCode();
+            val entity = MAPPER.writeValueAsString(principal);
+            response = HttpUtils.executePost(this.endpoint, this.basicAuthUsername, this.basicAuthPassword, entity);
+            val statusCode = HttpStatus.valueOf(response.getStatusLine().getStatusCode());
             if (statusCode != HttpStatus.OK) {
                 val ex = handleResponseStatusCode(statusCode, principal);
                 throw new GeneralSecurityException(ex);
             }
             return true;
-        } catch (final HttpClientErrorException | HttpServerErrorException e) {
-            val ex = handleResponseStatusCode(e.getStatusCode(), authentication.getPrincipal());
-            throw new GeneralSecurityException(ex);
-        } catch (final Exception e) {
-            LOGGER.error(e.getMessage(), e);
+        } finally {
+            HttpUtils.close(response);
         }
-        return false;
     }
 
     private static Exception handleResponseStatusCode(final HttpStatus statusCode, final Principal p) {

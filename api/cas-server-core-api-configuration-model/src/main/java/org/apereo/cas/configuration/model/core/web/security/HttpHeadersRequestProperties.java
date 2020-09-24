@@ -4,6 +4,7 @@ import org.apereo.cas.configuration.support.RequiresModule;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 
@@ -16,6 +17,7 @@ import java.io.Serializable;
 @RequiresModule(name = "cas-server-core-web", automated = true)
 @Getter
 @Setter
+@Accessors(chain = true)
 public class HttpHeadersRequestProperties implements Serializable {
 
     private static final long serialVersionUID = 5993704062519851359L;
@@ -28,11 +30,11 @@ public class HttpHeadersRequestProperties implements Serializable {
 
     /**
      * When true, will inject the following headers into the response for non-static resources.
-     * <pre>
+     * &lt;pre&gt;
      * Cache-Control: no-cache, no-store, max-age=0, must-revalidate
      * Pragma: no-cache
      * Expires: 0
-     * </pre>
+     * &lt;/pre&gt;
      */
     private boolean cache = true;
 

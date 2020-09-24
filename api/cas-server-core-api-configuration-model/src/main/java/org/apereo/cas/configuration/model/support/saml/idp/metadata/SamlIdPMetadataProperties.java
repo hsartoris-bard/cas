@@ -5,9 +5,8 @@ import org.apereo.cas.configuration.support.RequiresModule;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.Resource;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -23,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 @RequiresModule(name = "cas-server-support-saml-idp")
 @Getter
 @Setter
+@Accessors(chain = true)
 public class SamlIdPMetadataProperties implements Serializable {
 
     private static final long serialVersionUID = -1020542741768471305L;
@@ -55,13 +55,27 @@ public class SamlIdPMetadataProperties implements Serializable {
      * This directory will be used to hold the configuration files.
      */
     @RequiredProperty
-    private transient Resource location = new FileSystemResource("/etc/cas/saml");
+    private String location = "file:/etc/cas/saml";
+
+    /**
+     * Directory location where downloaded SAML metadata is cached
+     * as backup files. If left undefined, the directory is calculated
+     * off of {@link #getLocation()}. The directory location
+     * should also support and be resolvable via Spring expression language.
+     */
+    private String metadataBackupLocation;
 
     /**
      * Properties pertaining to mongo db saml metadata resolvers.
      */
     @NestedConfigurationProperty
     private MongoDbSamlMetadataProperties mongo = new MongoDbSamlMetadataProperties();
+
+    /**
+     * Properties pertaining to git saml metadata resolvers.
+     */
+    @NestedConfigurationProperty
+    private GitSamlMetadataProperties git = new GitSamlMetadataProperties();
 
     /**
      * Properties pertaining to jpa metadata resolution.

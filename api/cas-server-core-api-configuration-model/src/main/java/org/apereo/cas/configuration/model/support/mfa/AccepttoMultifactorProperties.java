@@ -1,11 +1,13 @@
 package org.apereo.cas.configuration.model.support.mfa;
 
+import org.apereo.cas.configuration.model.SpringResourceProperties;
 import org.apereo.cas.configuration.support.RequiredProperty;
 import org.apereo.cas.configuration.support.RequiresModule;
-import org.apereo.cas.configuration.support.SpringResourceProperties;
 
+import com.fasterxml.jackson.annotation.JsonFilter;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 /**
@@ -17,6 +19,8 @@ import org.springframework.boot.context.properties.NestedConfigurationProperty;
 @RequiresModule(name = "cas-server-support-acceptto-mfa")
 @Getter
 @Setter
+@Accessors(chain = true)
+@JsonFilter("AccepttoMultifactorProperties")
 public class AccepttoMultifactorProperties extends BaseMultifactorProviderProperties {
     /**
      * Provider id by default.
@@ -76,7 +80,7 @@ public class AccepttoMultifactorProperties extends BaseMultifactorProviderProper
      */
     @RequiredProperty
     private String emailAttribute = "mail";
-    
+
     /**
      * List of active directory group GUIDs that user is a member of.
      * This is used for Group based policies. If undefined,

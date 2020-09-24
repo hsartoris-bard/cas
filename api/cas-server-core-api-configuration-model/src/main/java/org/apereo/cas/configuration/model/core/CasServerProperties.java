@@ -5,11 +5,15 @@ import org.apereo.cas.configuration.model.core.web.tomcat.CasEmbeddedApacheTomca
 import org.apereo.cas.configuration.support.RequiredProperty;
 import org.apereo.cas.configuration.support.RequiresModule;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.SneakyThrows;
+import lombok.experimental.Accessors;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 import java.io.Serializable;
+import java.net.URL;
 
 /**
  * This is {@link CasServerProperties}.
@@ -20,12 +24,13 @@ import java.io.Serializable;
 @RequiresModule(name = "cas-server-core", automated = true)
 @Getter
 @Setter
+@Accessors(chain = true)                                            
 public class CasServerProperties implements Serializable {
 
     private static final long serialVersionUID = 7876382696803430817L;
 
     /**
-     * Full name of the CAS server. This is public-facing address
+     * Full name of the CAS server. This is the public-facing address
      * of the CAS deployment and not the individual node address,
      * in the event that CAS is clustered.
      */
@@ -51,12 +56,18 @@ public class CasServerProperties implements Serializable {
     @NestedConfigurationProperty
     private CasEmbeddedApacheTomcatProperties tomcat = new CasEmbeddedApacheTomcatProperties();
 
+    @JsonIgnore
     public String getLoginUrl() {
         return getPrefix().concat(CasProtocolConstants.ENDPOINT_LOGIN);
     }
 
+    @JsonIgnore
     public String getLogoutUrl() {
         return getPrefix().concat(CasProtocolConstants.ENDPOINT_LOGOUT);
     }
 
+    @SneakyThrows
+    public URL buildContextRelativeUrl(final String path) {
+        return new URL(getPrefix().concat(path));
+    }
 }

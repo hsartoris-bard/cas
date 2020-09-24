@@ -7,7 +7,7 @@ category: Authentication
 # Passwordless Authentication
 
 Passwordless Authentication is a form of authentication in CAS where passwords take the form of tokens that expire after a configurable period of time. 
-Using this strategy, users are simply asked for an identifier (i.e. username) which is used to locate the user record that contains forms of contact such as email and phone
+Using this strategy, users are asked for an identifier (i.e. username) which is used to locate the user record that contains forms of contact such as email and phone
 number. Once located, the CAS-generated token is sent to the user via the configured notification strategies (i.e. email, sms, etc) where the user is then expected to 
 provide the token back to CAS in order to proceed. 
 
@@ -43,9 +43,24 @@ This strategy provides a static map of usernames that are linked to their method
 for testing and demo purposes. The key in the map is taken to be the username eligible for authentication while the value can either be an email
 address or phone number that would be used to contact the user with issued tokens.
 
+### MongoDb
+
+This strategy allows one to locate a user record in MongoDb. The designated MongoDb collection is expectd to carry objects of type `PasswordlessUserAccount` in JSON format. To see the relevant list of CAS 
+properties, please [review this guide](../configuration/Configuration-Properties.html#passwordless-authentication).
+
+Support is enabled by including the following module in the overlay:
+
+```xml
+<dependency>
+    <groupId>org.apereo.cas</groupId>
+    <artifactId>cas-server-support-passwordless-mongo</artifactId>
+    <version>${cas.version}</version>
+</dependency>
+```
+
 ### LDAP
 
-This strategy simply allows one to locate a user record in an LDAP directory. The record is expected to carry the user's phone number
+This strategy allows one to locate a user record in an LDAP directory. The record is expected to carry the user's phone number
 or email address via configurable attributes. To see the relevant list of CAS 
 properties, please [review this guide](../configuration/Configuration-Properties.html#passwordless-authentication).
 
@@ -84,7 +99,7 @@ def run(Object[] args) {
     account.setName("TestUser")
     account.setPhone("123-456-7890") 
     account.setAttributes(Map.of("...", List.of("...", "...")) 
-    account.setMultifactorAuthenticationEligible(false)  
+    account.setMultifactorAuthenticationEligible(TriStateBoolean.FALSE)  
     account.setRequestPassword(false)
     return account
 }
@@ -102,8 +117,8 @@ would produce a response body similar to the following:
   "email" : "cas@example.org",
   "phone" : "123-456-7890",
   "name" : "CASUser",        
-  "multifactorAuthenticationEligible": false,  
-  "delegatedAuthenticationEligible": false,  
+  "multifactorAuthenticationEligible": "FALSE",  
+  "delegatedAuthenticationEligible": "FALSE",  
   "requestPassword": false,
   "attributes":{ "lastName" : ["...", "..."] }
 }
@@ -192,8 +207,7 @@ on each individual account store implementation.
 ## Multifactor Authentication Integration
 
 Passwordless authentication can be integrated with [CAS multifactor authentication providers](../mfa/Configuring-Multifactor-Authentication.html). In this scenario,
-once CAS configuration is enabled to support this behavior via settings  or the located passwordless user account is considered *eligible* for multifactor authentication,
-once CAS configuration is enabled to support this behavior or the located passwordless user account is considered *eligible* for multifactor authentication,
+once CAS configuration is enabled to support this behavior via settings or the located passwordless user account is considered *eligible* for multifactor authentication,
 CAS will allow passwordless authentication to skip its own *intended normal* flow (i.e. as described above with token generation, etc) in favor of 
 multifactor authentication providers that may be available and defined in CAS.
 

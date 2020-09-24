@@ -1,6 +1,7 @@
 package org.apereo.cas.web.support;
 
 import org.apereo.cas.audit.config.CasSupportJdbcAuditConfiguration;
+import org.apereo.cas.config.CasHibernateJpaConfiguration;
 import org.apereo.cas.config.CasJdbcThrottlingConfiguration;
 
 import lombok.Getter;
@@ -18,11 +19,15 @@ import org.springframework.boot.test.context.SpringBootTest;
 @SpringBootTest(classes = {
     CasJdbcThrottlingConfiguration.class,
     CasSupportJdbcAuditConfiguration.class,
+    CasHibernateJpaConfiguration.class,
     BaseThrottledSubmissionHandlerInterceptorAdapterTests.SharedTestConfiguration.class
 }, properties = {
     "cas.authn.throttle.usernameParameter=username",
     "cas.authn.throttle.failure.code=AUTHENTICATION_FAILED",
-    "cas.audit.jdbc.asynchronous=false"})
+    "cas.audit.jdbc.asynchronous=false",
+    "cas.authn.throttle.usernameParameter=username",
+    "cas.authn.throttle.failure.range-seconds=5"
+})
 @Getter
 @Tag("JDBC")
 public class JdbcThrottledSubmissionHandlerInterceptorAdapterTests extends BaseThrottledSubmissionHandlerInterceptorAdapterTests {

@@ -1,12 +1,13 @@
 package org.apereo.cas.config;
 
-import org.apereo.cas.adaptors.yubikey.YubiKeyAccount;
+import org.apereo.cas.adaptors.yubikey.JpaYubiKeyAccount;
 import org.apereo.cas.adaptors.yubikey.YubiKeyAccountRegistry;
 import org.apereo.cas.adaptors.yubikey.YubiKeyAccountValidator;
 import org.apereo.cas.adaptors.yubikey.dao.JpaYubiKeyAccountRegistry;
 import org.apereo.cas.configuration.CasConfigurationProperties;
-import org.apereo.cas.configuration.model.support.jpa.JpaConfigDataHolder;
+import org.apereo.cas.configuration.model.support.jpa.JpaConfigurationContext;
 import org.apereo.cas.configuration.support.JpaBeans;
+import org.apereo.cas.jpa.JpaBeanFactory;
 import org.apereo.cas.util.CollectionUtils;
 import org.apereo.cas.util.crypto.CipherExecutor;
 
@@ -14,20 +15,21 @@ import lombok.val;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
-import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.orm.jpa.JpaTransactionManager;
+import org.springframework.orm.jpa.JpaVendorAdapter;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
-import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import javax.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
+
 import java.util.List;
 
 /**
@@ -47,28 +49,31 @@ public class JpaYubiKeyConfiguration {
     @Autowired
     @Qualifier("yubiKeyAccountValidator")
     private ObjectProvider<YubiKeyAccountValidator> yubiKeyAccountValidator;
-
-    @Autowired
-    private ConfigurableApplicationContext applicationContext;
-
+    
     @Autowired
     @Qualifier("yubikeyAccountCipherExecutor")
     private ObjectProvider<CipherExecutor> yubikeyAccountCipherExecutor;
 
+    @Autowired
+    @Qualifier("jpaBeanFactory")
+    private ObjectProvider<JpaBeanFactory> jpaBeanFactory;
+
     @RefreshScope
     @Bean
-    public HibernateJpaVendorAdapter jpaYubiKeyVendorAdapter() {
-        return JpaBeans.newHibernateJpaVendorAdapter(casProperties.getJdbc());
+    public JpaVendorAdapter jpaYubiKeyVendorAdapter() {
+        return jpaBeanFactory.getObject().newJpaVendorAdapter(casProperties.getJdbc());
     }
 
     @Bean
+    @ConditionalOnMissingBean(name = "dataSourceYubiKey")
+    @RefreshScope
     public DataSource dataSourceYubiKey() {
         return JpaBeans.newDataSource(casProperties.getAuthn().getMfa().getYubikey().getJpa());
     }
 
     @Bean
     public List<String> jpaYubiKeyPackagesToScan() {
-        return CollectionUtils.wrapList(YubiKeyAccount.class.getPackage().getName());
+        return CollectionUtils.wrapList(JpaYubiKeyAccount.class.getPackage().getName());
     }
 
     @Autowired
@@ -82,14 +87,14 @@ public class JpaYubiKeyConfiguration {
     @Lazy
     @Bean
     public LocalContainerEntityManagerFactoryBean yubiKeyEntityManagerFactory() {
-        return JpaBeans.newHibernateEntityManagerFactoryBean(
-            new JpaConfigDataHolder(
-                jpaYubiKeyVendorAdapter(),
-                "jpaYubiKeyRegistryContext",
-                jpaYubiKeyPackagesToScan(),
-                dataSourceYubiKey()),
-            casProperties.getAuthn().getMfa().getYubikey().getJpa(),
-            applicationContext);
+        val factory = jpaBeanFactory.getObject();
+        val ctx = JpaConfigurationContext.builder()
+            .dataSource(dataSourceYubiKey())
+            .packagesToScan(jpaYubiKeyPackagesToScan())
+            .persistenceUnitName("jpaYubiKeyRegistryContext")
+            .jpaVendorAdapter(jpaYubiKeyVendorAdapter())
+            .build();
+        return factory.newEntityManagerFactoryBean(ctx, casProperties.getAuthn().getMfa().getYubikey().getJpa());
     }
 
     @Bean

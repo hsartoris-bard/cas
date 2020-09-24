@@ -6,6 +6,7 @@ import org.apereo.cas.couchdb.core.CouchDbConnectorFactory;
 import org.apereo.cas.couchdb.events.EventCouchDbRepository;
 import org.apereo.cas.support.events.AbstractCasEventRepositoryTests;
 import org.apereo.cas.support.events.CasEventRepository;
+import org.apereo.cas.util.junit.EnabledIfPortOpen;
 
 import lombok.Getter;
 import org.junit.jupiter.api.AfterEach;
@@ -29,11 +30,12 @@ import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
     RefreshAutoConfiguration.class
     },
     properties = {
-        "cas.events.couchDb.asynchronous=false",
-        "cas.events.couchDb.username=cas",
-        "cas.events.couchdb.password=password"
+        "cas.events.couch-db.asynchronous=false",
+        "cas.events.couch-db.username=cas",
+        "cas.events.couch-db.password=password"
     })
 @Getter
+@EnabledIfPortOpen(port = 5984)
 public class CouchDbCasEventRepositoryTests extends AbstractCasEventRepositoryTests {
     @Autowired
     @Qualifier("couchDbEventRepository")

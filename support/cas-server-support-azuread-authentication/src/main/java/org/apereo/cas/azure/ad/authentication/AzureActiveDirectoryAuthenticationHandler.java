@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.hjson.JsonValue;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 
@@ -78,7 +79,15 @@ public class AzureActiveDirectoryAuthenticationHandler extends AbstractUsernameP
         throw new FailedLoginException(msg);
     }
 
-    private AuthenticationResult getAccessTokenFromUserCredentials(final String username, final String password) throws Exception {
+    /**
+     * Gets access token from user credentials.
+     *
+     * @param username the username
+     * @param password the password
+     * @return the access token from user credentials
+     * @throws Exception the exception
+     */
+    protected AuthenticationResult getAccessTokenFromUserCredentials(final String username, final String password) throws Exception {
         var service = (ExecutorService) null;
         try {
             service = Executors.newFixedThreadPool(1);
@@ -105,7 +114,7 @@ public class AzureActiveDirectoryAuthenticationHandler extends AbstractUsernameP
             LOGGER.debug("Retrieved token [{}] for [{}]", result.getAccessToken(), username);
             val userInfo = getUserInfoFromGraph(result.getAccessToken());
             LOGGER.trace("Retrieved user info [{}]", userInfo);
-            val userInfoMap = (Map<String, ?>) MAPPER.readValue(userInfo, Map.class);
+            val userInfoMap = (Map<String, ?>) MAPPER.readValue(JsonValue.readHjson(userInfo).toString(), Map.class);
 
             val attributeMap = Maps.<String, List<Object>>newHashMapWithExpectedSize(userInfoMap.size());
             userInfoMap.forEach((key, value) -> {

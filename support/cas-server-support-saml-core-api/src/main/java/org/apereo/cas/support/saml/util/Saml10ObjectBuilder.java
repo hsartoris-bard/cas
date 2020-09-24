@@ -6,14 +6,12 @@ import org.apereo.cas.support.saml.OpenSamlConfigBean;
 import org.apereo.cas.support.saml.SamlUtils;
 import org.apereo.cas.support.saml.authentication.SamlAuthenticationMetaDataPopulator;
 import org.apereo.cas.support.saml.authentication.principal.SamlService;
-import org.apereo.cas.util.DateTimeUtils;
 
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 import org.opensaml.core.xml.XMLObject;
 import org.opensaml.messaging.context.MessageContext;
-import org.opensaml.saml.common.SAMLObject;
 import org.opensaml.saml.common.SAMLVersion;
 import org.opensaml.saml.saml1.core.Assertion;
 import org.opensaml.saml.saml1.core.Attribute;
@@ -35,6 +33,7 @@ import org.opensaml.saml.saml1.core.SubjectConfirmation;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.namespace.QName;
+
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Collection;
@@ -49,9 +48,8 @@ import java.util.Map;
  */
 @Slf4j
 public class Saml10ObjectBuilder extends AbstractSamlObjectBuilder {
-
-
     private static final String CONFIRMATION_METHOD = "urn:oasis:names:tc:SAML:1.0:cm:artifact";
+
     private static final long serialVersionUID = -4711012620700270554L;
 
     public Saml10ObjectBuilder(final OpenSamlConfigBean configBean) {
@@ -86,9 +84,9 @@ public class Saml10ObjectBuilder extends AbstractSamlObjectBuilder {
     public Response newResponse(final String id, final ZonedDateTime issueInstant,
                                 final String recipient, final WebApplicationService service) {
 
-        val samlResponse = newSamlObject(Response.class);
+        val samlResponse = SamlUtils.newSamlObject(Response.class);
         samlResponse.setID(id);
-        samlResponse.setIssueInstant(DateTimeUtils.dateTimeOf(issueInstant));
+        samlResponse.setIssueInstant(issueInstant.toInstant());
         samlResponse.setVersion(SAMLVersion.VERSION_11);
         samlResponse.setInResponseTo(recipient);
         setInResponseToForSamlResponseIfNeeded(service, samlResponse);
@@ -106,10 +104,10 @@ public class Saml10ObjectBuilder extends AbstractSamlObjectBuilder {
      */
     public Assertion newAssertion(final AuthenticationStatement authnStatement, final String issuer,
                                   final ZonedDateTime issuedAt, final String id) {
-        val assertion = newSamlObject(Assertion.class);
+        val assertion = SamlUtils.newSamlObject(Assertion.class);
 
         assertion.setID(id);
-        assertion.setIssueInstant(DateTimeUtils.dateTimeOf(issuedAt));
+        assertion.setIssueInstant(issuedAt.toInstant());
         assertion.setIssuer(issuer);
         assertion.getAuthenticationStatements().add(authnStatement);
         return assertion;
@@ -124,12 +122,12 @@ public class Saml10ObjectBuilder extends AbstractSamlObjectBuilder {
      * @return the conditions
      */
     public Conditions newConditions(final ZonedDateTime issuedAt, final String audienceUri, final long issueLength) {
-        val conditions = newSamlObject(Conditions.class);
-        conditions.setNotBefore(DateTimeUtils.dateTimeOf(issuedAt));
-        conditions.setNotOnOrAfter(DateTimeUtils.dateTimeOf(issuedAt.plus(issueLength, ChronoUnit.SECONDS)));
-        val audienceRestriction = newSamlObject(AudienceRestrictionCondition.class);
-        val audience = newSamlObject(Audience.class);
-        audience.setUri(audienceUri);
+        val conditions = SamlUtils.newSamlObject(Conditions.class);
+        conditions.setNotBefore(issuedAt.toInstant());
+        conditions.setNotOnOrAfter(issuedAt.plus(issueLength, ChronoUnit.SECONDS).toInstant());
+        val audienceRestriction = SamlUtils.newSamlObject(AudienceRestrictionCondition.class);
+        val audience = SamlUtils.newSamlObject(Audience.class);
+        audience.setURI(audienceUri);
         audienceRestriction.getAudiences().add(audience);
         conditions.getAudienceRestrictionConditions().add(audienceRestriction);
         return conditions;
@@ -153,13 +151,13 @@ public class Saml10ObjectBuilder extends AbstractSamlObjectBuilder {
      * @return the status
      */
     public Status newStatus(final QName codeValue, final String statusMessage) {
-        val status = newSamlObject(Status.class);
-        val code = newSamlObject(StatusCode.class);
+        val status = SamlUtils.newSamlObject(Status.class);
+        val code = SamlUtils.newSamlObject(StatusCode.class);
         code.setValue(codeValue);
         status.setStatusCode(code);
         if (StringUtils.isNotBlank(statusMessage)) {
-            val message = newSamlObject(StatusMessage.class);
-            message.setMessage(statusMessage);
+            val message = SamlUtils.newSamlObject(StatusMessage.class);
+            message.setValue(statusMessage);
             status.setStatusMessage(message);
         }
         return status;
@@ -177,8 +175,8 @@ public class Saml10ObjectBuilder extends AbstractSamlObjectBuilder {
                                                               final Collection<Object> authenticationMethod,
                                                               final String subjectId) {
 
-        val authnStatement = newSamlObject(AuthenticationStatement.class);
-        authnStatement.setAuthenticationInstant(DateTimeUtils.dateTimeOf(authenticationDate));
+        val authnStatement = SamlUtils.newSamlObject(AuthenticationStatement.class);
+        authnStatement.setAuthenticationInstant(authenticationDate.toInstant());
 
         authnStatement.setAuthenticationMethod(
             authenticationMethod != null && !authenticationMethod.isEmpty()
@@ -207,13 +205,13 @@ public class Saml10ObjectBuilder extends AbstractSamlObjectBuilder {
      * @return the subject
      */
     public Subject newSubject(final String identifier, final String confirmationMethod) {
-        val confirmation = newSamlObject(SubjectConfirmation.class);
-        val method = newSamlObject(ConfirmationMethod.class);
-        method.setConfirmationMethod(confirmationMethod);
+        val confirmation = SamlUtils.newSamlObject(SubjectConfirmation.class);
+        val method = SamlUtils.newSamlObject(ConfirmationMethod.class);
+        method.setURI(confirmationMethod);
         confirmation.getConfirmationMethods().add(method);
-        val nameIdentifier = newSamlObject(NameIdentifier.class);
+        val nameIdentifier = SamlUtils.newSamlObject(NameIdentifier.class);
         nameIdentifier.setValue(identifier);
-        val subject = newSamlObject(Subject.class);
+        val subject = SamlUtils.newSamlObject(Subject.class);
         subject.setNameIdentifier(nameIdentifier);
         subject.setSubjectConfirmation(confirmation);
         return subject;
@@ -245,14 +243,14 @@ public class Saml10ObjectBuilder extends AbstractSamlObjectBuilder {
                                                     final Map<String, Object> attributes,
                                                     final String attributeNamespace) {
 
-        val attrStatement = newSamlObject(AttributeStatement.class);
+        val attrStatement = SamlUtils.newSamlObject(AttributeStatement.class);
         attrStatement.setSubject(subject);
         for (val e : attributes.entrySet()) {
             if (e.getValue() instanceof Collection<?> && ((Collection<?>) e.getValue()).isEmpty()) {
                 LOGGER.info("Skipping attribute [{}] because it does not have any values.", e.getKey());
                 continue;
             }
-            val attribute = newSamlObject(Attribute.class);
+            val attribute = SamlUtils.newSamlObject(Attribute.class);
             attribute.setAttributeName(e.getKey());
 
             if (StringUtils.isNotBlank(attributeNamespace)) {
@@ -282,7 +280,7 @@ public class Saml10ObjectBuilder extends AbstractSamlObjectBuilder {
         SamlUtils.logSamlObject(this.openSamlConfigBean, samlMessage);
 
         val encoder = new CasHttpSoap11Encoder();
-        val context = new MessageContext<SAMLObject>();
+        val context = new MessageContext();
         context.setMessage(samlMessage);
         encoder.setHttpServletResponse(httpResponse);
         encoder.setMessageContext(context);

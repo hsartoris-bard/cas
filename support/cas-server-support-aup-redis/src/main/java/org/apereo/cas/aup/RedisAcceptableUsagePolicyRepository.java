@@ -1,7 +1,9 @@
 package org.apereo.cas.aup;
 
 import org.apereo.cas.authentication.Credential;
+import org.apereo.cas.configuration.model.support.aup.AcceptableUsagePolicyProperties;
 import org.apereo.cas.ticket.registry.TicketRegistrySupport;
+import org.apereo.cas.util.LoggingUtils;
 
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -19,7 +21,7 @@ import org.springframework.webflow.execution.RequestContext;
  * @since 5.2
  */
 @Slf4j
-public class RedisAcceptableUsagePolicyRepository extends AbstractPrincipalAttributeAcceptableUsagePolicyRepository {
+public class RedisAcceptableUsagePolicyRepository extends BaseAcceptableUsagePolicyRepository {
 
     /**
      * Redis key prefix.
@@ -31,20 +33,20 @@ public class RedisAcceptableUsagePolicyRepository extends AbstractPrincipalAttri
     private final transient RedisTemplate redisTemplate;
 
     public RedisAcceptableUsagePolicyRepository(final TicketRegistrySupport ticketRegistrySupport,
-                                                final String aupAttributeName,
+                                                final AcceptableUsagePolicyProperties aupProperties,
                                                 final RedisTemplate redisTemplate) {
-        super(ticketRegistrySupport, aupAttributeName);
+        super(ticketRegistrySupport, aupProperties);
         this.redisTemplate = redisTemplate;
     }
 
     @Override
     public boolean submit(final RequestContext requestContext, final Credential credential) {
         try {
-            val redisKey = CAS_AUP_PREFIX + credential.getId() + ':' + this.aupAttributeName;
+            val redisKey = CAS_AUP_PREFIX + credential.getId() + ':' + aupProperties.getAupAttributeName();
             this.redisTemplate.boundValueOps(redisKey).set(Boolean.TRUE);
             return true;
         } catch (final Exception e) {
-            LOGGER.error(e.getMessage(), e);
+            LoggingUtils.error(LOGGER, e);
         }
         return false;
     }

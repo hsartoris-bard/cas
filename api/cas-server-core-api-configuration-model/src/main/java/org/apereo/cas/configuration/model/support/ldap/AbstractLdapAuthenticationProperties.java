@@ -5,9 +5,7 @@ import org.apereo.cas.configuration.support.RequiresModule;
 
 import lombok.Getter;
 import lombok.Setter;
-
-import java.util.ArrayList;
-import java.util.List;
+import lombok.experimental.Accessors;
 
 /**
  * This is {@link AbstractLdapAuthenticationProperties}.
@@ -18,6 +16,7 @@ import java.util.List;
 @RequiresModule(name = "cas-server-support-ldap-core")
 @Getter
 @Setter
+@Accessors(chain = true)
 public abstract class AbstractLdapAuthenticationProperties extends AbstractLdapSearchProperties {
 
     private static final long serialVersionUID = 3849857270054289852L;
@@ -70,10 +69,6 @@ public abstract class AbstractLdapAuthenticationProperties extends AbstractLdapS
      * </ul>
      */
     private String derefAliases;
-    /**
-     * Search entry to define on the authenticator.
-     */
-    private List<LdapSearchEntryHandlersProperties> searchEntryHandlers = new ArrayList<>(0);
 
     /**
      * The enum Authentication types.

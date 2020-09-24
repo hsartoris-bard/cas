@@ -1,6 +1,6 @@
 package org.apereo.cas.web.flow.decorator;
 
-import org.apereo.cas.configuration.model.webapp.WebflowLoginDecoratorProperties;
+import org.apereo.cas.configuration.model.core.web.flow.WebflowLoginDecoratorProperties;
 import org.apereo.cas.util.CollectionUtils;
 import org.apereo.cas.util.MockWebServer;
 
@@ -41,8 +41,6 @@ public class RestfulLoginWebflowDecoratorTests {
 
             rest.decorate(requestContext, mock(ApplicationContext.class));
             assertTrue(requestContext.getFlowScope().contains("decoration"));
-        } catch (final Exception e) {
-            throw new AssertionError(e.getMessage(), e);
         }
     }
 

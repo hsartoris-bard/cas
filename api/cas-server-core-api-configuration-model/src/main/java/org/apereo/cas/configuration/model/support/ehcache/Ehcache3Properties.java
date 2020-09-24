@@ -6,6 +6,7 @@ import org.apereo.cas.configuration.support.RequiresModule;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 import java.io.Serializable;
@@ -19,6 +20,7 @@ import java.io.Serializable;
 @RequiresModule(name = "cas-server-support-ehcache3-ticket-registry")
 @Getter
 @Setter
+@Accessors(chain = true)
 public class Ehcache3Properties implements Serializable {
 
     private static final long serialVersionUID = 7772510035918976450L;
@@ -81,6 +83,11 @@ public class Ehcache3Properties implements Serializable {
      * Root directory to store data if not using terracotta cluster.
      */
     private String rootDirectory = "/tmp/cas/ehcache3";
+
+    /**
+     * Persist data on disk when jvm is shut down if not using terracotta cluster.
+     */
+    private boolean persistOnDisk = true;
 
     /**
      * Timeout when reading or writing to/from Terracotta cluster.

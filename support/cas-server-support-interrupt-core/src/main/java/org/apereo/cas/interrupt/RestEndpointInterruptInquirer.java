@@ -7,6 +7,7 @@ import org.apereo.cas.authentication.principal.Service;
 import org.apereo.cas.configuration.model.support.interrupt.InterruptProperties;
 import org.apereo.cas.services.RegisteredService;
 import org.apereo.cas.util.HttpUtils;
+import org.apereo.cas.util.LoggingUtils;
 import org.apereo.cas.web.support.WebUtils;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -17,6 +18,7 @@ import lombok.val;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpResponse;
+import org.hjson.JsonValue;
 import org.springframework.webflow.execution.RequestContext;
 
 import java.nio.charset.StandardCharsets;
@@ -70,10 +72,10 @@ public class RestEndpointInterruptInquirer extends BaseInterruptInquirer {
             if (response != null && response.getEntity() != null) {
                 val content = response.getEntity().getContent();
                 val result = IOUtils.toString(content, StandardCharsets.UTF_8);
-                return MAPPER.readValue(result, InterruptResponse.class);
+                return MAPPER.readValue(JsonValue.readHjson(result).toString(), InterruptResponse.class);
             }
         } catch (final Exception e) {
-            LOGGER.error(e.getMessage(), e);
+            LoggingUtils.error(LOGGER, e);
         } finally {
             HttpUtils.close(response);
         }

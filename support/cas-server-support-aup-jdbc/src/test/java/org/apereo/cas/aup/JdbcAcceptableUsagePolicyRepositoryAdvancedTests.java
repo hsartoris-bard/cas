@@ -1,6 +1,8 @@
 package org.apereo.cas.aup;
 
 import org.apereo.cas.authentication.CoreAuthenticationTestUtils;
+import org.apereo.cas.services.DefaultRegisteredServiceAcceptableUsagePolicy;
+import org.apereo.cas.services.RegisteredServiceTestUtils;
 import org.apereo.cas.util.CollectionUtils;
 import org.apereo.cas.web.support.WebUtils;
 
@@ -30,12 +32,13 @@ import static org.junit.jupiter.api.Assertions.*;
  * @since 5.3.8
  */
 @TestPropertySource(properties = {
-    "cas.acceptableUsagePolicy.jdbc.tableName=users_table",
-    "cas.acceptableUsagePolicy.aupAttributeName=aupAccepted",
-    "cas.acceptableUsagePolicy.jdbc.aupColumn=aup",
-    "cas.acceptableUsagePolicy.jdbc.principalIdColumn=mail",
-    "cas.acceptableUsagePolicy.jdbc.principalIdAttribute=email",
-    "cas.acceptableUsagePolicy.jdbc.sqlUpdateAUP=UPDATE %s SET %s=true WHERE lower(%s)=lower(?)"
+    "cas.acceptable-usage-policy.jdbc.table-name=users_table",
+    "cas.acceptable-usage-policy.aup-attribute-name=aupAccepted",
+    "cas.acceptable-usage-policy.aup-policy-terms-attribute-name=cn",
+    "cas.acceptable-usage-policy.jdbc.aup-column=aup",
+    "cas.acceptable-usage-policy.jdbc.principal-id-column=mail",
+    "cas.acceptable-usage-policy.jdbc.principal-id-attribute=email",
+    "cas.acceptable-usage-policy.jdbc.sql-update=UPDATE %s SET %s=true WHERE lower(%s)=lower(?)"
 })
 @Tag("JDBC")
 public class JdbcAcceptableUsagePolicyRepositoryAdvancedTests extends BaseJdbcAcceptableUsagePolicyRepositoryTests {
@@ -49,7 +52,7 @@ public class JdbcAcceptableUsagePolicyRepositoryAdvancedTests extends BaseJdbcAc
             }
         }
     }
-    
+
     @AfterEach
     public void cleanup() throws SQLException {
         try (val c = this.acceptableUsagePolicyDataSource.getObject().getConnection()) {
@@ -65,14 +68,37 @@ public class JdbcAcceptableUsagePolicyRepositoryAdvancedTests extends BaseJdbcAc
         verifyRepositoryAction("casuser",
             CollectionUtils.wrap("aupAccepted", List.of("false"), "email", List.of("CASuser@example.org")));
     }
-    
+
+    @Test
+    public void verifyRepositoryPolicyText() {
+        val service = RegisteredServiceTestUtils.getRegisteredService();
+        val policy = new DefaultRegisteredServiceAcceptableUsagePolicy();
+        policy.setMessageCode("aup.code");
+        policy.setText("aup text here");
+        service.setAcceptableUsagePolicy(policy);
+        verifyFetchingPolicy(service, RegisteredServiceTestUtils.getAuthentication(), true);
+    }
+
+    @Test
+    public void verifyRepositoryPolicyNoService() {
+        val service = RegisteredServiceTestUtils.getRegisteredService();
+        verifyFetchingPolicy(service, RegisteredServiceTestUtils.getAuthentication(), false);
+    }
+
+    @Test
+    public void verifyRepositoryPolicyNoServiceViaAttr() {
+        val service = RegisteredServiceTestUtils.getRegisteredService();
+        val principal = RegisteredServiceTestUtils.getPrincipal("casuser");
+        verifyFetchingPolicy(service, RegisteredServiceTestUtils.getAuthentication(principal), false);
+    }
+
     @Test
     public void determinePrincipalIdWithAdvancedConfig() {
         val principalId = determinePrincipalId("casuser",
             CollectionUtils.wrap("aupAccepted", List.of("false"), "email", List.of("CASuser@example.org")));
         assertEquals("CASuser@example.org", principalId);
     }
-    
+
     @Test
     public void raiseMissingPrincipalAttributeError() {
         val exception = assertThrows(IllegalStateException.class,
@@ -80,29 +106,33 @@ public class JdbcAcceptableUsagePolicyRepositoryAdvancedTests extends BaseJdbcAc
                 List.of("CASuser@example.org"))));
         assertTrue(exception.getMessage().contains("cannot be found"));
     }
-    
+
     @Test
     public void raiseEmptyPrincipalAttributeError() {
         val exception = assertThrows(IllegalStateException.class,
             () -> raiseException(CollectionUtils.wrap("aupAccepted", List.of("false"), "email", new ArrayList<>())));
         assertTrue(exception.getMessage().contains("empty or multi-valued with an empty element"));
     }
-    
+
+    @Override
+    public boolean hasLiveUpdates() {
+        return true;
+    }
+
     private void raiseException(final Map<String, List<Object>> profileAttributes) {
         val aupProperties = casProperties.getAcceptableUsagePolicy();
         val jdbcAupRepository = new JdbcAcceptableUsagePolicyRepository(ticketRegistrySupport.getObject(),
-                aupProperties.getAupAttributeName(),
-            acceptableUsagePolicyDataSource.getObject(), aupProperties);
-        
+            aupProperties,
+            acceptableUsagePolicyDataSource.getObject());
+
         val context = new MockRequestContext();
         val request = new MockHttpServletRequest();
         context.setExternalContext(new ServletExternalContext(new MockServletContext(), request, new MockHttpServletResponse()));
-        
+
         val c = CoreAuthenticationTestUtils.getCredentialsWithSameUsernameAndPassword("casuser");
         val principal = CoreAuthenticationTestUtils.getPrincipal(c.getId(), profileAttributes);
         val auth = CoreAuthenticationTestUtils.getAuthentication(principal);
         WebUtils.putAuthentication(auth, context);
-        
-        jdbcAupRepository.determinePrincipalId(context, c);
+        jdbcAupRepository.determinePrincipalId(principal);
     }
 }

@@ -16,7 +16,6 @@ import org.apereo.cas.web.flow.CasWebflowConstants;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
@@ -24,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.hjson.JsonValue;
 import org.pac4j.core.context.JEEContext;
 import org.pac4j.core.context.WebContext;
 import org.pac4j.core.credentials.extractor.BasicAuthExtractor;
@@ -107,7 +107,6 @@ public class OAuth20Utils {
         return getRegisteredOAuthServiceByPredicate(servicesManager, s -> s.matches(redirectUri));
     }
 
-    @SuppressFBWarnings("PRMC_POSSIBLY_REDUNDANT_METHOD_CALLS")
     private static OAuthRegisteredService getRegisteredOAuthServiceByPredicate(final ServicesManager servicesManager,
                                                                                final Predicate<OAuthRegisteredService> predicate) {
         val services = servicesManager.getAllServices();
@@ -118,7 +117,6 @@ public class OAuth20Utils {
             .findFirst()
             .orElse(null);
     }
-
 
     /**
      * Gets attributes.
@@ -211,7 +209,7 @@ public class OAuth20Utils {
      *
      * @param registeredService the registered service
      * @param responseType      the response type
-     * @return the boolean
+     * @return true/false
      */
     public static boolean isResponseModeTypeFormPost(final OAuthRegisteredService registeredService, final OAuth20ResponseModeTypes responseType) {
         return responseType == OAuth20ResponseModeTypes.FORM_POST || StringUtils.equalsIgnoreCase("post", registeredService.getResponseType());
@@ -278,7 +276,7 @@ public class OAuth20Utils {
      *
      * @param type         the type
      * @param expectedType the expected type
-     * @return the boolean
+     * @return true/false
      */
     public static boolean isResponseModeType(final String type, final OAuth20ResponseModeTypes expectedType) {
         return expectedType.getType().equalsIgnoreCase(type);
@@ -289,7 +287,7 @@ public class OAuth20Utils {
      *
      * @param context           the context
      * @param registeredService the registered service
-     * @return the boolean
+     * @return true/false
      */
     public static boolean isAuthorizedResponseTypeForService(final JEEContext context, final OAuthRegisteredService registeredService) {
         if (registeredService.getSupportedResponseTypes() != null && !registeredService.getSupportedResponseTypes().isEmpty()) {
@@ -386,9 +384,7 @@ public class OAuth20Utils {
      * @return whether the callback url is valid
      */
     public static boolean checkCallbackValid(final @NonNull RegisteredService registeredService, final String redirectUri) {
-
         val registeredServiceId = registeredService.getServiceId();
-        LOGGER.debug("Found: [{}] vs redirectUri: [{}]", registeredService, redirectUri);
         if (!redirectUri.matches(registeredServiceId)) {
             LOGGER.error("Unsupported [{}]: [{}] does not match what is defined for registered service: [{}]. "
                     + "Service is considered unauthorized. Verify the service definition in the registry is correct "
@@ -446,8 +442,11 @@ public class OAuth20Utils {
      * @return the client id from authenticated profile
      */
     public static String getClientIdFromAuthenticatedProfile(final CommonProfile profile) {
-        if (profile.containsAttribute(OAuth20Constants.CLIENT_ID)) {
-            val attribute = profile.getAttribute(OAuth20Constants.CLIENT_ID);
+        val attrs = new HashMap<>(profile.getAttributes());
+        attrs.putAll(profile.getAuthenticationAttributes());
+
+        if (attrs.containsKey(OAuth20Constants.CLIENT_ID)) {
+            val attribute = attrs.get(OAuth20Constants.CLIENT_ID);
             return CollectionUtils.toCollection(attribute, ArrayList.class).get(0).toString();
         }
         return null;
@@ -465,7 +464,7 @@ public class OAuth20Utils {
         if (StringUtils.isBlank(claims)) {
             return new HashMap<>(0);
         }
-        return MAPPER.readValue(claims, Map.class);
+        return MAPPER.readValue(JsonValue.readHjson(claims).toString(), Map.class);
     }
 
     /**
@@ -508,5 +507,15 @@ public class OAuth20Utils {
         val clientSecret = context.getRequestParameter(OAuth20Constants.CLIENT_SECRET)
                 .map(String::valueOf).orElse(StringUtils.EMPTY);
         return Pair.of(clientId, clientSecret);
+    }
+
+    /**
+     * Is the registered service need authentication?
+     *
+     * @param registeredService the registered service
+     * @return whether the service need authentication
+     */
+    public boolean doesServiceNeedAuthentication(final OAuthRegisteredService registeredService) {
+        return StringUtils.isNotBlank(registeredService.getClientSecret());
     }
 }

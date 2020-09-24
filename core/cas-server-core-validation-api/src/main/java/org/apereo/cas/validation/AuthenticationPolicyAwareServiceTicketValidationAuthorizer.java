@@ -7,14 +7,17 @@ import org.apereo.cas.services.RegisteredServiceAccessStrategyUtils;
 import org.apereo.cas.services.ServicesManager;
 import org.apereo.cas.services.UnauthorizedServiceException;
 import org.apereo.cas.util.CollectionUtils;
+import org.apereo.cas.util.LoggingUtils;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.context.ConfigurableApplicationContext;
 
 import javax.servlet.http.HttpServletRequest;
 
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -30,6 +33,8 @@ public class AuthenticationPolicyAwareServiceTicketValidationAuthorizer implemen
 
     private final AuthenticationEventExecutionPlan authenticationEventExecutionPlan;
 
+    private final ConfigurableApplicationContext applicationContext;
+    
     @Override
     public void authorize(final HttpServletRequest request, final Service service, final Assertion assertion) {
         val registeredService = this.servicesManager.findServiceBy(service);
@@ -52,11 +57,11 @@ public class AuthenticationPolicyAwareServiceTicketValidationAuthorizer implemen
             try {
                 val simpleName = p.getClass().getSimpleName();
                 LOGGER.trace("Executing authentication policy [{}]", simpleName);
-                if (!p.isSatisfiedBy(primaryAuthentication, assertedHandlers)) {
+                if (!p.isSatisfiedBy(primaryAuthentication, assertedHandlers, applicationContext, Optional.of(assertion))) {
                     throw new UnauthorizedServiceException(UnauthorizedServiceException.CODE_UNAUTHZ_SERVICE, StringUtils.EMPTY);
                 }
             } catch (final Exception e) {
-                LOGGER.error(e.getMessage(), e);
+                LoggingUtils.error(LOGGER, e);
                 throw new UnauthorizedServiceException(UnauthorizedServiceException.CODE_UNAUTHZ_SERVICE, StringUtils.EMPTY);
             }
         });

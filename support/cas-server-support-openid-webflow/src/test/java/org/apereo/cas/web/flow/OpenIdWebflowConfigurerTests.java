@@ -35,8 +35,8 @@ import static org.junit.jupiter.api.Assertions.*;
     OpenIdConfiguration.class,
     OpenIdWebflowConfiguration.class
 })
-@Tag("Webflow")
-@Deprecated
+@Tag("WebflowConfig")
+@Deprecated(since = "6.2.0")
 public class OpenIdWebflowConfigurerTests extends BaseWebflowConfigurerTests {
     @Test
     public void verifyOperation() {

@@ -4,12 +4,16 @@ import org.apereo.cas.CasProtocolConstants;
 import org.apereo.cas.services.DefaultServicesManager;
 import org.apereo.cas.services.RegisteredServiceTestUtils;
 import org.apereo.cas.services.ServiceRegistry;
+import org.apereo.cas.services.ServicesManager;
+import org.apereo.cas.services.ServicesManagerConfigurationContext;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.val;
 import org.apache.commons.io.FileUtils;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.support.StaticApplicationContext;
 import org.springframework.mock.web.MockHttpServletRequest;
 
 import java.io.File;
@@ -24,16 +28,16 @@ import static org.mockito.Mockito.*;
  * @author Arnaud Lesueur
  * @since 3.1
  */
+@Tag("Authentication")
 public class SimpleWebApplicationServiceImplTests {
     private static final File JSON_FILE = new File(FileUtils.getTempDirectoryPath(), "simpleWebApplicationServiceImpl.json");
 
     private static final ObjectMapper MAPPER = new ObjectMapper().findAndRegisterModules();
-    private static final String SERVICE = "service";
 
     @Test
     public void verifySerializeACompletePrincipalToJson() throws IOException {
         val request = new MockHttpServletRequest();
-        request.setParameter(CasProtocolConstants.PARAMETER_SERVICE, SERVICE);
+        request.setParameter(CasProtocolConstants.PARAMETER_SERVICE, RegisteredServiceTestUtils.CONST_TEST_URL);
         val serviceWritten = new WebApplicationServiceFactory().createService(request);
         MAPPER.writeValue(JSON_FILE, serviceWritten);
         val serviceRead = MAPPER.readValue(JSON_FILE, SimpleWebApplicationServiceImpl.class);
@@ -42,11 +46,14 @@ public class SimpleWebApplicationServiceImplTests {
 
     @Test
     public void verifyResponse() {
+        val applicationContext = new StaticApplicationContext();
+        applicationContext.refresh();
+
         val request = new MockHttpServletRequest();
-        request.setParameter(CasProtocolConstants.PARAMETER_SERVICE, SERVICE);
+        request.setParameter(CasProtocolConstants.PARAMETER_SERVICE, RegisteredServiceTestUtils.CONST_TEST_URL);
         val impl = new WebApplicationServiceFactory().createService(request);
-        val response = new WebApplicationServiceResponseBuilder(
-            new DefaultServicesManager(mock(ServiceRegistry.class), mock(ApplicationEventPublisher.class), new HashSet<>()))
+        
+        val response = new WebApplicationServiceResponseBuilder(getServicesManager(applicationContext))
             .build(impl, "ticketId", RegisteredServiceTestUtils.getAuthentication());
         assertNotNull(response);
         assertEquals(Response.ResponseType.REDIRECT, response.getResponseType());
@@ -55,7 +62,7 @@ public class SimpleWebApplicationServiceImplTests {
     @Test
     public void verifyCreateSimpleWebApplicationServiceImplFromServiceAttribute() {
         val request = new MockHttpServletRequest();
-        request.setAttribute(CasProtocolConstants.PARAMETER_SERVICE, SERVICE);
+        request.setAttribute(CasProtocolConstants.PARAMETER_SERVICE, RegisteredServiceTestUtils.CONST_TEST_URL);
         val impl = new WebApplicationServiceFactory().createService(request);
         assertNotNull(impl);
     }
@@ -72,13 +79,14 @@ public class SimpleWebApplicationServiceImplTests {
     @Test
     public void verifyResponseWithNoTicket() {
         val request = new MockHttpServletRequest();
-        request.setParameter(CasProtocolConstants.PARAMETER_SERVICE, SERVICE);
+        request.setParameter(CasProtocolConstants.PARAMETER_SERVICE, RegisteredServiceTestUtils.CONST_TEST_URL);
         val impl = new WebApplicationServiceFactory().createService(request);
 
-        val response = new WebApplicationServiceResponseBuilder(
-            new DefaultServicesManager(mock(ServiceRegistry.class), mock(ApplicationEventPublisher.class), new HashSet<>()))
-            .build(impl, null,
-                RegisteredServiceTestUtils.getAuthentication());
+        val applicationContext = new StaticApplicationContext();
+        applicationContext.refresh();
+
+        val response = new WebApplicationServiceResponseBuilder(getServicesManager(applicationContext))
+            .build(impl, null, RegisteredServiceTestUtils.getAuthentication());
         assertNotNull(response);
         assertEquals(Response.ResponseType.REDIRECT, response.getResponseType());
         assertFalse(response.getUrl().contains("ticket="));
@@ -86,11 +94,13 @@ public class SimpleWebApplicationServiceImplTests {
 
     @Test
     public void verifyResponseWithNoTicketAndNoParameterInServiceURL() {
+        val applicationContext = new StaticApplicationContext();
+        applicationContext.refresh();
+
         val request = new MockHttpServletRequest();
-        request.setParameter(SERVICE, "http://foo.com/");
+        request.setParameter(CasProtocolConstants.PARAMETER_SERVICE, "http://foo.com/");
         val impl = new WebApplicationServiceFactory().createService(request);
-        val response = new WebApplicationServiceResponseBuilder(
-            new DefaultServicesManager(mock(ServiceRegistry.class), mock(ApplicationEventPublisher.class), new HashSet<>()))
+        val response = new WebApplicationServiceResponseBuilder(getServicesManager(applicationContext))
             .build(impl, null,
                 RegisteredServiceTestUtils.getAuthentication());
         assertNotNull(response);
@@ -101,14 +111,26 @@ public class SimpleWebApplicationServiceImplTests {
 
     @Test
     public void verifyResponseWithNoTicketAndOneParameterInServiceURL() {
+        val applicationContext = new StaticApplicationContext();
+        applicationContext.refresh();
+
         val request = new MockHttpServletRequest();
         request.setParameter(CasProtocolConstants.PARAMETER_SERVICE, "http://foo.com/?param=test");
         val impl = new WebApplicationServiceFactory().createService(request);
-        val response = new WebApplicationServiceResponseBuilder(
-            new DefaultServicesManager(mock(ServiceRegistry.class), mock(ApplicationEventPublisher.class), new HashSet<>()))
+        val response = new WebApplicationServiceResponseBuilder(getServicesManager(applicationContext))
             .build(impl, null, RegisteredServiceTestUtils.getAuthentication());
         assertNotNull(response);
         assertEquals(Response.ResponseType.REDIRECT, response.getResponseType());
         assertEquals("http://foo.com/?param=test", response.getUrl());
+    }
+
+    private static ServicesManager getServicesManager(final StaticApplicationContext applicationContext) {
+        val context = ServicesManagerConfigurationContext.builder()
+            .serviceRegistry(mock(ServiceRegistry.class))
+            .applicationContext(applicationContext)
+            .environments(new HashSet<>(0))
+            .servicesCache(Caffeine.newBuilder().build())
+            .build();
+        return new DefaultServicesManager(context);
     }
 }

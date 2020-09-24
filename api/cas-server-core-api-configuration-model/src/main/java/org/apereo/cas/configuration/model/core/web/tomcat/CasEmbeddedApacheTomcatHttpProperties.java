@@ -4,6 +4,7 @@ import org.apereo.cas.configuration.support.RequiresModule;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 import java.util.LinkedHashMap;
@@ -18,6 +19,7 @@ import java.util.Map;
 @RequiresModule(name = "cas-server-webapp-tomcat")
 @Getter
 @Setter
+@Accessors(chain = true)
 public class CasEmbeddedApacheTomcatHttpProperties implements Serializable {
 
     private static final long serialVersionUID = -8809922027350085888L;
@@ -40,5 +42,5 @@ public class CasEmbeddedApacheTomcatHttpProperties implements Serializable {
     /**
      * Additional attributes to be set on the connector.
      */
-    private Map<String, Object> attributes = new LinkedHashMap<>(0);
+    private Map<String, String> attributes = new LinkedHashMap<>(0);
 }

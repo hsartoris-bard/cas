@@ -24,7 +24,7 @@ public interface PasswordHistoryService extends Ordered {
      * can be accepted based on history requirements and tracking.
      *
      * @param changeRequest the change request
-     * @return the boolean
+     * @return true/false
      */
     boolean exists(PasswordChangeRequest changeRequest);
 
@@ -32,7 +32,7 @@ public interface PasswordHistoryService extends Ordered {
      * Store password request in history.
      *
      * @param changeRequest the change request
-     * @return the boolean
+     * @return true/false
      */
     boolean store(PasswordChangeRequest changeRequest);
 
@@ -41,7 +41,7 @@ public interface PasswordHistoryService extends Ordered {
      *
      * @return the collection
      */
-    Collection<PasswordHistoryEntity> fetchAll();
+    Collection<? extends PasswordHistoryEntity> fetchAll();
 
     /**
      * Fetch collection.
@@ -49,7 +49,7 @@ public interface PasswordHistoryService extends Ordered {
      * @param username the username
      * @return the collection
      */
-    Collection<PasswordHistoryEntity> fetch(String username);
+    Collection<? extends PasswordHistoryEntity> fetch(String username);
 
     /**
      * Remove.

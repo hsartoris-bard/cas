@@ -8,7 +8,6 @@ import org.apereo.cas.support.oauth.util.OAuth20Utils;
 import org.apereo.cas.ticket.ExpirationPolicy;
 import org.apereo.cas.ticket.ExpirationPolicyBuilder;
 import org.apereo.cas.ticket.Ticket;
-import org.apereo.cas.ticket.TicketFactory;
 import org.apereo.cas.ticket.TicketGrantingTicket;
 import org.apereo.cas.ticket.UniqueTicketIdGenerator;
 import org.apereo.cas.util.DefaultUniqueTicketIdGenerator;
@@ -44,7 +43,8 @@ public class OAuth20DefaultRefreshTokenFactory implements OAuth20RefreshTokenFac
      */
     protected final ServicesManager servicesManager;
 
-    public OAuth20DefaultRefreshTokenFactory(final ExpirationPolicyBuilder<OAuth20RefreshToken> expirationPolicy, final ServicesManager servicesManager) {
+    public OAuth20DefaultRefreshTokenFactory(final ExpirationPolicyBuilder<OAuth20RefreshToken> expirationPolicy,
+                                             final ServicesManager servicesManager) {
         this(new DefaultUniqueTicketIdGenerator(), expirationPolicy, servicesManager);
     }
 
@@ -53,22 +53,18 @@ public class OAuth20DefaultRefreshTokenFactory implements OAuth20RefreshTokenFac
                                       final TicketGrantingTicket ticketGrantingTicket,
                                       final Collection<String> scopes,
                                       final String clientId,
+                                      final String accessToken,
                                       final Map<String, Map<String, Object>> requestClaims) {
         val codeId = this.refreshTokenIdGenerator.getNewTicketId(OAuth20RefreshToken.PREFIX);
         val expirationPolicyToUse = determineExpirationPolicyForService(clientId);
         val rt = new OAuth20DefaultRefreshToken(codeId, service, authentication,
             expirationPolicyToUse, ticketGrantingTicket,
-            scopes, clientId, requestClaims);
+            scopes, clientId, accessToken, requestClaims);
 
         if (ticketGrantingTicket != null) {
             ticketGrantingTicket.getDescendantTickets().add(rt.getId());
         }
         return rt;
-    }
-
-    @Override
-    public TicketFactory get(final Class<? extends Ticket> clazz) {
-        return this;
     }
 
     private ExpirationPolicy determineExpirationPolicyForService(final String clientId) {
@@ -81,5 +77,10 @@ public class OAuth20DefaultRefreshTokenFactory implements OAuth20RefreshTokenFac
             }
         }
         return this.expirationPolicy.buildTicketExpirationPolicy();
+    }
+
+    @Override
+    public Class<? extends Ticket> getTicketType() {
+        return OAuth20RefreshToken.class;
     }
 }

@@ -7,18 +7,17 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
-import org.hibernate.annotations.GenericGenerator;
 import org.springframework.data.annotation.Id;
 
 import javax.persistence.Column;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
 import javax.persistence.Lob;
 import javax.persistence.MappedSuperclass;
+import javax.persistence.Transient;
 
 /**
  * This is {@link SamlIdPMetadataDocument}.
@@ -31,21 +30,22 @@ import javax.persistence.MappedSuperclass;
 @Setter
 @AllArgsConstructor
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
+@Builder
 public class SamlIdPMetadataDocument {
 
     /**
      * The Id.
      */
-    @javax.persistence.Id
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO, generator = "native")
-    @GenericGenerator(name = "native", strategy = "native")
     @Column(name = "id", columnDefinition = "BIGINT")
     @JsonProperty
+    @Transient
+    @Builder.Default
     private long id = -1;
 
     @Column(name = "appliesTo", unique = true, length = 512)
     @JsonProperty
+    @Builder.Default
     private String appliesTo = "CAS";
 
     /**

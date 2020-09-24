@@ -2,26 +2,27 @@ package org.apereo.cas.config;
 
 import org.apereo.cas.api.PasswordlessTokenRepository;
 import org.apereo.cas.configuration.CasConfigurationProperties;
-import org.apereo.cas.configuration.model.support.jpa.JpaConfigDataHolder;
+import org.apereo.cas.configuration.model.support.jpa.JpaConfigurationContext;
 import org.apereo.cas.configuration.support.JpaBeans;
 import org.apereo.cas.impl.token.JpaPasswordlessTokenRepository;
 import org.apereo.cas.impl.token.PasswordlessAuthenticationToken;
+import org.apereo.cas.jpa.JpaBeanFactory;
 
 import lombok.RequiredArgsConstructor;
 import lombok.Synchronized;
 import lombok.val;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
-import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.orm.jpa.JpaTransactionManager;
+import org.springframework.orm.jpa.JpaVendorAdapter;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
-import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.transaction.PlatformTransactionManager;
 
@@ -40,10 +41,11 @@ import java.util.List;
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 public class JpaPasswordlessAuthenticationConfiguration {
     @Autowired
-    private ConfigurableApplicationContext applicationContext;
+    private CasConfigurationProperties casProperties;
 
     @Autowired
-    private CasConfigurationProperties casProperties;
+    @Qualifier("jpaBeanFactory")
+    private ObjectProvider<JpaBeanFactory> jpaBeanFactory;
 
     private static List<String> jpaPasswordlessPackagesToScan() {
         return List.of(PasswordlessAuthenticationToken.class.getPackage().getName());
@@ -51,25 +53,27 @@ public class JpaPasswordlessAuthenticationConfiguration {
 
     @RefreshScope
     @Bean
-    public HibernateJpaVendorAdapter jpaPasswordlessVendorAdapter() {
-        return JpaBeans.newHibernateJpaVendorAdapter(casProperties.getJdbc());
+    public JpaVendorAdapter jpaPasswordlessVendorAdapter() {
+        return jpaBeanFactory.getObject().newJpaVendorAdapter(casProperties.getJdbc());
     }
 
     @Bean
+    @ConditionalOnMissingBean(name = "passwordlessDataSource")
+    @RefreshScope
     public DataSource passwordlessDataSource() {
         return JpaBeans.newDataSource(casProperties.getAuthn().getPasswordless().getTokens().getJpa());
     }
 
     @Bean
     public LocalContainerEntityManagerFactoryBean passwordlessEntityManagerFactory() {
-        return JpaBeans.newHibernateEntityManagerFactoryBean(
-            new JpaConfigDataHolder(
-                jpaPasswordlessVendorAdapter(),
-                "jpaPasswordlessAuthNContext",
-                jpaPasswordlessPackagesToScan(),
-                passwordlessDataSource()),
-            casProperties.getAuthn().getPasswordless().getTokens().getJpa(),
-            applicationContext);
+        val factory = jpaBeanFactory.getObject();
+        val ctx = JpaConfigurationContext.builder()
+            .jpaVendorAdapter(jpaPasswordlessVendorAdapter())
+            .persistenceUnitName("jpaPasswordlessAuthNContext")
+            .dataSource(passwordlessDataSource())
+            .packagesToScan(jpaPasswordlessPackagesToScan())
+            .build();
+        return factory.newEntityManagerFactoryBean(ctx, casProperties.getAuthn().getPasswordless().getTokens().getJpa());
     }
 
     @Autowired
@@ -101,8 +105,8 @@ public class JpaPasswordlessAuthenticationConfiguration {
         private final PasswordlessTokenRepository repository;
 
         @Synchronized
-        @Scheduled(initialDelayString = "${cas.authn.passwordless.tokens.jpa.cleaner.schedule.startDelay:PT30S}",
-            fixedDelayString = "${cas.authn.passwordless.tokens.jpa.cleaner.schedule.repeatInterval:PT35S}")
+        @Scheduled(initialDelayString = "${cas.authn.passwordless.tokens.jpa.cleaner.schedule.start-delay:PT30S}",
+            fixedDelayString = "${cas.authn.passwordless.tokens.jpa.cleaner.schedule.repeat-interval:PT35S}")
         public void clean() {
             repository.clean();
         }

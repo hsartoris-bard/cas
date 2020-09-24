@@ -1,5 +1,6 @@
 package org.apereo.cas.web.flow;
 
+import org.apereo.cas.AbstractGraphicalAuthenticationTests;
 import org.apereo.cas.web.support.WebUtils;
 
 import lombok.val;
@@ -19,8 +20,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Misagh Moayyed
  * @since 5.3.0
  */
-@Tag("Webflow")
-public class DisplayUserGraphicsBeforeAuthenticationActionTests extends AbstractGraphicalAuthenticationActionTests {
+@Tag("WebflowActions")
+public class DisplayUserGraphicsBeforeAuthenticationActionTests extends AbstractGraphicalAuthenticationTests {
     @Test
     public void verifyAction() throws Exception {
         val context = new MockRequestContext();

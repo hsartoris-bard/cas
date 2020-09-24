@@ -1,6 +1,6 @@
 package org.apereo.cas.oidc.discovery.webfinger;
 
-import org.apereo.cas.configuration.support.RestEndpointProperties;
+import org.apereo.cas.configuration.model.RestEndpointProperties;
 import org.apereo.cas.oidc.discovery.webfinger.userinfo.OidcRestfulWebFingerUserInfoRepository;
 import org.apereo.cas.util.CollectionUtils;
 import org.apereo.cas.util.MockWebServer;
@@ -48,8 +48,6 @@ public class OidcRestfulWebFingerUserInfoRepositoryTests {
             assertNotNull(results);
             assertTrue(results.containsKey("email"));
             assertEquals("cas@example.org", results.get("email"));
-        } catch (final Exception e) {
-            throw new AssertionError(e.getMessage(), e);
         }
     }
 
@@ -69,8 +67,6 @@ public class OidcRestfulWebFingerUserInfoRepositoryTests {
             assertNotNull(results);
             assertTrue(results.containsKey("username"));
             assertEquals("casuser", results.get("username"));
-        } catch (final Exception e) {
-            throw new AssertionError(e.getMessage(), e);
         }
     }
 }

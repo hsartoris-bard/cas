@@ -5,6 +5,10 @@ import org.apereo.cas.configuration.support.RequiresModule;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * This is {@link AbstractLdapSearchProperties}.
@@ -15,6 +19,7 @@ import lombok.Setter;
 @RequiresModule(name = "cas-server-support-ldap")
 @Getter
 @Setter
+@Accessors(chain = true)
 public abstract class AbstractLdapSearchProperties extends AbstractLdapProperties {
     private static final long serialVersionUID = 3009946735155362639L;
 
@@ -43,4 +48,9 @@ public abstract class AbstractLdapSearchProperties extends AbstractLdapPropertie
      */
     @RequiredProperty
     private String baseDn;
+
+    /**
+     * Search handlers.
+     */
+    private List<LdapSearchEntryHandlersProperties> searchEntryHandlers = new ArrayList<>(0);
 }

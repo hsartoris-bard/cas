@@ -2,7 +2,8 @@ package org.apereo.cas.aup;
 
 import org.apereo.cas.adaptors.ldap.LdapIntegrationTestsOperations;
 import org.apereo.cas.config.CasAcceptableUsagePolicyLdapConfiguration;
-import org.apereo.cas.util.junit.EnabledIfContinuousIntegration;
+import org.apereo.cas.util.CollectionUtils;
+import org.apereo.cas.util.junit.EnabledIfPortOpen;
 
 import com.unboundid.ldap.sdk.LDAPConnection;
 import lombok.Cleanup;
@@ -21,6 +22,10 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.context.TestPropertySource;
 
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+
 /**
  * This is {@link LdapAcceptableUsagePolicyRepositoryTests}.
  *
@@ -29,14 +34,14 @@ import org.springframework.test.context.TestPropertySource;
  */
 @Tag("Ldap")
 @Import(CasAcceptableUsagePolicyLdapConfiguration.class)
-@EnabledIfContinuousIntegration
+@EnabledIfPortOpen(port = 10389)
 @TestPropertySource(properties = {
-    "cas.acceptableUsagePolicy.ldap[0].ldapUrl=ldap://localhost:10389",
-    "cas.acceptableUsagePolicy.ldap[0].baseDn=ou=people,dc=example,dc=org",
-    "cas.acceptableUsagePolicy.ldap[0].searchFilter=cn={0}",
-    "cas.acceptableUsagePolicy.ldap[0].bindDn=cn=Directory Manager",
-    "cas.acceptableUsagePolicy.ldap[0].bindCredential=password",
-    "cas.acceptableUsagePolicy.aupAttributeName=carLicense"
+    "cas.acceptable-usage-policy.ldap[0].ldap-url=ldap://localhost:10389",
+    "cas.acceptable-usage-policy.ldap[0].base-dn=ou=people,dc=example,dc=org",
+    "cas.acceptable-usage-policy.ldap[0].search-filter=cn={0}",
+    "cas.acceptable-usage-policy.ldap[0].bind-dn=cn=Directory Manager",
+    "cas.acceptable-usage-policy.ldap[0].bind-credential=password",
+    "cas.acceptable-usage-policy.aup-attribute-name=carLicense"
 })
 @Getter
 public class LdapAcceptableUsagePolicyRepositoryTests extends BaseAcceptableUsagePolicyRepositoryTests {
@@ -59,5 +64,8 @@ public class LdapAcceptableUsagePolicyRepositoryTests extends BaseAcceptableUsag
 
     @Test
     public void verifyOperation() {
+        assertNotNull(acceptableUsagePolicyRepository);
+        verifyRepositoryAction("casaupldap",
+            CollectionUtils.wrap("carLicense", List.of("false"), "email", List.of("casaupldap@example.org")));
     }
 }

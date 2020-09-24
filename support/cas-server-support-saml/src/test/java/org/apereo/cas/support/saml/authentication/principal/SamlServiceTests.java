@@ -10,18 +10,19 @@ import org.apereo.cas.config.authentication.support.SamlServiceFactoryConfigurat
 import org.apereo.cas.services.DefaultServicesManager;
 import org.apereo.cas.services.ServiceRegistry;
 import org.apereo.cas.services.ServicesManager;
+import org.apereo.cas.services.ServicesManagerConfigurationContext;
 import org.apereo.cas.support.saml.AbstractOpenSamlTests;
 import org.apereo.cas.support.saml.SamlProtocolConstants;
 import org.apereo.cas.web.support.DefaultArgumentExtractor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.val;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Import;
 import org.springframework.mock.web.MockHttpServletRequest;
 
@@ -60,8 +61,14 @@ public class SamlServiceTests extends AbstractOpenSamlTests {
         request.setParameter(SamlProtocolConstants.CONST_PARAM_TARGET, "service");
         val impl = samlServiceFactory.createService(request);
 
-        val response = new SamlServiceResponseBuilder(
-            new DefaultServicesManager(mock(ServiceRegistry.class), mock(ApplicationEventPublisher.class), new HashSet<>()))
+        val context = ServicesManagerConfigurationContext.builder()
+            .serviceRegistry(mock(ServiceRegistry.class))
+            .applicationContext(applicationContext)
+            .environments(new HashSet<>(0))
+            .servicesCache(Caffeine.newBuilder().build())
+            .build();
+
+        val response = new SamlServiceResponseBuilder(new DefaultServicesManager(context))
             .build(impl, "ticketId", CoreAuthenticationTestUtils.getAuthentication());
         assertNotNull(response);
         assertEquals(Response.ResponseType.REDIRECT, response.getResponseType());
@@ -82,8 +89,14 @@ public class SamlServiceTests extends AbstractOpenSamlTests {
         val request = new MockHttpServletRequest();
         request.setParameter(SamlProtocolConstants.CONST_PARAM_TARGET, "service");
         val impl = samlServiceFactory.createService(request);
-        val response = new SamlServiceResponseBuilder(
-            new DefaultServicesManager(mock(ServiceRegistry.class), mock(ApplicationEventPublisher.class), new HashSet<>()))
+        val context = ServicesManagerConfigurationContext.builder()
+            .serviceRegistry(mock(ServiceRegistry.class))
+            .applicationContext(applicationContext)
+            .environments(new HashSet<>(0))
+            .servicesCache(Caffeine.newBuilder().build())
+            .build();
+
+        val response = new SamlServiceResponseBuilder(new DefaultServicesManager(context))
             .build(impl, null, CoreAuthenticationTestUtils.getAuthentication());
         assertNotNull(response);
         assertEquals(Response.ResponseType.REDIRECT, response.getResponseType());

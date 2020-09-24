@@ -1,9 +1,9 @@
 package org.apereo.cas.ticket.registry;
 
 import org.apereo.cas.config.JmsTicketRegistryConfiguration;
-import org.apereo.cas.util.junit.EnabledIfContinuousIntegration;
 import org.apereo.cas.util.junit.EnabledIfPortOpen;
 
+import lombok.Getter;
 import org.junit.jupiter.api.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -24,18 +24,16 @@ import org.springframework.jms.annotation.EnableJms;
     JmsTicketRegistryConfiguration.class,
     BaseTicketRegistryTests.SharedTestConfiguration.class
 },
-    properties = {"spring.activemq.pool.enabled=false", "spring.activemq.packages.trust-all=true"})
+    properties = {
+        "spring.activemq.pool.enabled=false",
+        "spring.activemq.packages.trust-all=true"
+    })
 @EnableJms
-@EnabledIfContinuousIntegration
 @EnabledIfPortOpen(port = 61616)
-@Tag("ActiveMQ")
+@Tag("JMS")
+@Getter
 public class JmsTicketRegistryTests extends BaseTicketRegistryTests {
     @Autowired
     @Qualifier("ticketRegistry")
-    private TicketRegistry ticketRegistry;
-
-    @Override
-    public TicketRegistry getNewTicketRegistry() {
-        return ticketRegistry;
-    }
+    private TicketRegistry newTicketRegistry;
 }

@@ -10,7 +10,7 @@ As your CAS deployment moves through the deployment pipeline from dev to test an
 you can manage the configuration between those environments and be certain that applications
 have everything they need to run when they migrate through the use of an external configuration server
 provided by the [Spring Cloud](https://github.com/spring-cloud/spring-cloud-config) project. As an alternative,
-you may decide to simply run CAS in a standalone mode removing the need for external configuration server deployment,
+you may decide to run CAS in a standalone mode removing the need for external configuration server deployment,
 though at the cost of losing features and capabilities relevant for a cloud deployment.
 
 ## Configuration Profiles
@@ -21,9 +21,9 @@ The CAS server web application responds to the following strategies that dictate
 
 This is the default configuration mode which indicates that CAS does **NOT** require connections to an external configuration server
 and will run in an embedded *standalone mode*. When this option is turned on, CAS by default will attempt to locate settings and properties
-inside a given directory indicated under the setting name `cas.standalone.configurationDirectory` and otherwise falls back to using `/etc/cas/config` as the configuration directory.
+inside a given directory indicated under the setting name `cas.standalone.configuration-directory` and otherwise falls back to using `/etc/cas/config` as the configuration directory.
 You may instruct CAS to use this setting via the methods [outlined here](Configuration-Management.html#overview). 
-There also exists a `cas.standalone.configurationFile` which can be used to directly feed a collection of properties to CAS in form of a file or classpath resource. 
+There also exists a `cas.standalone.configuration-file` which can be used to directly feed a collection of properties to CAS in form of a file or classpath resource. 
 
 Similar to the Spring Cloud external configuration server, the contents of this directory include `(cas|application).(yml|properties)`
 files that can be used to control CAS behavior. Also, note that this configuration directory can be monitored by CAS to auto-pick up changes
@@ -67,7 +67,7 @@ configuration files external to its own. Premature optimization will only lead t
 CAS is able to use an external and central configuration server to obtain state and settings.
 The configuration server provides a very abstract way for CAS (and all of its other clients) to obtain settings from a variety
 of sources, such as file system, `git` or `svn` repositories, MongoDb databases, Vault, etc. The beauty of this solution is that to the CAS
-web application server, it matters not where settings come from and it has no knowledge of the underlying property sources. It simply
+web application server, it matters not where settings come from and it has no knowledge of the underlying property sources. It 
 talks to the configuration server to locate settings and move on.
 
 <div class="alert alert-info"><strong>Configuration Security</strong><p>This is a very good strategy to ensure configuration settings

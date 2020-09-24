@@ -1,8 +1,9 @@
 package org.apereo.cas.config;
 
 import org.apereo.cas.configuration.CasConfigurationProperties;
-import org.apereo.cas.configuration.model.support.jpa.JpaConfigDataHolder;
+import org.apereo.cas.configuration.model.support.jpa.JpaConfigurationContext;
 import org.apereo.cas.configuration.support.JpaBeans;
+import org.apereo.cas.jpa.JpaBeanFactory;
 import org.apereo.cas.support.saml.idp.metadata.JpaSamlIdPMetadataCipherExecutor;
 import org.apereo.cas.support.saml.idp.metadata.JpaSamlIdPMetadataGenerator;
 import org.apereo.cas.support.saml.idp.metadata.JpaSamlIdPMetadataLocator;
@@ -30,8 +31,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.orm.jpa.JpaTransactionManager;
+import org.springframework.orm.jpa.JpaVendorAdapter;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
-import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -51,9 +52,13 @@ import java.util.List;
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 @EnableTransactionManagement(proxyTargetClass = true)
 @Slf4j
-@ConditionalOnProperty(prefix = "cas.authn.samlIdp.metadata.jpa", name = "idpMetadataEnabled", havingValue = "true")
+@ConditionalOnProperty(prefix = "cas.authn.saml-idp.metadata.jpa", name = "idp-metadata-enabled", havingValue = "true")
 public class SamlIdPJpaIdPMetadataConfiguration {
 
+    @Autowired
+    @Qualifier("jpaBeanFactory")
+    private ObjectProvider<JpaBeanFactory> jpaBeanFactory;
+    
     @Autowired
     @Qualifier("samlSelfSignedCertificateWriter")
     private ObjectProvider<SamlIdPCertificateAndKeyWriter> samlSelfSignedCertificateWriter;
@@ -66,21 +71,23 @@ public class SamlIdPJpaIdPMetadataConfiguration {
 
     @RefreshScope
     @Bean
-    public HibernateJpaVendorAdapter jpaSamlMetadataIdPVendorAdapter() {
-        return JpaBeans.newHibernateJpaVendorAdapter(casProperties.getJdbc());
+    public JpaVendorAdapter jpaSamlMetadataIdPVendorAdapter() {
+        return jpaBeanFactory.getObject().newJpaVendorAdapter(casProperties.getJdbc());
     }
 
     @RefreshScope
     @Bean
+    @ConditionalOnMissingBean(name = "dataSourceSamlMetadataIdP")
     public DataSource dataSourceSamlMetadataIdP() {
         val idp = casProperties.getAuthn().getSamlIdp().getMetadata();
         return JpaBeans.newDataSource(idp.getJpa());
     }
 
     @Bean
+    @RefreshScope
     public List<String> jpaSamlMetadataIdPPackagesToScan() {
         val idp = casProperties.getAuthn().getSamlIdp().getMetadata();
-        val type = new JpaSamlIdPMetadataDocumentFactory(idp.getJpa()).getType();
+        val type = new JpaSamlIdPMetadataDocumentFactory(idp.getJpa().getDialect()).getType();
         return CollectionUtils.wrapList(type.getPackage().getName());
     }
 
@@ -88,13 +95,14 @@ public class SamlIdPJpaIdPMetadataConfiguration {
     @Bean
     public LocalContainerEntityManagerFactoryBean samlMetadataIdPEntityManagerFactory() {
         val idp = casProperties.getAuthn().getSamlIdp().getMetadata();
-        return JpaBeans.newHibernateEntityManagerFactoryBean(
-            new JpaConfigDataHolder(
-                jpaSamlMetadataIdPVendorAdapter(),
-                "jpaSamlMetadataIdPContext",
-                jpaSamlMetadataIdPPackagesToScan(),
-                dataSourceSamlMetadataIdP()), idp.getJpa(),
-            applicationContext);
+        val factory = jpaBeanFactory.getObject();
+        val ctx = JpaConfigurationContext.builder()
+            .jpaVendorAdapter(jpaSamlMetadataIdPVendorAdapter())
+            .persistenceUnitName("jpaSamlMetadataIdPContext")
+            .dataSource(dataSourceSamlMetadataIdP())
+            .packagesToScan(jpaSamlMetadataIdPPackagesToScan())
+            .build();
+        return factory.newEntityManagerFactoryBean(ctx, idp.getJpa());
     }
 
     @Autowired
@@ -131,7 +139,7 @@ public class SamlIdPJpaIdPMetadataConfiguration {
         val context = SamlIdPMetadataGeneratorConfigurationContext.builder()
             .samlIdPMetadataLocator(samlIdPMetadataLocator())
             .samlIdPCertificateAndKeyWriter(samlSelfSignedCertificateWriter.getObject())
-            .resourceLoader(applicationContext)
+            .applicationContext(applicationContext)
             .casProperties(casProperties)
             .metadataCipherExecutor(jpaSamlIdPMetadataCipherExecutor())
             .build();

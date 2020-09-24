@@ -4,6 +4,7 @@ import org.apereo.cas.configuration.support.RequiresModule;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -18,6 +19,7 @@ import java.util.List;
 @RequiresModule(name = "cas-server-support-saml-idp")
 @Getter
 @Setter
+@Accessors(chain = true)
 public class SamlIdPAlgorithmsProperties implements Serializable {
 
     private static final long serialVersionUID = 6547093517788229284L;
@@ -35,12 +37,12 @@ public class SamlIdPAlgorithmsProperties implements Serializable {
     /**
      * The Override black listed encryption algorithms.
      */
-    private List<String> overrideBlackListedEncryptionAlgorithms = new ArrayList<>(0);
+    private List<String> overrideBlockedEncryptionAlgorithms = new ArrayList<>(0);
 
     /**
      * The Override white listed algorithms.
      */
-    private List<String> overrideWhiteListedAlgorithms = new ArrayList<>(0);
+    private List<String> overrideAllowedAlgorithms = new ArrayList<>(0);
 
     /**
      * The Override signature reference digest methods.
@@ -53,14 +55,14 @@ public class SamlIdPAlgorithmsProperties implements Serializable {
     private List<String> overrideSignatureAlgorithms = new ArrayList<>(0);
 
     /**
-     * The Override black listed signature signing algorithms.
+     * The Override blocked signature signing algorithms.
      */
-    private List<String> overrideBlackListedSignatureSigningAlgorithms = new ArrayList<>(0);
+    private List<String> overrideBlockedSignatureSigningAlgorithms = new ArrayList<>(0);
 
     /**
-     * The Override white listed signature signing algorithms.
+     * The Override allowed signature signing algorithms.
      */
-    private List<String> overrideWhiteListedSignatureSigningAlgorithms = new ArrayList<>(0);
+    private List<String> overrideAllowedSignatureSigningAlgorithms = new ArrayList<>(0);
 
     /**
      * The Override signature canonicalization algorithm.

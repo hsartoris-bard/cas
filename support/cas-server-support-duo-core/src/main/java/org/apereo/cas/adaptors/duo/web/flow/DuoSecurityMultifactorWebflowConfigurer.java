@@ -3,9 +3,11 @@ package org.apereo.cas.adaptors.duo.web.flow;
 import org.apereo.cas.adaptors.duo.authn.DuoSecurityCredential;
 import org.apereo.cas.configuration.CasConfigurationProperties;
 import org.apereo.cas.configuration.model.support.mfa.DuoSecurityMultifactorProperties;
+import org.apereo.cas.trusted.web.flow.AbstractMultifactorTrustedDeviceWebflowConfigurer;
+import org.apereo.cas.util.LoggingUtils;
 import org.apereo.cas.util.spring.ApplicationContextProvider;
 import org.apereo.cas.web.flow.CasWebflowConstants;
-import org.apereo.cas.web.flow.configurer.AbstractMultifactorTrustedDeviceWebflowConfigurer;
+import org.apereo.cas.web.flow.configurer.CasMultifactorWebflowCustomizer;
 import org.apereo.cas.web.flow.configurer.DynamicFlowModelBuilder;
 
 import lombok.extern.slf4j.Slf4j;
@@ -68,11 +70,13 @@ public class DuoSecurityMultifactorWebflowConfigurer extends AbstractMultifactor
 
     public DuoSecurityMultifactorWebflowConfigurer(final FlowBuilderServices flowBuilderServices,
                                                    final FlowDefinitionRegistry loginFlowDefinitionRegistry,
-                                                   final boolean enableDeviceRegistration,
+
                                                    final ConfigurableApplicationContext applicationContext,
-                                                   final CasConfigurationProperties casProperties) {
+                                                   final CasConfigurationProperties casProperties,
+                                                   final List<CasMultifactorWebflowCustomizer> mfaFlowCustomizers) {
         super(flowBuilderServices, loginFlowDefinitionRegistry,
-            enableDeviceRegistration, applicationContext, casProperties, Optional.empty());
+            applicationContext, casProperties, Optional.empty(),
+            mfaFlowCustomizers);
     }
 
     private static void createDuoFlowStates(final DynamicFlowModelBuilder modelBuilder) {
@@ -262,7 +266,7 @@ public class DuoSecurityMultifactorWebflowConfigurer extends AbstractMultifactor
     private static LinkedList<AbstractActionModel> createDuoInitializeLoginAction(final List<AbstractStateModel> states) {
         val actModel = new ActionStateModel(CasWebflowConstants.STATE_ID_INIT_LOGIN_FORM);
         val actions = new LinkedList<AbstractActionModel>();
-        actions.add(new EvaluateModel("initializeLoginAction"));
+        actions.add(new EvaluateModel(CasWebflowConstants.ACTION_ID_INIT_LOGIN_ACTION));
         actModel.setActions(actions);
 
         val trans = new LinkedList<TransitionModel>();
@@ -314,7 +318,8 @@ public class DuoSecurityMultifactorWebflowConfigurer extends AbstractMultifactor
                     val registry = applicationContext.getBean(id, FlowDefinitionRegistry.class);
                     registerMultifactorTrustedAuthentication(registry);
                 } catch (final Exception e) {
-                    LOGGER.error("Failed to register multifactor trusted authentication for [{}]", id, e);
+                    LOGGER.error("Failed to register multifactor trusted authentication for [{}]", id);
+                    LoggingUtils.error(LOGGER, e);
                 }
             });
     }

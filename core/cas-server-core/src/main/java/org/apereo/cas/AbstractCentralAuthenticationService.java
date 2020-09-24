@@ -7,7 +7,6 @@ import org.apereo.cas.authentication.ContextualAuthenticationPolicyFactory;
 import org.apereo.cas.authentication.principal.PrincipalFactory;
 import org.apereo.cas.authentication.principal.Service;
 import org.apereo.cas.authentication.principal.ServiceMatchingStrategy;
-import org.apereo.cas.logout.LogoutManager;
 import org.apereo.cas.services.RegisteredService;
 import org.apereo.cas.services.ServiceContext;
 import org.apereo.cas.services.ServicesManager;
@@ -19,14 +18,17 @@ import org.apereo.cas.ticket.TicketFactory;
 import org.apereo.cas.ticket.TicketGrantingTicket;
 import org.apereo.cas.ticket.UnsatisfiedAuthenticationPolicyException;
 import org.apereo.cas.ticket.registry.TicketRegistry;
+import org.apereo.cas.util.LoggingUtils;
 import org.apereo.cas.util.crypto.CipherExecutor;
 
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import lombok.Setter;
 import lombok.Synchronized;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.apereo.inspektr.audit.annotation.Audit;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -49,7 +51,7 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Setter
-@AllArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
 public abstract class AbstractCentralAuthenticationService implements CentralAuthenticationService, Serializable, ApplicationEventPublisherAware {
 
     private static final long serialVersionUID = -7572316677901391166L;
@@ -67,11 +69,6 @@ public abstract class AbstractCentralAuthenticationService implements CentralAut
      * Implementation of Service Manager.
      */
     protected final ServicesManager servicesManager;
-
-    /**
-     * The logout manager.
-     **/
-    protected final LogoutManager logoutManager;
 
     /**
      * The ticket factory.
@@ -155,10 +152,15 @@ public abstract class AbstractCentralAuthenticationService implements CentralAut
         }
     }
 
+
+    @Audit(
+        action = "TICKET_DESTROYED",
+        actionResolverName = "DESTROY_TICKET_RESOLVER",
+        resourceResolverName = "DESTROY_TICKET_RESOURCE_RESOLVER")
     @Transactional(transactionManager = "ticketTransactionManager")
     @Override
-    public void deleteTicket(final String ticketId) {
-        this.ticketRegistry.deleteTicket(ticketId);
+    public int deleteTicket(final String ticketId) {
+        return ticketRegistry.deleteTicket(ticketId);
     }
 
     /**
@@ -176,7 +178,7 @@ public abstract class AbstractCentralAuthenticationService implements CentralAut
                 return authentication;
             }
         } catch (final Exception e) {
-            LOGGER.error(e.getMessage(), e);
+            LoggingUtils.error(LOGGER, e);
         }
         throw new UnsatisfiedAuthenticationPolicyException(policy);
     }
@@ -196,11 +198,11 @@ public abstract class AbstractCentralAuthenticationService implements CentralAut
             if (proxyingService != null) {
                 LOGGER.debug("Located proxying service [{}] in the service registry", proxyingService);
                 if (!proxyingService.getProxyPolicy().isAllowedToProxy()) {
-                    LOGGER.warn("Found proxying service [{}], but it is not authorized to fulfill the proxy attempt made by [{}]", proxyingService.getId(), service.getId());
+                    LOGGER.warn("Proxying service [{}] is not authorized to fulfill the proxy attempt made by [{}]", proxyingService.getId(), service.getId());
                     throw new UnauthorizedProxyingException(UnauthorizedProxyingException.MESSAGE + registeredService.getId());
                 }
             } else {
-                LOGGER.warn("No proxying service found. Proxy attempt by service [{}] (registered service [{}]) is not allowed.", service.getId(), registeredService.getId());
+                LOGGER.warn("Proxy attempt by service [{}] (registered service [{}]) is not allowed.", service.getId(), registeredService.getId());
                 throw new UnauthorizedProxyingException(UnauthorizedProxyingException.MESSAGE + registeredService.getId());
             }
         } else {
@@ -232,6 +234,12 @@ public abstract class AbstractCentralAuthenticationService implements CentralAut
     @Override
     public Ticket updateTicket(final Ticket ticket) {
         this.ticketRegistry.updateTicket(ticket);
+        return ticket;
+    }
+
+    @Override
+    public Ticket addTicket(final Ticket ticket) {
+        this.ticketRegistry.addTicket(ticket);
         return ticket;
     }
 

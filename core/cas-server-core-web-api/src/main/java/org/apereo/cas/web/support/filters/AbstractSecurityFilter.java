@@ -1,5 +1,7 @@
 package org.apereo.cas.web.support.filters;
 
+import org.apereo.cas.util.LoggingUtils;
+
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +20,7 @@ public abstract class AbstractSecurityFilter {
      * The name of the optional Filter init-param specifying that configuration
      * errors should be fatal.
      */
-    public static final String FAIL_SAFE = "failSafe";
+    public static final String THROW_ON_ERROR = "throwOnError";
 
     /**
      * Throw fatal errors if set.
@@ -34,7 +36,7 @@ public abstract class AbstractSecurityFilter {
     }
 
     protected static void logException(final Exception e) {
-        LOGGER.error(e.getMessage(), e);
+        LoggingUtils.error(LOGGER, e);
         if (isThrowOnErrors()) {
             throw new RuntimeException(e);
         }

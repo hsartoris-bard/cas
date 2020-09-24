@@ -16,6 +16,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.pac4j.core.context.JEEContext;
+import org.pac4j.core.context.session.JEESessionStore;
 import org.pac4j.core.profile.CommonProfile;
 import org.pac4j.core.util.Pac4jConstants;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -65,6 +66,7 @@ public class OAuth20PasswordGrantTypeTokenRequestValidatorTests {
             .servicesManager(serviceManager)
             .webApplicationServiceServiceFactory(new WebApplicationServiceFactory())
             .registeredServiceAccessStrategyEnforcer(new RegisteredServiceAccessStrategyAuditableEnforcer())
+            .sessionStore(new JEESessionStore())
             .build();
         this.validator = new OAuth20PasswordGrantTypeTokenRequestValidator(context);
     }
@@ -82,7 +84,8 @@ public class OAuth20PasswordGrantTypeTokenRequestValidatorTests {
         profile.setId(RequestValidatorTestUtils.SUPPORTING_CLIENT_ID);
         val session = request.getSession(true);
         assertNotNull(session);
-        session.setAttribute(Pac4jConstants.USER_PROFILES, profile);
+        session.setAttribute(Pac4jConstants.USER_PROFILES,
+            CollectionUtils.wrapLinkedHashMap(profile.getClientName(), profile));
 
         request.setParameter(OAuth20Constants.GRANT_TYPE, getGrantType().getType());
         request.setParameter(OAuth20Constants.CLIENT_ID, supportingService.getClientId());
@@ -90,12 +93,14 @@ public class OAuth20PasswordGrantTypeTokenRequestValidatorTests {
 
         request.setParameter(OAuth20Constants.CLIENT_ID, nonSupportingService.getClientId());
         profile.setId(RequestValidatorTestUtils.NON_SUPPORTING_CLIENT_ID);
-        session.setAttribute(Pac4jConstants.USER_PROFILES, profile);
+        session.setAttribute(Pac4jConstants.USER_PROFILES,
+            CollectionUtils.wrapLinkedHashMap(profile.getClientName(), profile));
         assertFalse(this.validator.validate(new JEEContext(request, response)));
 
         request.setParameter(OAuth20Constants.CLIENT_ID, promiscuousService.getClientId());
         profile.setId(RequestValidatorTestUtils.PROMISCUOUS_CLIENT_ID);
-        session.setAttribute(Pac4jConstants.USER_PROFILES, profile);
+        session.setAttribute(Pac4jConstants.USER_PROFILES,
+            CollectionUtils.wrapLinkedHashMap(profile.getClientName(), profile));
         assertTrue(this.validator.validate(new JEEContext(request, response)));
     }
 

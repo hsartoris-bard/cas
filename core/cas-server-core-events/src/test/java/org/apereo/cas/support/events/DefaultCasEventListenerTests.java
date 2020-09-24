@@ -17,17 +17,20 @@ import lombok.val;
 import org.apereo.inspektr.common.web.ClientInfo;
 import org.apereo.inspektr.common.web.ClientInfoHolder;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
-import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.mock.web.MockHttpServletRequest;
 
 import javax.security.auth.login.FailedLoginException;
+
 import java.util.Collection;
 import java.util.LinkedHashSet;
 
@@ -44,9 +47,10 @@ import static org.junit.jupiter.api.Assertions.*;
     CasCoreEventsConfiguration.class,
     RefreshAutoConfiguration.class
 })
+@Tag("Simple")
 public class DefaultCasEventListenerTests {
     @Autowired
-    private ApplicationEventPublisher eventPublisher;
+    private ConfigurableApplicationContext applicationContext;
 
     @Autowired
     @Qualifier("casEventRepository")
@@ -66,7 +70,7 @@ public class DefaultCasEventListenerTests {
         val event = new CasAuthenticationTransactionFailureEvent(this,
             CollectionUtils.wrap("error", new FailedLoginException()),
             CollectionUtils.wrap(CoreAuthenticationTestUtils.getCredentialsWithSameUsernameAndPassword()));
-        eventPublisher.publishEvent(event);
+        applicationContext.publishEvent(event);
         assertFalse(casEventRepository.load().isEmpty());
     }
 
@@ -74,7 +78,7 @@ public class DefaultCasEventListenerTests {
     public void verifyTicketGrantingTicketCreated() {
         val tgt = new MockTicketGrantingTicket("casuser");
         val event = new CasTicketGrantingTicketCreatedEvent(this, tgt);
-        eventPublisher.publishEvent(event);
+        applicationContext.publishEvent(event);
         assertFalse(casEventRepository.load().isEmpty());
     }
 
@@ -85,7 +89,7 @@ public class DefaultCasEventListenerTests {
             new DefaultAuthenticationTransaction(CoreAuthenticationTestUtils.getService(),
                 CollectionUtils.wrap(CoreAuthenticationTestUtils.getCredentialsWithSameUsernameAndPassword())),
             CoreAuthenticationTestUtils.getAuthentication());
-        eventPublisher.publishEvent(event);
+        applicationContext.publishEvent(event);
         assertFalse(casEventRepository.load().isEmpty());
     }
 
@@ -95,11 +99,12 @@ public class DefaultCasEventListenerTests {
             CoreAuthenticationTestUtils.getAuthentication(),
             CoreAuthenticationTestUtils.getRegisteredService(),
             new Object());
-        eventPublisher.publishEvent(event);
+        applicationContext.publishEvent(event);
         assertFalse(casEventRepository.load().isEmpty());
     }
 
     @TestConfiguration("EventTestConfiguration")
+    @Lazy(false)
     public static class EventTestConfiguration {
         @Bean
         public CasEventRepository casEventRepository() {

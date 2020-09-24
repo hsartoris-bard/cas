@@ -3,9 +3,11 @@ package org.apereo.cas.web.flow;
 import org.apereo.cas.CasProtocolConstants;
 import org.apereo.cas.authentication.AuthenticationCredentialsThreadLocalBinder;
 import org.apereo.cas.authentication.AuthenticationServiceSelectionPlan;
+import org.apereo.cas.configuration.model.core.sso.SingleSignOnProperties;
 import org.apereo.cas.services.RegisteredService;
 import org.apereo.cas.services.ServicesManager;
 import org.apereo.cas.ticket.registry.TicketRegistrySupport;
+import org.apereo.cas.util.model.TriStateBoolean;
 import org.apereo.cas.web.support.WebUtils;
 
 import lombok.Getter;
@@ -29,9 +31,7 @@ import org.springframework.webflow.execution.RequestContext;
 public class DefaultSingleSignOnParticipationStrategy implements SingleSignOnParticipationStrategy {
     private final ServicesManager servicesManager;
 
-    private final boolean createCookieOnRenewedAuthentication;
-
-    private final boolean renewEnabled;
+    private final SingleSignOnProperties properties;
 
     private final TicketRegistrySupport ticketRegistrySupport;
 
@@ -41,7 +41,7 @@ public class DefaultSingleSignOnParticipationStrategy implements SingleSignOnPar
 
     @Override
     public boolean isParticipating(final RequestContext requestContext) {
-        if (renewEnabled && requestContext.getRequestParameters().contains(CasProtocolConstants.PARAMETER_RENEW)) {
+        if (properties.isRenewAuthnEnabled() && requestContext.getRequestParameters().contains(CasProtocolConstants.PARAMETER_RENEW)) {
             LOGGER.debug("[{}] is specified for the request. The authentication session will be considered renewed.",
                 CasProtocolConstants.PARAMETER_RENEW);
             return false;
@@ -49,7 +49,7 @@ public class DefaultSingleSignOnParticipationStrategy implements SingleSignOnPar
 
         val registeredService = determineRegisteredService(requestContext);
         if (registeredService == null) {
-            return true;
+            return properties.isSsoEnabled();
         }
 
         val authentication = WebUtils.getAuthentication(requestContext);
@@ -79,16 +79,15 @@ public class DefaultSingleSignOnParticipationStrategy implements SingleSignOnPar
     }
 
     @Override
-    public boolean isCreateCookieOnRenewedAuthentication(final RequestContext context) {
-        var createCookieOnRenewedAuthnForService = true;
+    public TriStateBoolean isCreateCookieOnRenewedAuthentication(final RequestContext context) {
         val registeredService = determineRegisteredService(context);
         if (registeredService != null) {
             val ssoPolicy = registeredService.getSingleSignOnParticipationPolicy();
             if (ssoPolicy != null) {
-                createCookieOnRenewedAuthnForService = ssoPolicy.isCreateCookieOnRenewedAuthentication();
+                return ssoPolicy.isCreateCookieOnRenewedAuthentication();
             }
         }
-        return this.createCookieOnRenewedAuthentication || createCookieOnRenewedAuthnForService;
+        return TriStateBoolean.fromBoolean(properties.isCreateSsoCookieOnRenewAuthn());
     }
 
     private RegisteredService determineRegisteredService(final RequestContext requestContext) {

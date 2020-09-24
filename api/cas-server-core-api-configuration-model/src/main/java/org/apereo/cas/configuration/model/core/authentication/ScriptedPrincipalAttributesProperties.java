@@ -1,20 +1,24 @@
 package org.apereo.cas.configuration.model.core.authentication;
 
+import org.apereo.cas.configuration.model.SpringResourceProperties;
 import org.apereo.cas.configuration.support.RequiresModule;
-import org.apereo.cas.configuration.support.SpringResourceProperties;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 
 /**
  * This is {@link ScriptedPrincipalAttributesProperties}.
  *
  * @author Misagh Moayyed
  * @since 5.2.0
+ * @deprecated Since 6.2
  */
 @RequiresModule(name = "cas-server-support-person-directory", automated = true)
 @Getter
 @Setter
+@Deprecated(since = "6.2.0")
+@Accessors(chain = true)
 public class ScriptedPrincipalAttributesProperties extends SpringResourceProperties {
 
     private static final long serialVersionUID = 4221139939506528713L;

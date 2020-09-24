@@ -2,9 +2,11 @@ package org.apereo.cas.configuration.model.support.wsfed;
 
 import org.apereo.cas.configuration.model.core.util.EncryptionJwtSigningJwtCryptographyProperties;
 import org.apereo.cas.configuration.support.RequiresModule;
+import org.apereo.cas.util.crypto.CipherExecutor;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 import java.io.Serializable;
@@ -19,6 +21,7 @@ import java.util.List;
  */
 @Getter
 @Setter
+@Accessors(chain = true)
 @RequiresModule(name = "cas-server-support-ws-idp")
 public class WsFederationProperties implements Serializable {
 
@@ -36,6 +39,7 @@ public class WsFederationProperties implements Serializable {
 
     @Getter
     @Setter
+    @Accessors(chain = true)
     @RequiresModule(name = "cas-server-support-ws-idp")
     public static class IdentityProvider implements Serializable {
 
@@ -56,6 +60,7 @@ public class WsFederationProperties implements Serializable {
 
     @Getter
     @Setter
+    @Accessors(chain = true)
     @RequiresModule(name = "cas-server-support-ws-sts")
     public static class SecurityTokenService implements Serializable {
 
@@ -83,24 +88,29 @@ public class WsFederationProperties implements Serializable {
          * Set whether the provided token will be signed or not. Default is true.
          */
         private boolean signTokens = true;
+
         /**
          * Set whether client lifetime is accepted.
          */
         private boolean conditionsAcceptClientLifetime = true;
+
         /**
          * If requested lifetime exceeds shall it fail (default)
          * or overwrite with maximum lifetime.
          */
         private boolean conditionsFailLifetimeExceedance;
+
         /**
          * Get how long (in seconds) a client-supplied Created Element is allowed to be in the future.
          * The default is 60 seconds to avoid common problems relating to clock skew.
          */
         private String conditionsFutureTimeToLive = "PT60S";
+
         /**
          * Set the default lifetime in seconds for issued SAML tokens.
          */
         private String conditionsLifetime = "PT30M";
+
         /**
          * Set the maximum lifetime in seconds for issued SAML tokens.
          */
@@ -148,9 +158,15 @@ public class WsFederationProperties implements Serializable {
          */
         private List<String> customClaims = new ArrayList<>(0);
 
+        public SecurityTokenService() {
+            crypto.getEncryption().setKeySize(CipherExecutor.DEFAULT_STRINGABLE_ENCRYPTION_KEY_SIZE);
+            crypto.getSigning().setKeySize(CipherExecutor.DEFAULT_STRINGABLE_SIGNING_KEY_SIZE);
+        }
+
         @Getter
         @Setter
         @RequiresModule(name = "cas-server-support-ws-sts")
+        @Accessors(chain = true)
         public static class RealmDefinition implements Serializable {
 
             private static final long serialVersionUID = -2209230334376432934L;

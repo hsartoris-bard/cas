@@ -10,13 +10,13 @@ import org.apereo.cas.audit.spi.FilterAndDelegateAuditTrailManager;
 import org.apereo.cas.audit.spi.plan.DefaultAuditTrailExecutionPlan;
 import org.apereo.cas.audit.spi.plan.DefaultAuditTrailRecordResolutionPlan;
 import org.apereo.cas.audit.spi.principal.ChainingAuditPrincipalIdProvider;
-import org.apereo.cas.audit.spi.principal.ThreadLocalPrincipalResolver;
+import org.apereo.cas.audit.spi.principal.ThreadLocalAuditPrincipalResolver;
 import org.apereo.cas.audit.spi.resource.CredentialsAsFirstParameterResourceResolver;
 import org.apereo.cas.audit.spi.resource.MessageBundleAwareResourceResolver;
 import org.apereo.cas.audit.spi.resource.NullableReturnValueAuditResourceResolver;
 import org.apereo.cas.audit.spi.resource.ServiceAccessEnforcementAuditResourceResolver;
-import org.apereo.cas.audit.spi.resource.ServiceResourceResolver;
-import org.apereo.cas.audit.spi.resource.ShortenedReturnValueAsStringResourceResolver;
+import org.apereo.cas.audit.spi.resource.ServiceAuditResourceResolver;
+import org.apereo.cas.audit.spi.resource.ShortenedReturnValueAsStringAuditResourceResolver;
 import org.apereo.cas.audit.spi.resource.TicketAsFirstParameterResourceResolver;
 import org.apereo.cas.audit.spi.resource.TicketValidationResourceResolver;
 import org.apereo.cas.configuration.CasConfigurationProperties;
@@ -129,7 +129,7 @@ public class CasCoreAuditConfiguration {
         bean.setUrlPatterns(CollectionUtils.wrap("/*"));
         bean.setName("CAS Client Info Logging Filter");
         bean.setAsyncSupported(true);
-        bean.setOrder(Ordered.HIGHEST_PRECEDENCE);
+        bean.setOrder(Ordered.HIGHEST_PRECEDENCE + 1);
 
         val initParams = new HashMap<String, String>();
         if (StringUtils.isNotBlank(audit.getAlternateClientAddrHeaderName())) {
@@ -167,7 +167,7 @@ public class CasCoreAuditConfiguration {
     @ConditionalOnMissingBean(name = "returnValueResourceResolver")
     @Bean
     public AuditResourceResolver returnValueResourceResolver() {
-        return new ShortenedReturnValueAsStringResourceResolver();
+        return new ShortenedReturnValueAsStringAuditResourceResolver();
     }
 
     @ConditionalOnMissingBean(name = "nullableReturnValueResourceResolver")
@@ -207,7 +207,7 @@ public class CasCoreAuditConfiguration {
     @ConditionalOnMissingBean(name = "auditablePrincipalResolver")
     @Bean
     public PrincipalResolver auditablePrincipalResolver(@Qualifier("auditPrincipalIdProvider") final AuditPrincipalIdProvider auditPrincipalIdProvider) {
-        return new ThreadLocalPrincipalResolver(auditPrincipalIdProvider);
+        return new ThreadLocalAuditPrincipalResolver(auditPrincipalIdProvider);
     }
 
     @ConditionalOnMissingBean(name = "ticketResourceResolver")
@@ -236,13 +236,14 @@ public class CasCoreAuditConfiguration {
     @Bean
     public AuditPrincipalIdProvider auditPrincipalIdProvider() {
         val resolvers = applicationContext.getBeansOfType(AuditPrincipalIdProvider.class, false, true);
-        val providers = new ArrayList<AuditPrincipalIdProvider>(resolvers.values());
-        AnnotationAwareOrderComparator.sort(providers);
+        val providers = new ArrayList<>(resolvers.values());
+        AnnotationAwareOrderComparator.sortIfNecessary(providers);
         return new ChainingAuditPrincipalIdProvider(providers);
     }
 
     @Bean
     @ConditionalOnMissingBean(name = "casAuditTrailExecutionPlanConfigurer")
+    @ConditionalOnProperty(prefix = "cas.audit.slf4j", name = "enabled", havingValue = "true", matchIfMissing = true)
     public AuditTrailExecutionPlanConfigurer casAuditTrailExecutionPlanConfigurer() {
         return plan -> {
             val audit = casProperties.getAudit().getSlf4j();
@@ -278,7 +279,7 @@ public class CasCoreAuditConfiguration {
                 AuditTrailConstants.AUDIT_ACTION_POSTFIX_FAILED));
 
         val defResolver = new DefaultAuditActionResolver();
-        plan.registerAuditActionResolver("DESTROY_TICKET_GRANTING_TICKET_RESOLVER", defResolver);
+        plan.registerAuditActionResolver("DESTROY_TICKET_RESOLVER", defResolver);
         plan.registerAuditActionResolver("DESTROY_PROXY_GRANTING_TICKET_RESOLVER", defResolver);
 
         val cResolver = ticketCreationActionResolver();
@@ -304,11 +305,11 @@ public class CasCoreAuditConfiguration {
         plan.registerAuditResourceResolver("CREATE_PROXY_GRANTING_TICKET_RESOURCE_RESOLVER", messageBundleAwareResourceResolver);
 
         val ticketResourceResolver = ticketResourceResolver();
-        plan.registerAuditResourceResolver("DESTROY_TICKET_GRANTING_TICKET_RESOURCE_RESOLVER", ticketResourceResolver);
+        plan.registerAuditResourceResolver("DESTROY_TICKET_RESOURCE_RESOLVER", ticketResourceResolver);
         plan.registerAuditResourceResolver("DESTROY_PROXY_GRANTING_TICKET_RESOURCE_RESOLVER", ticketResourceResolver);
 
-        plan.registerAuditResourceResolver("GRANT_SERVICE_TICKET_RESOURCE_RESOLVER", new ServiceResourceResolver());
-        plan.registerAuditResourceResolver("GRANT_PROXY_TICKET_RESOURCE_RESOLVER", new ServiceResourceResolver());
+        plan.registerAuditResourceResolver("GRANT_SERVICE_TICKET_RESOURCE_RESOLVER", new ServiceAuditResourceResolver());
+        plan.registerAuditResourceResolver("GRANT_PROXY_TICKET_RESOURCE_RESOLVER", new ServiceAuditResourceResolver());
         plan.registerAuditResourceResolver("VALIDATE_SERVICE_TICKET_RESOURCE_RESOLVER", ticketValidationResourceResolver());
 
         plan.registerAuditResourceResolver("SAVE_SERVICE_RESOURCE_RESOLVER", returnValueResourceResolver());

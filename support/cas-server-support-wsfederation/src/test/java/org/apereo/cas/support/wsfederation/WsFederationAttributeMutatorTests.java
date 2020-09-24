@@ -3,8 +3,8 @@ package org.apereo.cas.support.wsfederation;
 import org.apereo.cas.support.wsfederation.attributes.WsFederationAttributeMutator;
 
 import lombok.val;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author John Gasper
  * @since 4.2.0
  */
-@SpringBootTest(classes = AbstractWsFederationTests.SharedTestConfiguration.class)
+@Tag("WSFederation")
 public class WsFederationAttributeMutatorTests extends AbstractWsFederationTests {
 
     private static final String UPN_PARAM = "upn";
@@ -32,7 +32,7 @@ public class WsFederationAttributeMutatorTests extends AbstractWsFederationTests
         values.add("test@example.com");
         attributes.put(UPN_PARAM, values);
 
-        val instance = new WsFederationAttributeMutatorImpl();
+        val instance = new TestWsFederationAttributeMutator();
         instance.modifyAttributes(attributes);
 
         assertTrue(attributes.containsKey("test"));
@@ -41,7 +41,7 @@ public class WsFederationAttributeMutatorTests extends AbstractWsFederationTests
         assertTrue("testing".equalsIgnoreCase(attributes.get(UPN_PARAM).get(0).toString()));
     }
 
-    private static class WsFederationAttributeMutatorImpl implements WsFederationAttributeMutator {
+    private static class TestWsFederationAttributeMutator implements WsFederationAttributeMutator {
         private static final long serialVersionUID = -1858140387002752668L;
 
         @Override

@@ -150,10 +150,10 @@ public class TicketGrantingTicketResourceTests {
         this.mockMvc.perform(post(TICKETS_RESOURCE_URL)
             .param(USERNAME, TEST_VALUE)
             .param(PASSWORD, TEST_VALUE)
-            .accept(MediaType.APPLICATION_JSON_UTF8))
+            .accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isCreated())
             .andExpect(header().string("Location", "http://localhost/cas/v1/tickets/TGT-1"))
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(content().string(expectedReturnEntityBody));
     }
 
@@ -166,7 +166,7 @@ public class TicketGrantingTicketResourceTests {
             .param(PASSWORD, TEST_VALUE))
             .andExpect(status().isUnauthorized())
             .andReturn().getResponse().getContentAsString();
-        assertTrue(content.contains("LoginException"));
+        assertTrue(content.contains("Login failed"));
     }
 
     @Test

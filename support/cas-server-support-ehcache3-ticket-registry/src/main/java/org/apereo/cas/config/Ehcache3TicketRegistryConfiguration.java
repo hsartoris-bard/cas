@@ -96,8 +96,9 @@ public class Ehcache3TicketRegistryConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(name = "ehcache3TicketCacheManager")
-    public javax.cache.CacheManager ehcache3TicketCacheManager(
-        @Qualifier("ehcache3CacheManagerConfiguration") final ServiceCreationConfiguration ehcache3CacheManagerConfiguration) {
+    @Autowired
+    public javax.cache.CacheManager ehcache3TicketCacheManager(@Qualifier("ehcache3CacheManagerConfiguration")
+                                                               final ServiceCreationConfiguration ehcache3CacheManagerConfiguration) {
         val ehcacheProperties = casProperties.getTicket().getRegistry().getEhcache3();
         val ehcacheProvider = (EhcacheCachingProvider) Caching.getCachingProvider(EhcacheCachingProvider.class.getName());
         val statisticsAllEnabled = ehcacheProperties.isEnableStatistics() ? ConfigurationElementState.ENABLED : ConfigurationElementState.DISABLED;
@@ -135,8 +136,9 @@ public class Ehcache3TicketRegistryConfiguration {
 
         if (StringUtils.isBlank(terracottaClusterUri)) {
             val perCacheCapacity = Capacity.parse(ehcacheProperties.getPerCacheSizeOnDisk());
+            val persistOnDisk = ehcacheProperties.isPersistOnDisk();
             resourcePools = resourcePools.disk(perCacheCapacity.getSize().longValue(),
-                MemoryUnit.valueOf(perCacheCapacity.getUnitOfMeasure().name()));
+                MemoryUnit.valueOf(perCacheCapacity.getUnitOfMeasure().name()), persistOnDisk);
         }
 
         var cacheConfigBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(

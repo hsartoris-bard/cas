@@ -18,6 +18,7 @@ import org.opensaml.core.xml.config.XMLObjectProviderRegistrySupport;
 import org.opensaml.core.xml.io.MarshallerFactory;
 import org.opensaml.core.xml.io.UnmarshallerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -45,17 +46,17 @@ public class CoreSamlConfiguration {
 
     @Lazy
     @Bean(name = "shibboleth.VelocityEngine")
+    @ConditionalOnMissingBean(name = "velocityEngineFactoryBean")
     public VelocityEngine velocityEngineFactoryBean() {
         val properties = new Properties();
         properties.put(RuntimeConstants.INPUT_ENCODING, StandardCharsets.UTF_8.name());
         properties.put(RuntimeConstants.ENCODING_DEFAULT, StandardCharsets.UTF_8.name());
-        properties.put(RuntimeConstants.RESOURCE_LOADERS, "file, classpath, string");
+        properties.put(RuntimeConstants.RESOURCE_LOADERS, "classpath, string, file");
         properties.put(RuntimeConstants.FILE_RESOURCE_LOADER_PATH, FileUtils.getTempDirectory().getAbsolutePath());
         properties.put(RuntimeConstants.FILE_RESOURCE_LOADER_CACHE, Boolean.FALSE);
-        properties.put("resource.loader.classpath.class", ClasspathResourceLoader.class.getName());
-        properties.put("resource.loader.string.class", StringResourceLoader.class.getName());
-        properties.put("resource.loader.file.class", FileResourceLoader.class.getName());
-
+        properties.put(String.format("%s.classpath.class", RuntimeConstants.RESOURCE_LOADER), ClasspathResourceLoader.class.getName());
+        properties.put(String.format("%s.string.class", RuntimeConstants.RESOURCE_LOADER), StringResourceLoader.class.getName());
+        properties.put(String.format("%s.file.class", RuntimeConstants.RESOURCE_LOADER), FileResourceLoader.class.getName());
         return new VelocityEngine(properties);
     }
 
@@ -90,14 +91,12 @@ public class CoreSamlConfiguration {
         pool.setBuilderFeatures(features);
         return pool;
     }
-
-
+    
     @Bean(name = "shibboleth.BuilderFactory")
     @DependsOn("shibboleth.OpenSAMLConfig")
     public XMLObjectBuilderFactory builderFactory() {
         return XMLObjectProviderRegistrySupport.getBuilderFactory();
     }
-
 
     @Bean(name = "shibboleth.MarshallerFactory")
     @DependsOn("shibboleth.OpenSAMLConfig")

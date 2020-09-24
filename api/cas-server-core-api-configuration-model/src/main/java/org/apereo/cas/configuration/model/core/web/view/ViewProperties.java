@@ -1,10 +1,11 @@
 package org.apereo.cas.configuration.model.core.web.view;
 
+import org.apereo.cas.configuration.model.RestEndpointProperties;
 import org.apereo.cas.configuration.support.RequiresModule;
-import org.apereo.cas.configuration.support.RestEndpointProperties;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 import java.io.Serializable;
@@ -22,6 +23,7 @@ import java.util.Map;
 @RequiresModule(name = "cas-server-core-web", automated = true)
 @Getter
 @Setter
+@Accessors(chain = true)
 public class ViewProperties implements Serializable {
 
     private static final long serialVersionUID = 2719748442042197738L;

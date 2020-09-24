@@ -2,7 +2,6 @@ package org.apereo.cas.support.saml.idp.metadata;
 
 import org.apereo.cas.support.saml.BaseMongoDbSamlMetadataTests;
 import org.apereo.cas.support.saml.services.SamlRegisteredService;
-import org.apereo.cas.util.junit.EnabledIfContinuousIntegration;
 import org.apereo.cas.util.junit.EnabledIfPortOpen;
 
 import lombok.val;
@@ -21,18 +20,17 @@ import static org.junit.jupiter.api.Assertions.*;
  * @since 6.0.0
  */
 @TestPropertySource(properties = {
-    "cas.authn.samlIdp.metadata.mongo.databaseName=saml-idp-generator",
-    "cas.authn.samlIdp.metadata.mongo.host=localhost",
-    "cas.authn.samlIdp.metadata.mongo.port=27017",
-    "cas.authn.samlIdp.metadata.mongo.userId=root",
-    "cas.authn.samlIdp.metadata.mongo.password=secret",
-    "cas.authn.samlIdp.metadata.mongo.authenticationDatabaseName=admin",
-    "cas.authn.samlIdp.metadata.mongo.dropCollection=true",
-    "cas.authn.samlIdp.metadata.mongo.idpMetadataCollection=saml-idp-metadata"
+    "cas.authn.saml-idp.metadata.mongo.database-name=saml-idp-generator",
+    "cas.authn.saml-idp.metadata.mongo.host=localhost",
+    "cas.authn.saml-idp.metadata.mongo.port=27017",
+    "cas.authn.saml-idp.metadata.mongo.user-id=root",
+    "cas.authn.saml-idp.metadata.mongo.password=secret",
+    "cas.authn.saml-idp.metadata.mongo.authentication-database-name=admin",
+    "cas.authn.saml-idp.metadata.mongo.drop-collection=true",
+    "cas.authn.saml-idp.metadata.mongo.idp-metadata-collection=saml-idp-metadata"
     })
 @Tag("MongoDb")
 @EnabledIfPortOpen(port = 27017)
-@EnabledIfContinuousIntegration
 public class MongoDbSamlIdPMetadataGeneratorTests extends BaseMongoDbSamlMetadataTests {
     @Test
     public void verifyOperation() {

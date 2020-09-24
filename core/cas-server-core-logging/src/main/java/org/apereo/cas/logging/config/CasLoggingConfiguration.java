@@ -49,7 +49,7 @@ public class CasLoggingConfiguration {
     private ObjectProvider<TicketRegistrySupport> ticketRegistrySupport;
 
     @ConditionalOnBean(value = TicketRegistry.class)
-    @ConditionalOnProperty(prefix = "cas.logging", name = "mdcEnabled", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnProperty(prefix = "cas.logging", name = "mdc-enabled", havingValue = "true", matchIfMissing = true)
     @Bean
     public FilterRegistrationBean threadContextMDCServletFilter() {
         val filter = new ThreadContextMDCServletFilter(ticketRegistrySupport.getObject(),
@@ -67,7 +67,7 @@ public class CasLoggingConfiguration {
     /**
      * Log4j configuration.
      */
-    @ConditionalOnClass(LoggerContext.class)
+    @ConditionalOnClass(value = LoggerContext.class)
     @Configuration("casLog4jConfiguration")
     public static class CasLog4jConfiguration {
         @Autowired

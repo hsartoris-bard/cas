@@ -9,6 +9,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.ObjectUtils;
@@ -40,7 +41,8 @@ import java.util.stream.Collectors;
 @Getter
 @EqualsAndHashCode
 @Setter
-@JsonInclude(JsonInclude.Include.NON_NULL)
+@Accessors(chain = true)
+@JsonInclude(JsonInclude.Include.NON_DEFAULT)
 public class DefaultRegisteredServiceAccessStrategy implements RegisteredServiceAccessStrategy {
 
     private static final long serialVersionUID = 1245279151345635245L;
@@ -190,7 +192,7 @@ public class DefaultRegisteredServiceAccessStrategy implements RegisteredService
      *
      * @param principalAttributes the principal attributes
      * @param requiredAttributes  the required attributes
-     * @return the boolean
+     * @return true/false
      */
     protected boolean doRequiredAttributesAllowPrincipalAccess(final Map<String, Object> principalAttributes,
                                                                final Map<String, Set<String>> requiredAttributes) {
@@ -202,7 +204,7 @@ public class DefaultRegisteredServiceAccessStrategy implements RegisteredService
      * Do rejected attributes refuse principal access boolean.
      *
      * @param principalAttributes the principal attributes
-     * @return the boolean
+     * @return true/false
      */
     protected boolean doRejectedAttributesRefusePrincipalAccess(final Map<String, Object> principalAttributes) {
         LOGGER.debug("These rejected attributes [{}] are examined against [{}] before service can proceed.", rejectedAttributes, principalAttributes);
@@ -256,7 +258,7 @@ public class DefaultRegisteredServiceAccessStrategy implements RegisteredService
      *
      * @param principalAttributes the principal attributes
      * @param requiredAttributes  the attributes
-     * @return the boolean
+     * @return true/false
      */
     protected boolean requiredAttributesFoundInMap(final Map<String, Object> principalAttributes,
                                                    final Map<String, Set<String>> requiredAttributes) {

@@ -10,6 +10,7 @@ import org.apereo.cas.config.CasCoreAuthenticationServiceSelectionStrategyConfig
 import org.apereo.cas.config.CasCoreAuthenticationSupportConfiguration;
 import org.apereo.cas.config.CasCoreConfiguration;
 import org.apereo.cas.config.CasCoreHttpConfiguration;
+import org.apereo.cas.config.CasCoreNotificationsConfiguration;
 import org.apereo.cas.config.CasCoreServicesAuthenticationConfiguration;
 import org.apereo.cas.config.CasCoreServicesConfiguration;
 import org.apereo.cas.config.CasCoreTicketCatalogConfiguration;
@@ -17,6 +18,7 @@ import org.apereo.cas.config.CasCoreTicketIdGeneratorsConfiguration;
 import org.apereo.cas.config.CasCoreTicketsConfiguration;
 import org.apereo.cas.config.CasCoreUtilConfiguration;
 import org.apereo.cas.config.CasCoreWebConfiguration;
+import org.apereo.cas.config.CasHibernateJpaConfiguration;
 import org.apereo.cas.config.CasPersonDirectoryConfiguration;
 import org.apereo.cas.config.JpaTicketRegistryConfiguration;
 import org.apereo.cas.config.support.CasWebApplicationServiceFactoryConfiguration;
@@ -43,6 +45,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,6 +61,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @Transactional
 @SpringBootTest(classes = {
     JpaTicketRegistryConfiguration.class,
+    CasHibernateJpaConfiguration.class,
     SessionHealthIndicatorJpaTests.JpaTestConfiguration.class,
     RefreshAutoConfiguration.class,
     AopAutoConfiguration.class,
@@ -79,6 +83,7 @@ import static org.junit.jupiter.api.Assertions.*;
     CasCoreTicketIdGeneratorsConfiguration.class,
     CasCoreTicketCatalogConfiguration.class,
     CasCoreWebConfiguration.class,
+    CasCoreNotificationsConfiguration.class,
     CasWebApplicationServiceFactoryConfiguration.class
 })
 @Tag("JDBC")
@@ -114,7 +119,8 @@ public class SessionHealthIndicatorJpaTests {
         assertEquals(Status.UP, status.getStatus());
     }
 
-    @TestConfiguration
+    @TestConfiguration("JpaTestConfiguration")
+    @Lazy(false)
     public static class JpaTestConfiguration implements InitializingBean {
         @Autowired
         protected ApplicationContext applicationContext;

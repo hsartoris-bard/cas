@@ -5,12 +5,14 @@ import org.apereo.cas.authentication.principal.Service;
 import org.apereo.cas.authentication.principal.ServiceFactory;
 import org.apereo.cas.authentication.principal.WebApplicationService;
 import org.apereo.cas.configuration.CasConfigurationProperties;
+import org.apereo.cas.logout.slo.SingleLogoutServiceLogoutUrlBuilder;
 import org.apereo.cas.services.ServicesManager;
 import org.apereo.cas.support.saml.OpenSamlConfigBean;
 import org.apereo.cas.support.saml.services.idp.metadata.cache.SamlRegisteredServiceCachingMetadataResolver;
 import org.apereo.cas.support.saml.web.idp.profile.builders.SamlProfileObjectBuilder;
 import org.apereo.cas.support.saml.web.idp.profile.builders.enc.SamlIdPObjectSigner;
 import org.apereo.cas.support.saml.web.idp.profile.builders.enc.validate.SamlObjectSignatureValidator;
+import org.apereo.cas.support.saml.web.idp.profile.slo.SamlIdPLogoutResponseObjectBuilder;
 import org.apereo.cas.support.saml.web.idp.profile.sso.request.SSOSamlHttpRequestExtractor;
 import org.apereo.cas.ticket.artifact.SamlArtifactTicketFactory;
 import org.apereo.cas.ticket.query.SamlAttributeQueryTicketFactory;
@@ -23,6 +25,8 @@ import lombok.Setter;
 import lombok.ToString;
 import org.jasig.cas.client.validation.AbstractUrlBasedTicketValidator;
 import org.opensaml.saml.common.SAMLObject;
+import org.pac4j.core.context.JEEContext;
+import org.pac4j.core.context.session.SessionStore;
 
 /**
  * This is {@link SamlProfileHandlerConfigurationContext}.
@@ -50,6 +54,8 @@ public class SamlProfileHandlerConfigurationContext {
 
     private final SamlProfileObjectBuilder<? extends SAMLObject> responseBuilder;
 
+    private final SamlIdPLogoutResponseObjectBuilder logoutResponseBuilder;
+
     private final CasConfigurationProperties casProperties;
 
     private final SamlObjectSignatureValidator samlObjectSignatureValidator;
@@ -71,4 +77,8 @@ public class SamlProfileHandlerConfigurationContext {
     private final SamlAttributeQueryTicketFactory samlAttributeQueryTicketFactory;
 
     private final SamlArtifactTicketFactory artifactTicketFactory;
+
+    private final SingleLogoutServiceLogoutUrlBuilder singleLogoutServiceLogoutUrlBuilder;
+
+    private final SessionStore<JEEContext> sessionStore;
 }

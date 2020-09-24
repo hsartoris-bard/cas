@@ -140,7 +140,7 @@ needed for REFEDS Research and Scholarship service providers using the entity at
 }
 ```
 
-This policy is simply an extension of `InCommonRSAttributeReleasePolicy` that operates based on different entity attribute value.
+This policy is an extension of `InCommonRSAttributeReleasePolicy` that operates based on different entity attribute value.
 
 ## Releasing `eduPersonTargetedID`
 
@@ -183,7 +183,7 @@ This policy allows a Groovy script to calculate the collection of released attri
 }
 ```
 
-The configuration of this component qualifies to use the [Spring Expression Language](Configuring-Spring-Expressions.html) syntax.
+The configuration of this component qualifies to use the [Spring Expression Language](../configuration/Configuration-Spring-Expressions.html) syntax.
 
 The outline of the script may be designed as:
 

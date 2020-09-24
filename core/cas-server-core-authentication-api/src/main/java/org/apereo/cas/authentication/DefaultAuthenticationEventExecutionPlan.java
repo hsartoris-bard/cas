@@ -39,6 +39,8 @@ public class DefaultAuthenticationEventExecutionPlan implements AuthenticationEv
 
     private final List<AuthenticationHandlerResolver> authenticationHandlerResolvers = new ArrayList<>(0);
 
+    private final List<AuthenticationPolicyResolver> authenticationPolicyResolvers = new ArrayList<>(0);
+
     private final Map<AuthenticationHandler, PrincipalResolver> authenticationHandlerPrincipalResolverMap = new LinkedHashMap<>(MAP_SIZE);
 
     @Override
@@ -75,8 +77,18 @@ public class DefaultAuthenticationEventExecutionPlan implements AuthenticationEv
     }
 
     @Override
+    public void registerAuthenticationPolicies(final Collection<AuthenticationPolicy> authenticationPolicy) {
+        this.authenticationPolicies.addAll(authenticationPolicy);
+    }
+
+    @Override
     public void registerAuthenticationHandlerResolver(final AuthenticationHandlerResolver handlerResolver) {
         this.authenticationHandlerResolvers.add(handlerResolver);
+    }
+
+    @Override
+    public void registerAuthenticationPolicyResolver(final AuthenticationPolicyResolver policyResolver) {
+        this.authenticationPolicyResolvers.add(policyResolver);
     }
 
     @Override
@@ -111,7 +123,7 @@ public class DefaultAuthenticationEventExecutionPlan implements AuthenticationEv
     }
 
     @Override
-    public @NonNull Set<AuthenticationHandler> getAuthenticationHandlersForTransaction(final AuthenticationTransaction transaction) {
+    public @NonNull Set<AuthenticationHandler> getAuthenticationHandlers(final AuthenticationTransaction transaction) {
         val handlers = getAuthenticationHandlers();
         LOGGER.debug("Candidate/Registered authentication handlers for this transaction are [{}]", handlers);
         val handlerResolvers = getAuthenticationHandlerResolvers(transaction);
@@ -147,7 +159,7 @@ public class DefaultAuthenticationEventExecutionPlan implements AuthenticationEv
 
     @Override
     public Collection<AuthenticationMetaDataPopulator> getAuthenticationMetadataPopulators(final AuthenticationTransaction transaction) {
-        val list = new ArrayList<AuthenticationMetaDataPopulator>(this.authenticationMetaDataPopulatorList);
+        val list = new ArrayList<>(this.authenticationMetaDataPopulatorList);
         AnnotationAwareOrderComparator.sort(list);
         LOGGER.debug("Sorted and registered metadata populators for this transaction are [{}]", list);
         return list;
@@ -155,7 +167,7 @@ public class DefaultAuthenticationEventExecutionPlan implements AuthenticationEv
 
     @Override
     public Collection<AuthenticationPostProcessor> getAuthenticationPostProcessors(final AuthenticationTransaction transaction) {
-        val list = new ArrayList<AuthenticationPostProcessor>(this.authenticationPostProcessors);
+        val list = new ArrayList<>(this.authenticationPostProcessors);
         AnnotationAwareOrderComparator.sort(list);
         LOGGER.trace("Sorted and registered authentication post processors for this transaction are [{}]", list);
         return list;
@@ -170,17 +182,37 @@ public class DefaultAuthenticationEventExecutionPlan implements AuthenticationEv
     }
 
     @Override
-    public PrincipalResolver getPrincipalResolverForAuthenticationTransaction(final AuthenticationHandler handler,
-                                                                              final AuthenticationTransaction transaction) {
+    public PrincipalResolver getPrincipalResolver(final AuthenticationHandler handler,
+                                                  final AuthenticationTransaction transaction) {
         return authenticationHandlerPrincipalResolverMap.get(handler);
     }
 
     @Override
-    public Collection<AuthenticationPolicy> getAuthenticationPolicies(final AuthenticationTransaction transaction) {
-        val list = new ArrayList<AuthenticationPolicy>(this.authenticationPolicies);
+    public Collection<AuthenticationPolicy> getAuthenticationPolicies() {
+        val list = new ArrayList<>(this.authenticationPolicies);
         AnnotationAwareOrderComparator.sort(list);
-        LOGGER.trace("Sorted and registered authentication policies for this transaction are [{}]", list);
+        LOGGER.trace("Candidate authentication policies for this transaction are [{}]", list);
         return list;
+    }
+
+    @Override
+    public Collection<AuthenticationPolicy> getAuthenticationPolicies(final AuthenticationTransaction transaction) {
+        val handlerResolvers = getAuthenticationPolicyResolvers(transaction);
+        LOGGER.debug("Authentication policy resolvers for this transaction are [{}]", handlerResolvers);
+        
+        val list = getAuthenticationPolicies();
+        val resolvedPolicies = handlerResolvers.stream()
+            .filter(r -> r.supports(transaction))
+            .map(r -> r.resolve(transaction))
+            .flatMap(Set::stream)
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        if (resolvedPolicies.isEmpty()) {
+            LOGGER.debug("Authentication policy resolvers produced no candidate authentication handler. Using default policies");
+            return list;
+        }
+        LOGGER.debug("Resolved authentication policies are [{}]", resolvedPolicies);
+        return resolvedPolicies;
     }
 
     @Override
@@ -196,6 +228,14 @@ public class DefaultAuthenticationEventExecutionPlan implements AuthenticationEv
         val list = new ArrayList<AuthenticationHandlerResolver>(this.authenticationHandlerResolvers);
         AnnotationAwareOrderComparator.sort(list);
         LOGGER.trace("Sorted and registered authentication handler resolvers for this transaction are [{}]", list);
+        return list;
+    }
+
+    @Override
+    public Collection<AuthenticationPolicyResolver> getAuthenticationPolicyResolvers(final AuthenticationTransaction transaction) {
+        val list = new ArrayList<AuthenticationPolicyResolver>(this.authenticationPolicyResolvers);
+        AnnotationAwareOrderComparator.sort(list);
+        LOGGER.trace("Sorted and registered authentication policy resolvers for this transaction are [{}]", list);
         return list;
     }
 }

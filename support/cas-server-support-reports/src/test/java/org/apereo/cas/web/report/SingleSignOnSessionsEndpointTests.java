@@ -5,9 +5,11 @@ import org.apereo.cas.authentication.CoreAuthenticationTestUtils;
 
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.TestPropertySource;
 
 import java.util.List;
@@ -22,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @since 6.2.0
  */
 @TestPropertySource(properties = "management.endpoint.ssoSessions.enabled=true")
+@Tag("ActuatorEndpoint")
 public class SingleSignOnSessionsEndpointTests extends AbstractCasEndpointTests {
     @Autowired
     @Qualifier("singleSignOnSessionsEndpoint")
@@ -41,8 +44,15 @@ public class SingleSignOnSessionsEndpointTests extends AbstractCasEndpointTests 
 
     @Test
     public void verifyDelete() {
-        val results = singleSignOnSessionsEndpoint.destroySsoSessions(null, CoreAuthenticationTestUtils.CONST_USERNAME);
+        var results = singleSignOnSessionsEndpoint.destroySsoSessions(null, null);
+        assertEquals(HttpStatus.BAD_REQUEST.value(), results.get("status"));
+        results = singleSignOnSessionsEndpoint.destroySsoSessions(null, CoreAuthenticationTestUtils.CONST_USERNAME);
         assertEquals(1, results.size());
+
+        results = singleSignOnSessionsEndpoint.destroySsoSession("unknown-ticket");
+        assertTrue(results.containsKey("status"));
+        assertTrue(results.containsKey("message"));
+        assertTrue(results.containsKey("ticketGrantingTicket"));
     }
 
     @Test

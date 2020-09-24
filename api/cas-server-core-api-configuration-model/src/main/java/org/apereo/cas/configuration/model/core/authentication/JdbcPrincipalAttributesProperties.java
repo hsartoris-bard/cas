@@ -5,6 +5,7 @@ import org.apereo.cas.configuration.support.RequiresModule;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.apereo.services.persondir.support.QueryType;
 import org.apereo.services.persondir.util.CaseCanonicalizationMode;
 
@@ -22,6 +23,7 @@ import java.util.Map;
 @RequiresModule(name = "cas-server-support-person-directory", automated = true)
 @Getter
 @Setter
+@Accessors(chain = true)
 public class JdbcPrincipalAttributesProperties extends AbstractJpaProperties {
 
     private static final long serialVersionUID = 6915428382578138387L;
@@ -66,12 +68,12 @@ public class JdbcPrincipalAttributesProperties extends AbstractJpaProperties {
      * This is done using a key-value structure where the key is the
      * name of the "attribute name" column  the value is the name of the "attribute value" column.
      * If the table structure is as such:
-     * <pre>
+     * &lt;pre&gt;
      * -----------------------------
      * uid | attr_name  | attr_value
      * -----------------------------
      * tom | first_name | Thomas
-     * </pre>
+     * &lt;/pre&gt;
      * Then a column mapping must be specified to teach CAS to use {@code attr_name}
      * and {@code attr_value} for attribute names and values.
      */

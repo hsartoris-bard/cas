@@ -4,6 +4,7 @@ import org.apereo.cas.configuration.support.RequiresModule;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 
@@ -16,6 +17,7 @@ import java.io.Serializable;
 @RequiresModule(name = "cas-server-core-audit", automated = true)
 @Getter
 @Setter
+@Accessors(chain = true)
 public class AuditSlf4jLogProperties implements Serializable {
 
     private static final long serialVersionUID = 4227475246873515918L;
@@ -38,4 +40,9 @@ public class AuditSlf4jLogProperties implements Serializable {
      * Accepted value are: DEFAULT, JSON.
      */
     private String auditFormat = "DEFAULT";
+
+    /**
+     * Decide whether Slf4j audits should be enabled.
+     */
+    private boolean enabled = true;
 }

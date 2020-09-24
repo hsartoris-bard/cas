@@ -17,6 +17,7 @@ import java.io.Serializable;
 @ToString
 @Getter
 @Builder
+@Setter
 public class CookieGenerationContext implements Serializable {
     /**
      * Empty cookie generation context.
@@ -29,6 +30,9 @@ public class CookieGenerationContext implements Serializable {
 
     @Setter
     private String name;
+
+    @Builder.Default
+    private String comment = "CAS Cookie";
 
     @Builder.Default
     private String path = StringUtils.EMPTY;

@@ -1,25 +1,30 @@
 package org.apereo.cas.adaptors.yubikey;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.SneakyThrows;
 import lombok.ToString;
-import org.hibernate.annotations.GenericGenerator;
+import lombok.experimental.Accessors;
+import lombok.experimental.SuperBuilder;
+import lombok.val;
+import org.springframework.data.annotation.Id;
 
+import javax.persistence.CollectionTable;
 import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Lob;
-import javax.persistence.Table;
-
+import javax.persistence.ElementCollection;
+import javax.persistence.FetchType;
+import javax.persistence.MappedSuperclass;
+import javax.persistence.Transient;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * This is {@link YubiKeyAccount}.
@@ -27,54 +32,52 @@ import java.util.ArrayList;
  * @author Misagh Moayyed
  * @since 5.2.0
  */
-@Entity
-@Table(name = "YubiKeyAccount")
+@MappedSuperclass
 @ToString
+@NoArgsConstructor
 @Getter
 @Setter
 @AllArgsConstructor
 @EqualsAndHashCode(of = {"id", "username"})
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
-public class YubiKeyAccount implements Serializable {
+@SuperBuilder
+@Accessors(chain = true)
+public class YubiKeyAccount implements Serializable, Cloneable {
     /**
-     * uername field.
+     * username field.
      */
     public static final String FIELD_USERNAME = "username";
 
     /**
-     * Device identifiers field.
+     * devices field.
      */
-    public static final String FIELD_DEVICE_IDENTIFIERS = "deviceIdentifiers";
+    public static final String FIELD_DEVICES = "devices";
 
     private static final long serialVersionUID = 311869140885521905L;
 
     @Id
-    @org.springframework.data.annotation.Id
-    @GeneratedValue(strategy = GenerationType.AUTO, generator = "native")
-    @GenericGenerator(name = "native", strategy = "native")
     @JsonProperty
-    private long id = -1;
+    @Transient
+    @Builder.Default
+    private long id = System.currentTimeMillis();
 
-    @Lob
-    @Column(name = "deviceIdentifiers", length = Integer.MAX_VALUE)
-    @JsonProperty
-    private ArrayList<String> deviceIdentifiers = new ArrayList<>(0);
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "YubiKeyRegisteredDevice")
+    @Builder.Default
+    private List<YubiKeyRegisteredDevice> devices = new ArrayList<>(0);
 
     @Column(nullable = false)
     @JsonProperty
     private String username;
 
-    public YubiKeyAccount() {
-        this.id = System.currentTimeMillis();
-    }
-
-    /**
-     * Register device.
-     *
-     * @param device the device
-     */
-    @JsonIgnore
-    public void registerDevice(final String device) {
-        this.deviceIdentifiers.add(device);
+    @Override
+    @SneakyThrows
+    public YubiKeyAccount clone() {
+        val account = (YubiKeyAccount) super.clone();
+        account.setDevices(getDevices()
+            .stream()
+            .map(YubiKeyRegisteredDevice::clone)
+            .collect(Collectors.toList()));
+        return account;
     }
 }

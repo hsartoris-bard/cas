@@ -1,16 +1,17 @@
 package org.apereo.cas.configuration.model.core.authentication;
 
+import org.apereo.cas.configuration.model.SpringResourceProperties;
 import org.apereo.cas.configuration.support.RequiresModule;
-import org.apereo.cas.configuration.support.SpringResourceProperties;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 
 /**
  * <p>
  * If you wish to directly and separately retrieve attributes from a static JSON source.
  * The resource syntax must be as such:
- * <pre>
+ * &lt;pre&gt;
  * {
  * "user1": {
  * "firstName":["Json1"],
@@ -21,7 +22,7 @@ import lombok.Setter;
  * "eduPersonAffiliation":["employee", "student"]
  * }
  * }
- * </pre>
+ * &lt;/pre&gt;
  *
  * @author Misagh Moayyed
  * @since 5.2.0
@@ -29,6 +30,7 @@ import lombok.Setter;
 @RequiresModule(name = "cas-server-support-person-directory", automated = true)
 @Getter
 @Setter
+@Accessors(chain = true)
 public class JsonPrincipalAttributesProperties extends SpringResourceProperties {
 
     private static final long serialVersionUID = -6573755681498251678L;

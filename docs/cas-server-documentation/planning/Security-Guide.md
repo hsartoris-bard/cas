@@ -16,6 +16,7 @@ be considered to achieve suitable security.
 
 ## Announcements
 
+- [July 24 2020 Vulnerability Disclosure](https://apereo.github.io/2020/07/24/credvuln/)
 - [Feb 8 2020 Vulnerability Disclosure](https://apereo.github.io/2020/02/08/webflowcrypto/)
 - [Dec 20 2019 Vulnerability Disclosure](https://apereo.github.io/2019/12/20/surrogatevuln/)
 - [Nov 21 2019 Vulnerability Disclosure](https://apereo.github.io/2019/11/24/smfavuln/)
@@ -103,7 +104,7 @@ alternative to replaying end-user credentials to a service.
 However, proxy tickets carry risk in that services accepting proxy tickets are responsible for validating the
 proxy chain (the list of services through which the end-user's authentication have been delegated to arrive at
 the ticket validating service). Services can opt out of accepting proxy tickets entirely (and avoid
-responsibility for validating proxy chains) by simply validating tickets against the /serviceValidate
+responsibility for validating proxy chains) by validating tickets against the /serviceValidate
 validation endpoint, but experience has shown it's easy to be confused about this and configure to
 unintentionally use the /proxyValidate endpoint yet not scrutinize any proxy chains that appear in the
 ticket validation response. Thus proxy authentication requires careful configuration for proper security controls;
@@ -153,7 +154,7 @@ open for all applications may create an opportunity for security attacks.
 A ticket-granting cookie is an HTTP cookie set by CAS upon the establishment of a single sign-on session.
 The cookie value is by default encrypted and signed via settings defined in CAS properties.
 While sample data is provided for initial deployments, these keys **MUST** be regenerated per your specific
-environment. Please [see this guide](../installation/Configuring-SSO-Session-Cookie.html) for more info.
+environment. Please [see this guide](../installation/Configuring-SSO.html) for more info.
 
 ### Password Management Secure Links
 

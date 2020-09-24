@@ -1,7 +1,7 @@
 package org.apereo.cas.consent;
 
 import org.apereo.cas.config.CasConsentMongoDbConfiguration;
-import org.apereo.cas.util.junit.EnabledIfContinuousIntegration;
+import org.apereo.cas.util.junit.EnabledIfPortOpen;
 
 import lombok.Getter;
 import org.junit.jupiter.api.Tag;
@@ -22,15 +22,15 @@ import org.springframework.boot.test.context.SpringBootTest;
     properties = {
         "cas.consent.mongo.host=localhost",
         "cas.consent.mongo.port=27017",
-        "cas.consent.mongo.userId=root",
+        "cas.consent.mongo.user-id=root",
         "cas.consent.mongo.password=secret",
-        "cas.consent.mongo.authenticationDatabaseName=admin",
-        "cas.consent.mongo.dropCollection=true",
-        "cas.consent.mongo.databaseName=consent"
+        "cas.consent.mongo.authentication-database-name=admin",
+        "cas.consent.mongo.drop-collection=true",
+        "cas.consent.mongo.database-name=consent"
     })
 @Tag("MongoDb")
 @Getter
-@EnabledIfContinuousIntegration
+@EnabledIfPortOpen(port = 27017)
 public class MongoDbConsentRepositoryTests extends BaseConsentRepositoryTests {
 
     @Autowired

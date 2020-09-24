@@ -1,8 +1,9 @@
 package org.apereo.cas.authentication.principal.provision;
 
 import org.apereo.cas.authentication.principal.Principal;
-import org.apereo.cas.configuration.support.RestEndpointProperties;
+import org.apereo.cas.configuration.model.RestEndpointProperties;
 import org.apereo.cas.util.HttpUtils;
+import org.apereo.cas.util.LoggingUtils;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,6 +37,7 @@ public class RestfulDelegatedClientUserProfileProvisioner extends BaseDelegatedC
             headers.put("profileId", profile.getId());
             headers.put("profileTypedId", profile.getTypedId());
             headers.put("profileAttributes", profile.getAttributes());
+            headers.put("authenticationAttributes", profile.getAuthenticationAttributes());
             headers.put("clientName", client.getName());
 
             response = HttpUtils.execute(restProperties.getUrl(), HttpMethod.GET.name(),
@@ -48,7 +50,7 @@ public class RestfulDelegatedClientUserProfileProvisioner extends BaseDelegatedC
                 }
             }
         } catch (final Exception e) {
-            LOGGER.error(e.getMessage(), e);
+            LoggingUtils.error(LOGGER, e);
         } finally {
             HttpUtils.close(response);
         }

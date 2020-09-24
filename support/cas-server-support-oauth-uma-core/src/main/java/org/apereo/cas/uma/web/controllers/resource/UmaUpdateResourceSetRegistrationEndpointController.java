@@ -5,10 +5,12 @@ import org.apereo.cas.uma.UmaConfigurationContext;
 import org.apereo.cas.uma.ticket.resource.InvalidResourceSetException;
 import org.apereo.cas.uma.web.controllers.BaseUmaEndpointController;
 import org.apereo.cas.util.CollectionUtils;
+import org.apereo.cas.util.LoggingUtils;
 
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
+import org.hjson.JsonValue;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -49,7 +51,7 @@ public class UmaUpdateResourceSetRegistrationEndpointController extends BaseUmaE
                                             final HttpServletRequest request, final HttpServletResponse response) {
         try {
             val profileResult = getAuthenticatedProfile(request, response, OAuth20Constants.UMA_PROTECTION_SCOPE);
-            val umaRequest = MAPPER.readValue(body, UmaResourceRegistrationRequest.class);
+            val umaRequest = MAPPER.readValue(JsonValue.readHjson(body).toString(), UmaResourceRegistrationRequest.class);
             val newResource = umaRequest.asResourceSet(profileResult);
             newResource.validate(profileResult);
 
@@ -75,7 +77,7 @@ public class UmaUpdateResourceSetRegistrationEndpointController extends BaseUmaE
         } catch (final InvalidResourceSetException e) {
             return new ResponseEntity(buildResponseEntityErrorModel(e), HttpStatus.BAD_REQUEST);
         } catch (final Exception e) {
-            LOGGER.error(e.getMessage(), e);
+            LoggingUtils.error(LOGGER, e);
         }
         return new ResponseEntity("Unable to complete the resource-set update request.", HttpStatus.BAD_REQUEST);
     }

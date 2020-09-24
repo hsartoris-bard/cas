@@ -3,8 +3,10 @@ package org.apereo.cas.configuration.model.support.mfa;
 import org.apereo.cas.configuration.support.RequiredProperty;
 import org.apereo.cas.configuration.support.RequiresModule;
 
+import com.fasterxml.jackson.annotation.JsonFilter;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 
 /**
  * This is {@link SwivelMultifactorProperties}.
@@ -15,6 +17,8 @@ import lombok.Setter;
 @RequiresModule(name = "cas-server-support-swivel")
 @Getter
 @Setter
+@Accessors(chain = true)
+@JsonFilter("SwivelMultifactorProperties")
 public class SwivelMultifactorProperties extends BaseMultifactorProviderProperties {
 
     /**

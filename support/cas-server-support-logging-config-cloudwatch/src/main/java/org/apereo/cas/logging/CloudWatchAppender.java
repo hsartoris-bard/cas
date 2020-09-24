@@ -2,17 +2,6 @@ package org.apereo.cas.logging;
 
 import org.apereo.cas.aws.ChainingAWSCredentialsProvider;
 
-import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.services.logs.AWSLogs;
-import com.amazonaws.services.logs.AWSLogsClient;
-import com.amazonaws.services.logs.model.CreateLogGroupRequest;
-import com.amazonaws.services.logs.model.CreateLogStreamRequest;
-import com.amazonaws.services.logs.model.DataAlreadyAcceptedException;
-import com.amazonaws.services.logs.model.DescribeLogGroupsRequest;
-import com.amazonaws.services.logs.model.DescribeLogStreamsRequest;
-import com.amazonaws.services.logs.model.InputLogEvent;
-import com.amazonaws.services.logs.model.InvalidSequenceTokenException;
-import com.amazonaws.services.logs.model.PutLogEventsRequest;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
@@ -25,13 +14,26 @@ import org.apache.logging.log4j.core.config.plugins.PluginAttribute;
 import org.apache.logging.log4j.core.config.plugins.PluginElement;
 import org.apache.logging.log4j.core.config.plugins.PluginFactory;
 import org.apache.logging.log4j.core.layout.PatternLayout;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.cloudwatchlogs.CloudWatchLogsClient;
+import software.amazon.awssdk.services.cloudwatchlogs.model.CreateLogGroupRequest;
+import software.amazon.awssdk.services.cloudwatchlogs.model.CreateLogStreamRequest;
+import software.amazon.awssdk.services.cloudwatchlogs.model.DataAlreadyAcceptedException;
+import software.amazon.awssdk.services.cloudwatchlogs.model.DescribeLogGroupsRequest;
+import software.amazon.awssdk.services.cloudwatchlogs.model.DescribeLogStreamsRequest;
+import software.amazon.awssdk.services.cloudwatchlogs.model.InputLogEvent;
+import software.amazon.awssdk.services.cloudwatchlogs.model.InvalidSequenceTokenException;
+import software.amazon.awssdk.services.cloudwatchlogs.model.PutLogEventsRequest;
 
 import java.io.Serializable;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.stream.Collectors;
 
 /**
  * This is {@link CloudWatchAppender}.
@@ -41,6 +43,7 @@ import java.util.concurrent.LinkedBlockingQueue;
  */
 @Plugin(name = "CloudWatchAppender", category = "Core", elementType = "appender", printObject = true)
 @Slf4j
+@SuppressWarnings("java:S2055")
 public class CloudWatchAppender extends AbstractAppender implements Serializable {
     private static final long serialVersionUID = 1044758913028847477L;
 
@@ -73,10 +76,36 @@ public class CloudWatchAppender extends AbstractAppender implements Serializable
 
     private String logStreamName;
 
-    private AWSLogs awsLogsClient;
+    private CloudWatchLogsClient awsLogsClient;
 
     private volatile boolean queueFull;
 
+    private boolean createLogGroupIfNeeded;
+
+    private boolean createLogStreamIfNeeded;
+
+    /**
+     * Create appender cloud watch appender.
+     *
+     * @param name                             the name
+     * @param endpoint                         the endpoint
+     * @param awsLogStreamName                 the aws log stream name
+     * @param awsLogGroupName                  the aws log group name
+     * @param awsLogStreamFlushPeriodInSeconds the aws log stream flush period in seconds
+     * @param credentialAccessKey              the credential access key
+     * @param credentialSecretKey              the credential secret key
+     * @param awsLogRegionName                 the aws log region name
+     * @param layout                           the layout
+     * @param createIfNeeded                   whether to create the resources if needed. Default value is `true`. If
+     *                                         either `createLogGroupIfNeeded` or `createLogStreamIfNeeded` is set, this
+     *                                         will default to `false`.
+     * @param createLogGroupIfNeeded           whether to create a Cloud Watch log group if needed. Default value is
+     *                                         `false`. A value of `true takes precedence over a value of `false` for
+     *                                         `createIfNeeded`
+     * @param createLogStreamIfNeeded          whether to create a Cloud Watch log stream if needed. Default value is
+     *                                         `false`. A value of `true takes precedence over a value of `false` for
+     *                                         `createIfNeeded`
+     */
     public CloudWatchAppender(final String name,
                               final String endpoint,
                               final String awsLogGroupName,
@@ -85,30 +114,88 @@ public class CloudWatchAppender extends AbstractAppender implements Serializable
                               final String credentialAccessKey,
                               final String credentialSecretKey,
                               final String awsLogRegionName,
-                              final Layout<Serializable> layout) {
-        super(name, null, layout == null ? PatternLayout.createDefaultLayout() : layout, false, Property.EMPTY_ARRAY);
-        try {
-            var flushPeriod = AWS_LOG_STREAM_FLUSH_PERIOD_IN_SECONDS;
-            if (awsLogStreamFlushPeriodInSeconds != null) {
-                flushPeriod = Integer.parseInt(awsLogStreamFlushPeriodInSeconds);
-            }
-            flushPeriodMillis = flushPeriod * 1_000;
+                              final Layout<Serializable> layout,
+                              final Boolean createIfNeeded,
+                              final Boolean createLogGroupIfNeeded,
+                              final Boolean createLogStreamIfNeeded) {
+        this(name, awsLogGroupName, awsLogStreamName, awsLogStreamFlushPeriodInSeconds, layout,
+            createIfNeeded, createLogGroupIfNeeded, createLogStreamIfNeeded);
 
+        try {
             LOGGER.debug("Connecting to AWS CloudWatch...");
-            val builder = AWSLogsClient.builder();
+            val builder = CloudWatchLogsClient.builder();
             if (StringUtils.isNotBlank(endpoint)) {
-                builder.setEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(endpoint, awsLogRegionName));
+                builder.endpointOverride(new URI(endpoint));
             } else {
-                builder.setRegion(awsLogRegionName);
+                builder.region(Region.of(awsLogRegionName));
             }
-            builder.setCredentials(ChainingAWSCredentialsProvider.getInstance(credentialAccessKey, credentialSecretKey));
+            builder.credentialsProvider(ChainingAWSCredentialsProvider.getInstance(credentialAccessKey, credentialSecretKey));
 
             this.awsLogsClient = builder.build();
-            this.logGroupName = awsLogGroupName;
-            this.logStreamName = awsLogStreamName;
-            this.sequenceTokenCache = createLogGroupAndLogStreamIfNeeded();
         } catch (final Exception e) {
-            LOGGER.error(e.getMessage(), e);
+            org.apereo.cas.util.LoggingUtils.error(LOGGER, e);
+        }
+    }
+
+    /**
+     * Create appender cloud watch appender.
+     *
+     * @param name                             the name
+     * @param awsLogStreamName                 the aws log stream name
+     * @param awsLogGroupName                  the aws log group name
+     * @param awsLogStreamFlushPeriodInSeconds the aws log stream flush period in seconds
+     * @param layout                           the layout
+     * @param createIfNeeded                   whether to create the resources if needed. Default value is `true`. A
+     *                                         value of `true` takes precedence over the other `create*IfNeeded`.
+     * @param createLogGroupIfNeeded           whether to create a Cloud Watch log group if needed. Default value is
+     *                                         `false`. A value of `true takes precedence over a value of `false` for
+     *                                         `createIfNeeded`
+     * @param createLogStreamIfNeeded          whether to create a Cloud Watch log stream if needed. Default value is
+     *                                         `false`. A value of `true takes precedence over a value of `false` for
+     *                                         `createIfNeeded`
+     * @param awsLogs                          instance of AWSLogs to use
+     */
+    public CloudWatchAppender(final String name,
+                              final String awsLogGroupName,
+                              final String awsLogStreamName,
+                              final String awsLogStreamFlushPeriodInSeconds,
+                              final Layout<Serializable> layout,
+                              final Boolean createIfNeeded,
+                              final Boolean createLogGroupIfNeeded,
+                              final Boolean createLogStreamIfNeeded,
+                              final CloudWatchLogsClient awsLogs) {
+        this(name, awsLogGroupName, awsLogStreamName, awsLogStreamFlushPeriodInSeconds, layout,
+            createIfNeeded, createLogGroupIfNeeded, createLogStreamIfNeeded);
+        this.awsLogsClient = awsLogs;
+    }
+
+    private CloudWatchAppender(final String name,
+                               final String awsLogGroupName,
+                               final String awsLogStreamName,
+                               final String awsLogStreamFlushPeriodInSeconds,
+                               final Layout<Serializable> layout,
+                               final Boolean createIfNeeded,
+                               final Boolean createLogGroupIfNeeded,
+                               final Boolean createLogStreamIfNeeded) {
+        super(name, null, layout == null
+            ? PatternLayout.createDefaultLayout()
+            : layout, false, Property.EMPTY_ARRAY);
+
+        var flushPeriod = AWS_LOG_STREAM_FLUSH_PERIOD_IN_SECONDS;
+        if (awsLogStreamFlushPeriodInSeconds != null) {
+            flushPeriod = Integer.parseInt(awsLogStreamFlushPeriodInSeconds);
+        }
+        flushPeriodMillis = flushPeriod * 1_000;
+
+        this.logGroupName = awsLogGroupName;
+        this.logStreamName = awsLogStreamName;
+
+        if (createLogGroupIfNeeded == null && createLogStreamIfNeeded == null) {
+            this.createLogGroupIfNeeded = Objects.requireNonNullElse(createIfNeeded, Boolean.TRUE);
+            this.createLogStreamIfNeeded = Objects.requireNonNullElse(createIfNeeded, Boolean.TRUE);
+        } else {
+            this.createLogGroupIfNeeded = Objects.requireNonNullElse(createLogGroupIfNeeded, Boolean.FALSE);
+            this.createLogStreamIfNeeded = Objects.requireNonNullElse(createLogStreamIfNeeded, Boolean.FALSE);
         }
     }
 
@@ -124,6 +211,9 @@ public class CloudWatchAppender extends AbstractAppender implements Serializable
      * @param credentialSecretKey              the credential secret key
      * @param awsLogRegionName                 the aws log region name
      * @param layout                           the layout
+     * @param createIfNeeded                   whether to create resources if needed
+     * @param createLogGroupIfNeeded           whether to create log group if needed
+     * @param createLogStreamIfNeeded          whether to create log stream if needed
      * @return the cloud watch appender
      */
     @PluginFactory
@@ -135,7 +225,10 @@ public class CloudWatchAppender extends AbstractAppender implements Serializable
                                                     @PluginAttribute("credentialAccessKey") final String credentialAccessKey,
                                                     @PluginAttribute("credentialSecretKey") final String credentialSecretKey,
                                                     @PluginAttribute("awsLogRegionName") final String awsLogRegionName,
-                                                    @PluginElement("Layout") final Layout<Serializable> layout) {
+                                                    @PluginElement("Layout") final Layout<Serializable> layout,
+                                                    @PluginAttribute(value = "createIfNeeded", defaultBoolean = true) final Boolean createIfNeeded,
+                                                    @PluginAttribute(value = "createLogGroupIfNeeded") final Boolean createLogGroupIfNeeded,
+                                                    @PluginAttribute(value = "createLogStreamIfNeeded") final Boolean createLogStreamIfNeeded) {
         return new CloudWatchAppender(
             name,
             endpoint,
@@ -145,93 +238,29 @@ public class CloudWatchAppender extends AbstractAppender implements Serializable
             StringUtils.defaultIfBlank(credentialAccessKey, System.getProperty("AWS_ACCESS_KEY")),
             StringUtils.defaultIfBlank(credentialSecretKey, System.getProperty("AWS_SECRET_KEY")),
             StringUtils.defaultIfBlank(awsLogRegionName, System.getProperty("AWS_REGION_NAME")),
-            layout);
+            layout,
+            createIfNeeded,
+            createLogGroupIfNeeded,
+            createLogStreamIfNeeded);
     }
 
-    private void flush() {
-        var drained = 0;
-        val logEvents = new ArrayList<InputLogEvent>(AWS_DRAIN_LIMIT);
-        do {
-            drained = queue.drainTo(logEvents, AWS_DRAIN_LIMIT);
-            if (logEvents.isEmpty()) {
-                break;
-            }
-            logEvents.sort(Comparator.comparing(InputLogEvent::getTimestamp));
-            if (lastReportedTimestamp > 0) {
-                for (val event : logEvents) {
-                    if (event.getTimestamp() < lastReportedTimestamp) {
-                        event.setTimestamp(lastReportedTimestamp);
-                    }
-                }
-            }
-
-            lastReportedTimestamp = logEvents.get(logEvents.size() - 1).getTimestamp();
-            val putLogEventsRequest = new PutLogEventsRequest(logGroupName, logStreamName, logEvents);
-            putLogEventsRequest.setSequenceToken(sequenceTokenCache);
-            try {
-                val putLogEventsResult = awsLogsClient.putLogEvents(putLogEventsRequest);
-                sequenceTokenCache = putLogEventsResult.getNextSequenceToken();
-            } catch (final DataAlreadyAcceptedException daae) {
-                sequenceTokenCache = daae.getExpectedSequenceToken();
-            } catch (final InvalidSequenceTokenException iste) {
-                sequenceTokenCache = iste.getExpectedSequenceToken();
-            } catch (final Exception e) {
-                LOGGER.error(e.getMessage(), e);
-            }
-            logEvents.clear();
-        } while (drained >= AWS_DRAIN_LIMIT);
+    @Override
+    public void initialize() {
+        this.sequenceTokenCache = createLogGroupAndLogStreamIfNeeded();
+        super.initialize();
     }
 
     @Override
     public void append(final LogEvent logEvent) {
         val event = LoggingUtils.prepareLogEvent(logEvent);
-        val awsLogEvent = new InputLogEvent();
-        val timestamp = event.getTimeMillis();
         val message = new String(getLayout().toByteArray(event), StandardCharsets.UTF_8);
-        awsLogEvent.setTimestamp(timestamp);
-        awsLogEvent.setMessage(message);
+        val timestamp = event.getTimeMillis();
+        val awsLogEvent = InputLogEvent.builder().message(message).timestamp(timestamp).build();
         if (!queue.offer(awsLogEvent) && !queueFull) {
             queueFull = true;
         } else if (queueFull) {
             queueFull = false;
         }
-    }
-
-    private String createLogGroupAndLogStreamIfNeeded() {
-        LOGGER.debug("Attempting to locate the log group [{}]", logGroupName);
-        val describeLogGroupsResult =
-            awsLogsClient.describeLogGroups(new DescribeLogGroupsRequest().withLogGroupNamePrefix(logGroupName));
-        var createLogGroup = true;
-        if (describeLogGroupsResult != null && describeLogGroupsResult.getLogGroups() != null && !describeLogGroupsResult.getLogGroups().isEmpty()) {
-            createLogGroup = describeLogGroupsResult.getLogGroups().stream().noneMatch(g -> g.getLogGroupName().equals(logGroupName));
-        }
-        if (createLogGroup) {
-            LOGGER.debug("Creating log group [{}]", logGroupName);
-            val createLogGroupRequest = new CreateLogGroupRequest(logGroupName);
-            awsLogsClient.createLogGroup(createLogGroupRequest);
-        }
-        var logSequenceToken = StringUtils.EMPTY;
-        var createLogStream = true;
-        LOGGER.debug("Attempting to locate the log stream [{}] for group [{}]", logStreamName, logGroupName);
-        val describeLogStreamsRequest = new DescribeLogStreamsRequest(logGroupName).withLogStreamNamePrefix(logStreamName);
-        val describeLogStreamsResult = awsLogsClient.describeLogStreams(describeLogStreamsRequest);
-        if (describeLogStreamsResult != null && describeLogStreamsResult.getLogStreams() != null && !describeLogStreamsResult.getLogStreams().isEmpty()) {
-            for (val ls : describeLogStreamsResult.getLogStreams()) {
-                if (logStreamName.equals(ls.getLogStreamName())) {
-                    createLogStream = false;
-                    logSequenceToken = ls.getUploadSequenceToken();
-                    LOGGER.debug("Found log stream [{}] with sequence token [{}]", logStreamName, logSequenceToken);
-                    break;
-                }
-            }
-        }
-
-        if (createLogStream) {
-            LOGGER.debug("Creating log stream [{}] for group [{}]", logStreamName, logGroupName);
-            val createLogStreamRequest = new CreateLogStreamRequest(logGroupName, logStreamName);
-            awsLogsClient.createLogStream(createLogStreamRequest);
-        }
-        return logSequenceToken;
     }
 
     @Override
@@ -242,7 +271,7 @@ public class CloudWatchAppender extends AbstractAppender implements Serializable
                 try {
                     flush();
                 } catch (final Exception e) {
-                    LOGGER.error(e.getMessage(), e);
+                    org.apereo.cas.util.LoggingUtils.error(LOGGER, e);
                 }
                 if (!shutdown && queue.size() < AWS_DRAIN_LIMIT) {
                     try {
@@ -250,7 +279,7 @@ public class CloudWatchAppender extends AbstractAppender implements Serializable
                             monitor.wait(flushPeriodMillis);
                         }
                     } catch (final InterruptedException e) {
-                        LOGGER.error(e.getMessage(), e);
+                        org.apereo.cas.util.LoggingUtils.error(LOGGER, e);
                         Thread.currentThread().interrupt();
                     }
                 }
@@ -275,11 +304,94 @@ public class CloudWatchAppender extends AbstractAppender implements Serializable
                 deliveryThread.join(SHUTDOWN_TIMEOUT_MILLIS);
             } catch (final InterruptedException e) {
                 deliveryThread.interrupt();
-                LOGGER.error(e.getMessage(), e);
+                org.apereo.cas.util.LoggingUtils.error(LOGGER, e);
             }
         }
         if (!queue.isEmpty()) {
             flush();
         }
+    }
+
+    private void flush() {
+        var drained = 0;
+        var logEvents = new ArrayList<InputLogEvent>(AWS_DRAIN_LIMIT);
+        do {
+            drained = queue.drainTo(logEvents, AWS_DRAIN_LIMIT);
+            if (logEvents.isEmpty()) {
+                break;
+            }
+            logEvents.sort(Comparator.comparing(InputLogEvent::timestamp));
+            if (lastReportedTimestamp > 0) {
+                logEvents = logEvents.stream()
+                    .map(event -> {
+                        if (event.timestamp() < lastReportedTimestamp) {
+                            return event.copy(builder -> builder.timestamp(lastReportedTimestamp));
+                        }
+                        return event;
+                    })
+                    .sorted(Comparator.comparing(InputLogEvent::timestamp))
+                    .collect(Collectors.toCollection(ArrayList::new));
+            }
+
+            lastReportedTimestamp = logEvents.get(logEvents.size() - 1).timestamp();
+            val putLogEventsRequest = PutLogEventsRequest.builder().logGroupName(logGroupName).logStreamName(logStreamName).logEvents(logEvents);
+            if (StringUtils.isNotBlank(this.sequenceTokenCache)) {
+                putLogEventsRequest.sequenceToken(this.sequenceTokenCache);
+            }
+            try {
+                val putLogEventsResult = awsLogsClient.putLogEvents(putLogEventsRequest.build());
+                sequenceTokenCache = putLogEventsResult.nextSequenceToken();
+            } catch (final DataAlreadyAcceptedException daae) {
+                sequenceTokenCache = daae.expectedSequenceToken();
+            } catch (final InvalidSequenceTokenException iste) {
+                sequenceTokenCache = iste.expectedSequenceToken();
+            } catch (final Exception e) {
+                org.apereo.cas.util.LoggingUtils.error(LOGGER, e);
+            }
+            logEvents.clear();
+        } while (drained >= AWS_DRAIN_LIMIT);
+    }
+
+    private String createLogGroupAndLogStreamIfNeeded() {
+
+        if (this.createLogGroupIfNeeded) {
+            LOGGER.debug("Attempting to locate the log group [{}]", logGroupName);
+            val describeLogGroupsResult = awsLogsClient.describeLogGroups(DescribeLogGroupsRequest.builder().logGroupNamePrefix(logGroupName).build());
+            var createLogGroup = true;
+            if (describeLogGroupsResult != null && describeLogGroupsResult.hasLogGroups()) {
+                createLogGroup = describeLogGroupsResult.logGroups().stream().noneMatch(g -> g.logGroupName().equals(logGroupName));
+            }
+            if (createLogGroup) {
+                LOGGER.debug("Creating log group [{}]", logGroupName);
+                val createLogGroupRequest = CreateLogGroupRequest.builder().logGroupName(logStreamName).build();
+                awsLogsClient.createLogGroup(createLogGroupRequest);
+            }
+        }
+
+        var logSequenceToken = StringUtils.EMPTY;
+        var createLogStream = true;
+        LOGGER.debug("Attempting to locate the log stream [{}] for group [{}]", logStreamName, logGroupName);
+        val describeLogStreamsRequest = DescribeLogStreamsRequest.builder().logGroupName(logGroupName).logStreamNamePrefix(logStreamName).build();
+        val describeLogStreamsResult = awsLogsClient.describeLogStreams(describeLogStreamsRequest);
+        if (describeLogStreamsResult != null && describeLogStreamsResult.hasLogStreams()) {
+            for (val ls : describeLogStreamsResult.logStreams()) {
+                if (logStreamName.equals(ls.logStreamName())) {
+                    createLogStream = false;
+                    logSequenceToken = ls.uploadSequenceToken();
+                    LOGGER.debug("Found log stream [{}] with sequence token [{}]", logStreamName, logSequenceToken);
+                    break;
+                }
+            }
+        }
+
+        if (createLogStream) {
+            if (!this.createLogStreamIfNeeded) {
+                throw new RuntimeException("Log stream does not exist, yet `createIfNeeded` is false. This will not work");
+            }
+            LOGGER.debug("Creating log stream [{}] for group [{}]", logStreamName, logGroupName);
+            val createLogStreamRequest = CreateLogStreamRequest.builder().logGroupName(logGroupName).logStreamName(logStreamName).build();
+            awsLogsClient.createLogStream(createLogStreamRequest);
+        }
+        return logSequenceToken;
     }
 }

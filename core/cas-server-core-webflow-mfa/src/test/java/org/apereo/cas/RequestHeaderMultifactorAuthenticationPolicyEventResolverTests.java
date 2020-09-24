@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Misagh Moayyed
  * @since 6.0.0
  */
-@Tag("Webflow")
+@Tag("WebflowEvents")
 public class RequestHeaderMultifactorAuthenticationPolicyEventResolverTests extends BaseCasWebflowMultifactorAuthenticationTests {
     @Autowired
     @Qualifier("httpRequestAuthenticationPolicyWebflowEventResolver")
@@ -41,7 +41,10 @@ public class RequestHeaderMultifactorAuthenticationPolicyEventResolverTests exte
         val response = new MockHttpServletResponse();
         context.setExternalContext(new ServletExternalContext(new MockServletContext(), request, response));
 
-        WebUtils.putRegisteredService(context, RegisteredServiceTestUtils.getRegisteredService());
+        val service = RegisteredServiceTestUtils.getRegisteredService();
+        servicesManager.save(service);
+        
+        WebUtils.putRegisteredService(context, service);
         WebUtils.putAuthentication(RegisteredServiceTestUtils.getAuthentication(), context);
         WebUtils.putServiceIntoFlowScope(context, RegisteredServiceTestUtils.getService());
 
