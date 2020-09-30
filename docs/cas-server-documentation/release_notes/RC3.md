@@ -50,12 +50,12 @@ The following items are new improvements and enhancements presented in this rele
 
 ### Test Coverage via CodeCov
 
-CAS test coverage across all modules in the codebase has now reached `85%` and continues to climb. Additional validation rules are also applied 
+CAS test coverage across all modules in the codebase has now reached `86%` and continues to climb. Additional validation rules are also applied 
 to fail all pull requests that fall below this threshold. This area will be closely monitored and improved
 as progress is made with the goal of hopefully reaching at least `88%` before the final GA release. Of course, 
 this will not be a blocker for the final release.
 
-### WebAuthn Support
+### WebAuthn FIDO2 Support
 
 CAS can now support [WebAuthn FIDO2](../mfa/FIDO2-WebAuthn-Authentication.html) for multifactor authentication.
 
@@ -74,6 +74,16 @@ if the single sign-on session is established using a disallowed provider for the
 
 SAML2 application definitions whose metadata is retrieved from URLs can now specify a proxy endpoint in the application definition,
 in case the metadata is behind a proxy.
+
+### Git Service Registry Groups
+
+Service definitions managed by [Git Service Registry](../services/Git-Service-Management.html) are now given an option, on by default,
+to locate and group service definitions by their type, and store them in dedicated folders for easier management.
+
+### Registered Service Properties
+
+Assigning [custom properties](../services/Configuring-Service-Custom-Properties.html) to registered service definitions can now 
+take advantage of [Spring Expressions](../configuration/Configuration-Spring-Expressions.html).
 
 ## Other Stuff
 
@@ -98,6 +108,7 @@ active profiles via `classpath:/application-{profile}.yml` configuration files.
 - Spring Boot
 - Spring Data
 - JGit
+- Mockito
 - Spring Security
 - Spring Cloud
 

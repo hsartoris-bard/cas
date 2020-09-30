@@ -4514,6 +4514,11 @@ Works with git repository to fetch and manage service registry definitions.
 Common configuration settings for this feature are available [here](Configuration-Properties-Common.html#git-configuration) 
 under the configuration key `cas.service-registry`.
 
+```properties
+# cas.service-registry.git.group-by-type=true
+# cas.service-registry.git.root-directory=
+```
+
 To learn more about this topic, [please review this guide](../services/Git-Service-Management.html).
 
 ### RESTful Service Registry
