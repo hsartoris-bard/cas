@@ -1,0 +1,6 @@
+{
+	"dependencies": "themes",
+	"properties": [
+		"--cas.view.template-prefixes=/templates"
+	]
+}
