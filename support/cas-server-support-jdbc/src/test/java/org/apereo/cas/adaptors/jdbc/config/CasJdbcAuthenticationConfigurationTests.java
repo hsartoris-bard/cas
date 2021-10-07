@@ -2,7 +2,7 @@ package org.apereo.cas.adaptors.jdbc.config;
 
 import org.apereo.cas.authentication.AuthenticationManager;
 import org.apereo.cas.authentication.CoreAuthenticationTestUtils;
-import org.apereo.cas.authentication.DefaultAuthenticationTransaction;
+import org.apereo.cas.authentication.DefaultAuthenticationTransactionFactory;
 import org.apereo.cas.config.CasCoreAuthenticationConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationHandlersConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationMetadataConfiguration;
@@ -25,7 +25,6 @@ import org.apereo.cas.configuration.support.JpaBeans;
 import org.apereo.cas.logout.config.CasCoreLogoutConfiguration;
 import org.apereo.cas.util.DigestUtils;
 
-import lombok.SneakyThrows;
 import lombok.val;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -34,7 +33,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
-import org.springframework.test.annotation.DirtiesContext;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -66,20 +64,31 @@ import static org.junit.jupiter.api.Assertions.*;
     CasCoreHttpConfiguration.class,
     CasJdbcAuthenticationConfiguration.class
 }, properties = {
+    "cas.authn.jdbc.encode[0].sql=SELECT * FROM users WHERE uid=?",
+
     "cas.authn.jdbc.query[0].password-encoder.type=DEFAULT",
     "cas.authn.jdbc.query[0].password-encoder.encoding-algorithm=SHA-256",
-
+    "cas.authn.jdbc.query[0].sql=SELECT * FROM users WHERE uid=?",
+    "cas.authn.jdbc.query[0].field-password=psw",
+    "cas.authn.jdbc.query[0].credential-criteria=.*",
     "cas.authn.jdbc.query[0].user=sa",
     "cas.authn.jdbc.query[0].password=",
     "cas.authn.jdbc.query[0].driver-class=org.hsqldb.jdbcDriver",
     "cas.authn.jdbc.query[0].url=jdbc:hsqldb:mem:cas-hsql-authn-db",
     "cas.authn.jdbc.query[0].dialect=org.hibernate.dialect.HSQLDialect",
-    
-    "cas.authn.jdbc.query[0].sql=SELECT * FROM users WHERE uid=?",
-    "cas.authn.jdbc.query[0].field-password=psw"
+
+    "cas.authn.jdbc.search[0].order=1000",
+    "cas.authn.jdbc.query[0].field-user=uid",
+    "cas.authn.jdbc.query[0].field-password=psw",
+    "cas.authn.jdbc.query[0].table-users=custom_users_table",
+
+    "cas.authn.jdbc.bind[0].name=BindHandler",
+    "cas.authn.jdbc.bind[0].order=1000",
+    "cas.authn.jdbc.bind[0].driver-class=org.hsqldb.jdbcDriver",
+    "cas.authn.jdbc.bind[0].url=jdbc:hsqldb:mem:cas-hsql-authn-db",
+    "cas.authn.jdbc.bind[0].dialect=org.hibernate.dialect.HSQLDialect"
 })
-@DirtiesContext
-@Tag("JDBC")
+@Tag("JDBCAuthentication")
 public class CasJdbcAuthenticationConfigurationTests {
     @Autowired
     private CasConfigurationProperties casProperties;
@@ -89,8 +98,7 @@ public class CasJdbcAuthenticationConfigurationTests {
     private AuthenticationManager authenticationManager;
 
     @BeforeEach
-    @SneakyThrows
-    public void initialize() {
+    public void initialize() throws Exception {
         val props = casProperties.getAuthn().getJdbc().getQuery().get(0);
         val dataSource = JpaBeans.newDataSource(props.getDriverClass(), props.getUser(),
             props.getPassword(), props.getUrl());
@@ -107,7 +115,7 @@ public class CasJdbcAuthenticationConfigurationTests {
     @Test
     public void verifyOperation() {
         val credential = CoreAuthenticationTestUtils.getCredentialsWithDifferentUsernameAndPassword("casuser", "Mellon");
-        val transaction = DefaultAuthenticationTransaction.of(CoreAuthenticationTestUtils.getService(), credential);
+        val transaction = new DefaultAuthenticationTransactionFactory().newTransaction(CoreAuthenticationTestUtils.getService(), credential);
         val result = authenticationManager.authenticate(transaction);
         assertNotNull(result);
     }

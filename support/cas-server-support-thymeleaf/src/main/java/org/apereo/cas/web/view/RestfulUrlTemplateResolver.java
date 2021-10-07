@@ -4,14 +4,15 @@ import org.apereo.cas.configuration.CasConfigurationProperties;
 import org.apereo.cas.util.HttpRequestUtils;
 import org.apereo.cas.util.HttpUtils;
 import org.apereo.cas.util.LoggingUtils;
-import org.apereo.cas.web.support.WebUtils;
 
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpResponse;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.servlet.ThemeResolver;
 import org.thymeleaf.IEngineConfiguration;
 import org.thymeleaf.templateresource.ITemplateResource;
 import org.thymeleaf.templateresource.StringTemplateResource;
@@ -29,8 +30,9 @@ import java.util.Map;
 @Slf4j
 public class RestfulUrlTemplateResolver extends ThemeFileTemplateResolver {
 
-    public RestfulUrlTemplateResolver(final CasConfigurationProperties casProperties) {
-        super(casProperties);
+    public RestfulUrlTemplateResolver(final CasConfigurationProperties casProperties,
+                                      final ThemeResolver themeResolver) {
+        super(casProperties, themeResolver);
     }
 
     @Override
@@ -41,8 +43,8 @@ public class RestfulUrlTemplateResolver extends ThemeFileTemplateResolver {
                                                         final String characterEncoding,
                                                         final Map<String, Object> templateResolutionAttributes) {
         val rest = casProperties.getView().getRest();
-        val themeName = getCurrentTheme();
-
+        val request = HttpRequestUtils.getHttpServletRequestFromRequestAttributes();
+        val themeName = this.themeResolver.resolveThemeName(request);
         val headers = new LinkedHashMap<String, Object>();
         headers.put("owner", ownerTemplate);
         headers.put("template", template);
@@ -52,14 +54,20 @@ public class RestfulUrlTemplateResolver extends ThemeFileTemplateResolver {
             headers.put("theme", themeName);
         }
 
-        val request = WebUtils.getHttpServletRequestFromExternalWebflowContext();
-        if (request != null) {
-            headers.put("locale", request.getLocale().getCountry());
-            headers.putAll(HttpRequestUtils.getRequestHeaders(request));
-        }
+        headers.put("locale", request.getLocale().getCountry());
+        headers.putAll(HttpRequestUtils.getRequestHeaders(request));
+        headers.putAll(rest.getHeaders());
+
         HttpResponse response = null;
         try {
-            response = HttpUtils.execute(rest.getUrl(), rest.getMethod(), rest.getBasicAuthUsername(), rest.getBasicAuthPassword(), headers);
+            val exec = HttpUtils.HttpExecutionRequest.builder()
+                .basicAuthPassword(rest.getBasicAuthPassword())
+                .basicAuthUsername(rest.getBasicAuthUsername())
+                .method(HttpMethod.valueOf(rest.getMethod().toUpperCase().trim()))
+                .url(rest.getUrl())
+                .headers(headers)
+                .build();
+            response = HttpUtils.execute(exec);
             val statusCode = response.getStatusLine().getStatusCode();
             if (HttpStatus.valueOf(statusCode).is2xxSuccessful()) {
                 val result = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);

@@ -40,7 +40,7 @@ public class OidcImplicitIdTokenAuthorizationResponseBuilderTests extends Abstra
         val request = new MockHttpServletRequest();
         request.addParameter(OAuth20Constants.RESPONSE_TYPE, OAuth20ResponseTypes.ID_TOKEN.getType());
         val response = new MockHttpServletResponse();
-        val context = new JEEContext(request, response, new JEESessionStore());
+        val context = new JEEContext(request, response);
         assertTrue(oidcImplicitIdTokenCallbackUrlBuilder.supports(context));
     }
 
@@ -51,7 +51,9 @@ public class OidcImplicitIdTokenAuthorizationResponseBuilderTests extends Abstra
         attributes.put(OAuth20Constants.NONCE, Collections.singletonList("nonce"));
 
         val registeredService = getOidcRegisteredService(UUID.randomUUID().toString());
-        val authentication = RegisteredServiceTestUtils.getAuthentication(CoreAuthenticationTestUtils.getPrincipal("casuser"), attributes);
+        val principal = CoreAuthenticationTestUtils.getPrincipal("casuser");
+        val authentication = RegisteredServiceTestUtils.getAuthentication(principal, attributes);
+        val code = addCode(principal, registeredService);
         val holder = AccessTokenRequestDataHolder.builder()
             .clientId(registeredService.getClientId())
             .service(CoreAuthenticationTestUtils.getService())
@@ -60,13 +62,14 @@ public class OidcImplicitIdTokenAuthorizationResponseBuilderTests extends Abstra
             .grantType(OAuth20GrantTypes.AUTHORIZATION_CODE)
             .responseType(OAuth20ResponseTypes.CODE)
             .ticketGrantingTicket(new MockTicketGrantingTicket("casuser"))
+            .token(code)
             .build();
 
         val request = new MockHttpServletRequest();
         request.addParameter(OAuth20Constants.RESPONSE_TYPE, OAuth20ResponseTypes.ID_TOKEN.getType());
         val response = new MockHttpServletResponse();
-        val context = new JEEContext(request, response, new JEESessionStore());
-        val manager = new ProfileManager<>(context, context.getSessionStore());
+        val context = new JEEContext(request, response);
+        val manager = new ProfileManager(context, JEESessionStore.INSTANCE);
 
         val profile = new CommonProfile();
         profile.setClientName(Authenticators.CAS_OAUTH_CLIENT_BASIC_AUTHN);

@@ -1,7 +1,14 @@
 package org.apereo.cas.services;
 
+import org.apereo.cas.authentication.principal.ServiceFactory;
+import org.apereo.cas.authentication.principal.WebApplicationService;
+import org.apereo.cas.authentication.principal.WebApplicationServiceFactory;
+import org.apereo.cas.util.RandomUtils;
+
 import com.github.benmanes.caffeine.cache.Caffeine;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.jooq.lambda.Unchecked;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.support.StaticApplicationContext;
@@ -12,8 +19,11 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.UUID;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 /**
  * This is {@link AbstractServicesManagerTests}.
@@ -21,8 +31,11 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Misagh Moayyed
  * @since 5.2.0
  */
+@Slf4j
 public abstract class AbstractServicesManagerTests<T extends ServicesManager> {
     private static final String TEST = "test";
+
+    protected final ServiceFactory<WebApplicationService> serviceFactory = new WebApplicationServiceFactory();
 
     protected final List<RegisteredService> listOfDefaultServices = new ArrayList<>();
 
@@ -42,8 +55,9 @@ public abstract class AbstractServicesManagerTests<T extends ServicesManager> {
     @BeforeEach
     public void initialize() {
         serviceRegistry = getServiceRegistryInstance();
-        this.servicesManager = getServicesManagerInstance();
-        this.servicesManager.load();
+        servicesManager = getServicesManagerInstance();
+        servicesManager.deleteAll();
+        servicesManager.load();
     }
 
     @Test
@@ -53,11 +67,15 @@ public abstract class AbstractServicesManagerTests<T extends ServicesManager> {
         services.setName(TEST);
         services.setServiceId(TEST);
         servicesManager.save(services);
-        assertNotNull(this.servicesManager.findServiceBy(1100));
-        assertNotNull(this.servicesManager.findServiceBy(1100, RegexRegisteredService.class));
-        assertNotNull(this.servicesManager.findServiceByName(TEST));
-        assertNotNull(this.servicesManager.findServiceByName(TEST, RegexRegisteredService.class));
-        assertTrue(this.servicesManager.count() > 0);
+        assertNotNull(servicesManager.findServiceBy(1100));
+        assertNotNull(servicesManager.findServiceBy(1100, RegexRegisteredService.class));
+        assertNotNull(servicesManager.findServiceByName(TEST));
+        assertNotNull(servicesManager.findServiceByName(TEST, RegexRegisteredService.class));
+        assertTrue(servicesManager.count() > 0);
+        assertFalse(servicesManager.getAllServicesOfType(RegexRegisteredService.class).isEmpty());
+
+        val mockSvc = mock(RegisteredService.class);
+        assertTrue(servicesManager.getAllServicesOfType(mockSvc.getClass()).isEmpty());
     }
 
     @Test
@@ -82,8 +100,8 @@ public abstract class AbstractServicesManagerTests<T extends ServicesManager> {
         assertFalse(isServiceInCache(TEST, 0));
         serviceRegistry.save(service);
         assertNotNull(serviceRegistry.findServiceByExactServiceId(TEST));
-        assertNotNull(servicesManager.findServiceByExactServiceId(TEST));
-        assertNotNull(servicesManager.findServiceBy(TEST, RegexRegisteredService.class));
+        val svc = new WebApplicationServiceFactory().createService(TEST);
+        assertNotNull(servicesManager.findServiceBy(svc, RegexRegisteredService.class));
         assertTrue(isServiceInCache(TEST, 0));
     }
 
@@ -93,11 +111,11 @@ public abstract class AbstractServicesManagerTests<T extends ServicesManager> {
         r.setId(1000);
         r.setName(TEST);
         r.setServiceId(TEST);
-        this.servicesManager.save(r);
+        servicesManager.save(r);
         assertTrue(isServiceInCache(null, 1000));
-        assertNotNull(this.servicesManager.findServiceBy(r.getServiceId()));
-        this.servicesManager.delete(r);
-        assertNull(this.servicesManager.findServiceBy(r.getId()));
+        assertNotNull(servicesManager.findServiceBy(serviceFactory.createService(r.getServiceId())));
+        servicesManager.delete(r);
+        assertNull(servicesManager.findServiceBy(r.getId()));
         assertFalse(isServiceInCache(null, 1000));
     }
 
@@ -111,8 +129,8 @@ public abstract class AbstractServicesManagerTests<T extends ServicesManager> {
         expirationPolicy.setNotifyWhenExpired(true);
         expirationPolicy.setExpirationDate(LocalDateTime.now(ZoneOffset.UTC).minusDays(2).toString());
         r.setExpirationPolicy(expirationPolicy);
-        this.servicesManager.save(r);
-        assertNotNull(this.servicesManager.findServiceBy(r.getServiceId()));
+        servicesManager.save(r);
+        assertNotNull(servicesManager.findServiceBy(serviceFactory.createService(r.getServiceId())));
     }
 
     @Test
@@ -127,21 +145,60 @@ public abstract class AbstractServicesManagerTests<T extends ServicesManager> {
         expirationPolicy.setDeleteWhenExpired(true);
         expirationPolicy.setNotifyWhenDeleted(true);
         r.setExpirationPolicy(expirationPolicy);
-        this.servicesManager.save(r);
-        assertNull(this.servicesManager.findServiceBy(r.getServiceId()));
+        servicesManager.save(r);
+        assertNull(servicesManager.findServiceBy(serviceFactory.createService(r.getServiceId())));
+    }
+
+    /**
+     * Attempts to make sure service lookup operations
+     * are valid based on the existing cache, specially if load
+     * takes a long time.
+     *
+     * @throws Exception in case threads cannot be started or joined.
+     */
+    @Test
+    public void verifyServiceCanBeFoundDuringLoadWithoutCacheInvalidation() throws Exception {
+        val service = new RegexRegisteredService();
+        service.setId(RandomUtils.nextLong());
+        service.setName(UUID.randomUUID().toString());
+        service.setServiceId("https://test.edu.*");
+        assertFalse(isServiceInCache(null, service.getId()));
+        serviceRegistry.save(service);
+        servicesManager.load();
+        assertNotNull(servicesManager.findServiceBy(service.getId()));
+        assertTrue(isServiceInCache(null, service.getId()));
+
+        val loadingThread = new Thread(Unchecked.runnable(() -> {
+            LOGGER.debug("Loading services manager...");
+            Thread.sleep(1000);
+            servicesManager.load();
+            Thread.sleep(1000);
+            LOGGER.debug("Loaded services manager...");
+        }));
+        loadingThread.start();
+
+        val testService = serviceFactory.createService("https://test.edu/path/");
+        IntStream.rangeClosed(1, 5).forEach(i -> {
+            LOGGER.debug("Checking for previously-saved service attempt [{}]", i);
+            assertNotNull(servicesManager.findServiceBy(testService));
+        });
+        loadingThread.join();
     }
 
     protected ServicesManager getServicesManagerInstance() {
+        return new DefaultServicesManager(getConfigurationContext());
+    }
+
+    protected ServicesManagerConfigurationContext getConfigurationContext() {
         val applicationContext = new StaticApplicationContext();
         applicationContext.refresh();
-
-        val context = ServicesManagerConfigurationContext.builder()
+        return ServicesManagerConfigurationContext.builder()
             .serviceRegistry(serviceRegistry)
             .applicationContext(applicationContext)
             .environments(new HashSet<>(0))
+            .registeredServiceLocators(List.of(new DefaultServicesManagerRegisteredServiceLocator()))
             .servicesCache(Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(2)).build())
             .build();
-        return new DefaultServicesManager(context);
     }
 
     protected ServiceRegistry getServiceRegistryInstance() {

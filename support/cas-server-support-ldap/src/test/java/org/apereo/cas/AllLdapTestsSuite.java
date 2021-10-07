@@ -10,13 +10,11 @@ import org.apereo.cas.authentication.DisabledPoolingLdapAuthenticationHandlerTes
 import org.apereo.cas.authentication.EDirectoryPasswordPolicyLdapAuthenticationHandlerTests;
 import org.apereo.cas.authentication.FreeIPAPasswordPolicyLdapAuthenticationHandlerTests;
 import org.apereo.cas.authentication.LdapPasswordSynchronizationAuthenticationPostProcessorTests;
-import org.apereo.cas.authentication.principal.PersonDirectoryPrincipalResolverActiveDirectoryTests;
-import org.apereo.cas.authentication.principal.PersonDirectoryPrincipalResolverLdapTests;
+import org.apereo.cas.authentication.OpenLdapAuthenticationHandlerTests;
 import org.apereo.cas.config.LdapPasswordSynchronizationConfigurationTests;
 
-import org.junit.platform.runner.JUnitPlatform;
 import org.junit.platform.suite.api.SelectClasses;
-import org.junit.runner.RunWith;
+import org.junit.platform.suite.api.Suite;
 
 /**
  * Test suite to run all LDAP tests.
@@ -29,16 +27,15 @@ import org.junit.runner.RunWith;
     ActiveDirectorySamAccountNameLdapAuthenticationHandlerTests.class,
     ActiveDirectoryLdapAuthenticationHandlerPasswordPolicyTests.class,
     AuthenticatedLdapAuthenticationHandlerTests.class,
-    PersonDirectoryPrincipalResolverLdapTests.class,
     DirectLdapAuthenticationHandlerTests.class,
+    OpenLdapAuthenticationHandlerTests.class,
     DisabledPoolingLdapAuthenticationHandlerTests.class,
-    PersonDirectoryPrincipalResolverActiveDirectoryTests.class,
     LdapPasswordSynchronizationConfigurationTests.class,
     EDirectoryPasswordPolicyLdapAuthenticationHandlerTests.class,
     FreeIPAPasswordPolicyLdapAuthenticationHandlerTests.class,
     CustomPasswordPolicyLdapAuthenticationHandlerTests.class,
     LdapPasswordSynchronizationAuthenticationPostProcessorTests.class
 })
-@RunWith(JUnitPlatform.class)
+@Suite
 public class AllLdapTestsSuite {
 }

@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 import org.springframework.data.annotation.Id;
 
 import javax.persistence.Column;
@@ -16,6 +17,7 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Lob;
 import javax.persistence.Table;
+import java.io.Serializable;
 
 /**
  * This is {@link SamlMetadataDocument}.
@@ -28,9 +30,11 @@ import javax.persistence.Table;
 @Getter
 @Setter
 @AllArgsConstructor
-@Builder
-public class SamlMetadataDocument {
+@SuperBuilder
+public class SamlMetadataDocument implements Serializable {
 
+    private static final long serialVersionUID = -721955605616455236L;
+    
     @JsonProperty("id")
     @javax.persistence.Id
     @Id

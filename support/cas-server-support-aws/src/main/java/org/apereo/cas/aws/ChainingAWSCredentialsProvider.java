@@ -1,6 +1,7 @@
 package org.apereo.cas.aws;
 
 import org.apereo.cas.util.LoggingUtils;
+import org.apereo.cas.util.spring.SpringExpressionLanguageValueResolver;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import software.amazon.awssdk.auth.credentials.InstanceProfileCredentialsProvide
 import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.SystemPropertyCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.WebIdentityTokenFileCredentialsProvider;
 import software.amazon.awssdk.profiles.ProfileFile;
 
 import java.nio.file.Path;
@@ -69,8 +71,12 @@ public class ChainingAWSCredentialsProvider {
                                                      final String profilePath, final String profileName) {
 
         LOGGER.debug("Attempting to locate AWS credentials...");
-
         val chain = new ArrayList<AwsCredentialsProvider>();
+        addProviderToChain(nothing -> {
+            chain.add(WebIdentityTokenFileCredentialsProvider.create());
+            return null;
+        });
+
         chain.add(InstanceProfileCredentialsProvider.create());
 
         if (StringUtils.isNotBlank(profilePath) && StringUtils.isNotBlank(profileName)) {
@@ -94,7 +100,8 @@ public class ChainingAWSCredentialsProvider {
 
         if (StringUtils.isNotBlank(credentialAccessKey) && StringUtils.isNotBlank(credentialSecretKey)) {
             addProviderToChain(nothing -> {
-                val credentials = AwsBasicCredentials.create(credentialAccessKey, credentialSecretKey);
+                val resolver = SpringExpressionLanguageValueResolver.getInstance();
+                val credentials = AwsBasicCredentials.create(resolver.resolve(credentialAccessKey), resolver.resolve(credentialSecretKey));
                 chain.add(StaticCredentialsProvider.create(credentials));
                 return null;
             });

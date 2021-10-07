@@ -30,7 +30,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 import javax.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
 
-import java.util.List;
+import java.util.Set;
 
 /**
  * This is {@link CasOAuthUmaJpaConfiguration}.
@@ -42,7 +42,7 @@ import java.util.List;
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 @AutoConfigureBefore(CasOAuthUmaConfiguration.class)
 @EnableTransactionManagement(proxyTargetClass = true)
-@ConditionalOnProperty(name = "cas.authn.uma.resource-set.jpa.url")
+@ConditionalOnProperty(name = "cas.authn.oauth.uma.resource-set.jpa.url")
 public class CasOAuthUmaJpaConfiguration {
     @Autowired
     private CasConfigurationProperties casProperties;
@@ -58,8 +58,8 @@ public class CasOAuthUmaJpaConfiguration {
     }
 
     @Bean
-    public List<String> jpaUmaPackagesToScan() {
-        return CollectionUtils.wrapList(ResourceSet.class.getPackage().getName());
+    public Set<String> jpaUmaPackagesToScan() {
+        return CollectionUtils.wrapSet(ResourceSet.class.getPackage().getName());
     }
 
     @Lazy
@@ -72,7 +72,8 @@ public class CasOAuthUmaJpaConfiguration {
             .dataSource(dataSourceUma())
             .packagesToScan(jpaUmaPackagesToScan())
             .build();
-        return factory.newEntityManagerFactoryBean(ctx, casProperties.getAuthn().getUma().getResourceSet().getJpa());
+        return factory.newEntityManagerFactoryBean(ctx,
+            casProperties.getAuthn().getOauth().getUma().getResourceSet().getJpa());
     }
 
     @Autowired
@@ -87,7 +88,7 @@ public class CasOAuthUmaJpaConfiguration {
     @ConditionalOnMissingBean(name = "dataSourceUma")
     @RefreshScope
     public DataSource dataSourceUma() {
-        return JpaBeans.newDataSource(casProperties.getAuthn().getUma().getResourceSet().getJpa());
+        return JpaBeans.newDataSource(casProperties.getAuthn().getOauth().getUma().getResourceSet().getJpa());
     }
 
     @Bean

@@ -1,6 +1,9 @@
 package org.apereo.cas.ticket.registry;
 
+import org.apereo.cas.CentralAuthenticationService;
+import org.apereo.cas.authentication.AuthenticationSystemSupport;
 import org.apereo.cas.authentication.CoreAuthenticationTestUtils;
+import org.apereo.cas.config.CasAuthenticationEventExecutionPlanTestConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationComponentSerializationConfiguration;
 import org.apereo.cas.config.CasCoreServicesComponentSerializationConfiguration;
 import org.apereo.cas.config.CasCoreTicketComponentSerializationConfiguration;
@@ -11,6 +14,8 @@ import org.apereo.cas.mock.MockServiceTicket;
 import org.apereo.cas.mock.MockTicketGrantingTicket;
 import org.apereo.cas.services.RegisteredServiceTestUtils;
 import org.apereo.cas.services.ServicesManager;
+import org.apereo.cas.support.oauth.OAuth20GrantTypes;
+import org.apereo.cas.support.oauth.OAuth20ResponseTypes;
 import org.apereo.cas.ticket.code.OAuth20Code;
 import org.apereo.cas.ticket.code.OAuth20DefaultOAuthCodeFactory;
 import org.apereo.cas.util.CollectionUtils;
@@ -49,6 +54,7 @@ import static org.mockito.Mockito.*;
     CasCoreAuthenticationComponentSerializationConfiguration.class,
     CasCoreServicesComponentSerializationConfiguration.class,
     CasOAuth20ComponentSerializationConfiguration.class,
+    CasAuthenticationEventExecutionPlanTestConfiguration.class,
     MemcachedTicketRegistryTests.MemcachedTicketRegistryTestConfiguration.class,
     BaseTicketRegistryTests.SharedTestConfiguration.class
 },
@@ -56,6 +62,7 @@ import static org.mockito.Mockito.*;
         "cas.ticket.registry.memcached.servers=localhost:11211",
         "cas.ticket.registry.memcached.failure-mode=Redistribute",
         "cas.ticket.registry.memcached.locator-type=ARRAY_MOD",
+        "cas.ticket.registry.memcached.transcoder=KRYO",
         "cas.ticket.registry.memcached.hash-algorithm=FNV1A_64_HASH",
         "cas.ticket.registry.memcached.kryo-registration-required=true"
     })
@@ -71,6 +78,14 @@ public class MemcachedTicketRegistryTests extends BaseTicketRegistryTests {
     @Qualifier("servicesManager")
     private ServicesManager servicesManager;
 
+    @Autowired
+    @Qualifier("centralAuthenticationService")
+    private CentralAuthenticationService centralAuthenticationService;
+
+    @Autowired
+    @Qualifier("defaultAuthenticationSystemSupport")
+    private AuthenticationSystemSupport authenticationSystemSupport;
+
     @Override
     protected boolean isIterableRegistry() {
         return false;
@@ -84,7 +99,8 @@ public class MemcachedTicketRegistryTests extends BaseTicketRegistryTests {
             new MockTicketGrantingTicket("casuser"),
             CollectionUtils.wrapList("openid"),
             "code-challenge", "plain", "clientId123456",
-            new HashMap<>());
+            new HashMap<>(),
+            OAuth20ResponseTypes.CODE, OAuth20GrantTypes.AUTHORIZATION_CODE);
         this.newTicketRegistry.addTicket(code);
         val ticket = this.newTicketRegistry.getTicket(code.getId(), OAuth20Code.class);
         assertNotNull(ticket);
@@ -107,7 +123,7 @@ public class MemcachedTicketRegistryTests extends BaseTicketRegistryTests {
             }
         });
     }
-    
+
     @TestConfiguration("MemcachedTicketRegistryTestConfiguration")
     @Lazy(false)
     public static class MemcachedTicketRegistryTestConfiguration implements ComponentSerializationPlanConfigurer {

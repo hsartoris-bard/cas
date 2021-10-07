@@ -20,13 +20,12 @@ public class CasProtocolValidationSpecificationTests {
     public void verifyOperation() {
         val spec = (CasProtocolValidationSpecification) (assertion, request) -> false;
         assertEquals(0, spec.getOrder());
+        assertDoesNotThrow(spec::reset);
         assertDoesNotThrow(new Executable() {
             @Override
             public void execute() throws Throwable {
-                spec.reset();
+                spec.setRenew(false);
             }
         });
-
     }
-
 }

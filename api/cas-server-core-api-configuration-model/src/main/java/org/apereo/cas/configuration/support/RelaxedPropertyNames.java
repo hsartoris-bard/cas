@@ -1,5 +1,6 @@
 package org.apereo.cas.configuration.support;
 
+import com.google.common.base.Splitter;
 import lombok.Getter;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
@@ -39,7 +40,8 @@ public class RelaxedPropertyNames implements Iterable<String> {
      */
     public static RelaxedPropertyNames forCamelCase(final String name) {
         val result = new StringBuilder();
-        for (var c : name.toCharArray()) {
+        for (int i = 0; i < name.length(); i++) {
+            char c = name.charAt(i);
             result.append(Character.isUpperCase(c) && result.length() > 0
                 && result.charAt(result.length() - 1) != '-'
                 ? "-" + Character.toLowerCase(c) : c);
@@ -202,7 +204,7 @@ public class RelaxedPropertyNames implements Iterable<String> {
                 return value;
             }
             var builder = new StringBuilder();
-            for (final var field : SEPARATED_TO_CAMEL_CASE_PATTERN.split(value)) {
+            for (final var field : Splitter.on(SEPARATED_TO_CAMEL_CASE_PATTERN).split(value)) {
                 final var fieldCased = caseInsensitive ? field.toLowerCase() : field;
                 builder.append(builder.length() == 0 ? field : StringUtils.capitalize(fieldCased));
             }

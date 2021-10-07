@@ -26,7 +26,15 @@ public class DefaultTicketGrantingTicketFactoryTests extends BaseTicketFactoryTe
         val service = RegisteredServiceTestUtils.getService("noExpirationPolicy");
         val factory = (TicketGrantingTicketFactory) this.ticketFactory.get(TicketGrantingTicket.class);
         val tgt = factory.create(RegisteredServiceTestUtils.getAuthentication(), service, TicketGrantingTicket.class);
-        assertEquals(casProperties.getTicket().getTgt().getMaxTimeToLiveInSeconds(), tgt.getExpirationPolicy().getTimeToLive());
+        assertEquals(casProperties.getTicket().getTgt().getPrimary().getMaxTimeToLiveInSeconds(), tgt.getExpirationPolicy().getTimeToLive());
+    }
+
+    @Test
+    public void verifyBadTicketType() {
+        val service = RegisteredServiceTestUtils.getService("noExpirationPolicy");
+        val factory = (TicketGrantingTicketFactory) this.ticketFactory.get(TicketGrantingTicket.class);
+        assertThrows(ClassCastException.class,
+            () -> factory.create(RegisteredServiceTestUtils.getAuthentication(), service, BaseMockTicketGrantingTicket.class));
     }
 
     @Test
@@ -40,6 +48,10 @@ public class DefaultTicketGrantingTicketFactoryTests extends BaseTicketFactoryTe
         val factory = (TicketGrantingTicketFactory) this.ticketFactory.get(TicketGrantingTicket.class);
         val tgt = factory.create(RegisteredServiceTestUtils.getAuthentication(), service, TicketGrantingTicket.class);
         assertEquals(120, tgt.getExpirationPolicy().getTimeToLive());
+    }
+
+    abstract static class BaseMockTicketGrantingTicket implements TicketGrantingTicket {
+        private static final long serialVersionUID = 6712185629825357896L;
     }
 
 }

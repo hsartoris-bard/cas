@@ -101,6 +101,7 @@ public class CasCoreAuthenticationHandlersConfiguration {
             acceptUsersPrincipalFactory(),
             props.getOrder(),
             getParsedUsers());
+        h.setState(props.getState());
         h.setPasswordEncoder(PasswordEncoderUtils.newPasswordEncoder(props.getPasswordEncoder(), applicationContext));
         h.setPasswordPolicyConfiguration(acceptPasswordPolicyConfiguration());
         h.setCredentialSelectionPredicate(CoreAuthenticationUtils.newCredentialSelectionPredicate(props.getCredentialCriteria()));
@@ -167,7 +168,7 @@ public class CasCoreAuthenticationHandlersConfiguration {
     public class JaasAuthenticationConfiguration {
 
         @Autowired
-        @Qualifier("attributeRepository")
+        @Qualifier(PrincipalResolver.BEAN_NAME_ATTRIBUTE_REPOSITORY)
         private ObjectProvider<IPersonAttributeDao> attributeRepository;
 
         @ConditionalOnMissingBean(name = "jaasPrincipalFactory")
@@ -188,7 +189,10 @@ public class CasCoreAuthenticationHandlersConfiguration {
                 .map(jaas -> {
                     val jaasPrincipal = jaas.getPrincipal();
                     return CoreAuthenticationUtils.newPersonDirectoryPrincipalResolver(jaasPrincipalFactory(),
-                        attributeRepository.getObject(), jaasPrincipal, personDirectory);
+                        attributeRepository.getObject(),
+                        CoreAuthenticationUtils.getAttributeMerger(casProperties.getAuthn().getAttributeRepository().getCore().getMerger()),
+                        jaasPrincipal,
+                        personDirectory);
                 })
                 .collect(Collectors.toList());
         }
@@ -204,6 +208,7 @@ public class CasCoreAuthenticationHandlersConfiguration {
                     val h = new JaasAuthenticationHandler(jaas.getName(), servicesManager.getObject(),
                         jaasPrincipalFactory(), jaas.getOrder());
 
+                    h.setState(jaas.getState());
                     h.setKerberosKdcSystemProperty(jaas.getKerberosKdcSystemProperty());
                     h.setKerberosRealmSystemProperty(jaas.getKerberosRealmSystemProperty());
                     h.setRealm(jaas.getRealm());

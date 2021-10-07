@@ -2,13 +2,13 @@ package org.apereo.cas;
 
 import org.apereo.cas.config.CasCoreNotificationsConfigurationTests;
 import org.apereo.cas.notifications.CommunicationsManagerTests;
+import org.apereo.cas.notifications.mail.EmailMessageBodyBuilderTests;
 import org.apereo.cas.notifications.push.DefaultNotificationSenderTests;
-import org.apereo.cas.sms.GroovySmsSenderTests;
-import org.apereo.cas.sms.RestfulSmsSenderTests;
+import org.apereo.cas.notifications.sms.GroovySmsSenderTests;
+import org.apereo.cas.notifications.sms.RestfulSmsSenderTests;
 
-import org.junit.platform.runner.JUnitPlatform;
 import org.junit.platform.suite.api.SelectClasses;
-import org.junit.runner.RunWith;
+import org.junit.platform.suite.api.Suite;
 
 /**
  * This is {@link AllNotificationsTestsSuite}.
@@ -20,9 +20,10 @@ import org.junit.runner.RunWith;
     CommunicationsManagerTests.class,
     DefaultNotificationSenderTests.class,
     GroovySmsSenderTests.class,
+    EmailMessageBodyBuilderTests.class,
     CasCoreNotificationsConfigurationTests.class,
     RestfulSmsSenderTests.class
 })
-@RunWith(JUnitPlatform.class)
+@Suite
 public class AllNotificationsTestsSuite {
 }

@@ -1,5 +1,8 @@
 package org.apereo.cas.web.flow.action;
 
+import org.apereo.cas.audit.AuditActionResolvers;
+import org.apereo.cas.audit.AuditResourceResolvers;
+import org.apereo.cas.audit.AuditableActions;
 import org.apereo.cas.authentication.AuthenticationCredentialsThreadLocalBinder;
 import org.apereo.cas.authentication.SurrogatePrincipalBuilder;
 import org.apereo.cas.authentication.credential.UsernamePasswordCredential;
@@ -11,7 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 import org.apereo.inspektr.audit.annotation.Audit;
-import org.springframework.binding.message.MessageBuilder;
 import org.springframework.webflow.action.AbstractAction;
 import org.springframework.webflow.execution.Event;
 import org.springframework.webflow.execution.RequestContext;
@@ -34,9 +36,9 @@ public class SurrogateSelectionAction extends AbstractAction {
 
     private final SurrogatePrincipalBuilder surrogatePrincipalBuilder;
 
-    @Audit(action = "SURROGATE_AUTHENTICATION_ELIGIBILITY_SELECTION",
-        actionResolverName = "SURROGATE_AUTHENTICATION_ELIGIBILITY_SELECTION_ACTION_RESOLVER",
-        resourceResolverName = "SURROGATE_AUTHENTICATION_ELIGIBILITY_SELECTION_RESOURCE_RESOLVER")
+    @Audit(action = AuditableActions.SURROGATE_AUTHENTICATION_ELIGIBILITY_SELECTION,
+        actionResolverName = AuditActionResolvers.SURROGATE_AUTHENTICATION_ELIGIBILITY_SELECTION_ACTION_RESOLVER,
+        resourceResolverName = AuditResourceResolvers.SURROGATE_AUTHENTICATION_ELIGIBILITY_SELECTION_RESOURCE_RESOLVER)
     @Override
     protected Event doExecute(final RequestContext requestContext) {
         val resultMap = new HashMap<String, Object>();
@@ -62,12 +64,8 @@ public class SurrogateSelectionAction extends AbstractAction {
             }
             return success(resultMap);
         } catch (final Exception e) {
-            requestContext.getMessageContext().addMessage(new MessageBuilder()
-                .error()
-                .source("surrogate")
-                .code("screen.surrogates.account.selection.error")
-                .defaultText("Unable to accept or authorize selection")
-                .build());
+            WebUtils.addErrorMessageToContext(requestContext, "screen.surrogates.account.selection.error",
+                "Unable to accept or authorize selection");
             LoggingUtils.error(LOGGER, e);
             return error(e);
         }

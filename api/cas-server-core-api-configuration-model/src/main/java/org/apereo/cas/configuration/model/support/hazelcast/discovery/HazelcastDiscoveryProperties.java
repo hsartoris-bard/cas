@@ -1,7 +1,9 @@
 package org.apereo.cas.configuration.model.support.hazelcast.discovery;
 
+import org.apereo.cas.configuration.model.support.hazelcast.HazelcastClusterMulticastProperties;
 import org.apereo.cas.configuration.support.RequiresModule;
 
+import com.fasterxml.jackson.annotation.JsonFilter;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -19,6 +21,7 @@ import java.io.Serializable;
 @Getter
 @Setter
 @Accessors(chain = true)
+@JsonFilter("HazelcastDiscoveryProperties")
 public class HazelcastDiscoveryProperties implements Serializable {
 
     private static final long serialVersionUID = -8281223487171101795L;
@@ -57,6 +60,12 @@ public class HazelcastDiscoveryProperties implements Serializable {
     private HazelcastAzureDiscoveryProperties azure = new HazelcastAzureDiscoveryProperties();
 
     /**
+     * Describe discovery strategy based on Zookeeper.
+     */
+    @NestedConfigurationProperty
+    private HazelcastZooKeeperDiscoveryProperties zookeeper = new HazelcastZooKeeperDiscoveryProperties();
+
+    /**
      * Describe discovery strategy based on Kubernetes.
      */
     @NestedConfigurationProperty
@@ -67,4 +76,10 @@ public class HazelcastDiscoveryProperties implements Serializable {
      */
     @NestedConfigurationProperty
     private HazelcastDockerSwarmDiscoveryProperties dockerSwarm = new HazelcastDockerSwarmDiscoveryProperties();
+
+    /**
+     * Multicast discovery settings.
+     */
+    @NestedConfigurationProperty
+    private HazelcastClusterMulticastProperties multicast = new HazelcastClusterMulticastProperties();
 }

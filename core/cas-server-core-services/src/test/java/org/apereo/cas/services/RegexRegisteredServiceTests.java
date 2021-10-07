@@ -3,14 +3,13 @@ package org.apereo.cas.services;
 import org.apereo.cas.services.consent.DefaultRegisteredServiceConsentPolicy;
 import org.apereo.cas.util.CollectionUtils;
 import org.apereo.cas.util.model.TriStateBoolean;
+import org.apereo.cas.util.serialization.JacksonObjectMapperFactory;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.val;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -37,9 +36,8 @@ public class RegexRegisteredServiceTests {
 
     private static final File JSON_FILE = new File(FileUtils.getTempDirectoryPath(), "regexRegisteredService.json");
 
-    private static final ObjectMapper MAPPER = new ObjectMapper()
-        .setSerializationInclusion(JsonInclude.Include.NON_NULL)
-        .findAndRegisterModules();
+    private static final ObjectMapper MAPPER = JacksonObjectMapperFactory.builder()
+        .defaultTypingEnabled(true).build().toObjectMapper();
 
     public static Stream<Arguments> getParameters() {
         val domainCatchallHttp = "https*://([A-Za-z0-9_-]+\\.)+vt\\.edu/.*";
@@ -127,12 +125,7 @@ public class RegexRegisteredServiceTests {
 
         assertNotNull(service.getDescription());
         assertNotNull(service.getFriendlyName());
-        assertDoesNotThrow(new Executable() {
-            @Override
-            public void execute() throws Throwable {
-                service.initialize();
-            }
-        });
+        assertDoesNotThrow(service::initialize);
     }
 
     private static RegexRegisteredService newService(final String id) {

@@ -20,6 +20,7 @@ import org.apereo.cas.config.CasCoreWebConfiguration;
 import org.apereo.cas.config.CasPersonDirectoryConfiguration;
 import org.apereo.cas.config.LdapAuthenticationConfiguration;
 import org.apereo.cas.config.support.CasWebApplicationServiceFactoryConfiguration;
+import org.apereo.cas.configuration.CasConfigurationProperties;
 import org.apereo.cas.logout.config.CasCoreLogoutConfiguration;
 
 import lombok.val;
@@ -28,6 +29,7 @@ import org.jooq.lambda.UncheckedException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 
@@ -68,23 +70,23 @@ import static org.junit.jupiter.api.Assertions.*;
     CasCoreConfiguration.class,
     LdapAuthenticationConfiguration.class
 })
+@EnableConfigurationProperties(CasConfigurationProperties.class)
 public abstract class BaseLdapAuthenticationHandlerTests {
     @Autowired
     @Qualifier("ldapAuthenticationHandlers")
-    protected Collection<AuthenticationHandler> handler;
+    protected Collection<AuthenticationHandler> ldapAuthenticationHandlers;
 
     @Test
     public void verifyAuthenticateFailure() {
-        assertNotEquals(handler.size(), 0);
+        assertNotEquals(ldapAuthenticationHandlers.size(), 0);
         assertThrowsWithRootCause(UncheckedException.class, FailedLoginException.class,
-            () -> this.handler.forEach(Unchecked.consumer(h -> h.authenticate(new UsernamePasswordCredential(getUsername(), getFailurePassword())))));
+            () -> this.ldapAuthenticationHandlers.forEach(Unchecked.consumer(h -> h.authenticate(new UsernamePasswordCredential(getUsername(), getFailurePassword())))));
     }
 
     @Test
     public void verifyAuthenticateSuccess() {
-        assertNotEquals(handler.size(), 0);
-
-        this.handler.forEach(Unchecked.consumer(h -> {
+        assertNotEquals(ldapAuthenticationHandlers.size(), 0);
+        this.ldapAuthenticationHandlers.forEach(Unchecked.consumer(h -> {
             val credential = new UsernamePasswordCredential(getUsername(), getSuccessPassword());
             val result = h.authenticate(credential);
             assertNotNull(result.getPrincipal());

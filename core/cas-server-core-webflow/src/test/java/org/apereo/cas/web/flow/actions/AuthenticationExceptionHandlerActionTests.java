@@ -39,7 +39,7 @@ import static org.mockito.Mockito.*;
  * @author Marvin S. Addison
  * @since 4.0.0
  */
-@Tag("WebflowActions")
+@Tag("WebflowAuthenticationActions")
 public class AuthenticationExceptionHandlerActionTests {
 
     @Test
@@ -73,6 +73,16 @@ public class AuthenticationExceptionHandlerActionTests {
         when(req.getCurrentEvent()).thenReturn(event);
         val id = handler.execute(req);
         assertEquals(CasWebflowExceptionHandler.UNKNOWN, id.getId());
+    }
+
+    @Test
+    public void handleDefaultError() throws Exception {
+        val handler = new AuthenticationExceptionHandlerAction(getExceptionHandlers(new LinkedHashSet<>()));
+        val req = getMockRequestContext();
+        val event = new Event(this, CasWebflowConstants.TRANSITION_ID_ERROR);
+        when(req.getCurrentEvent()).thenReturn(event);
+        val id = handler.execute(req);
+        assertEquals(CasWebflowConstants.TRANSITION_ID_ERROR, id.getId());
     }
 
     @Test

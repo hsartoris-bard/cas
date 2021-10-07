@@ -3,17 +3,14 @@ package org.apereo.cas.gauth.token;
 import org.apereo.cas.authentication.OneTimeToken;
 import org.apereo.cas.otp.repository.token.OneTimeTokenRepository;
 import org.apereo.cas.otp.repository.token.OneTimeTokenRepositoryCleaner;
-import org.apereo.cas.util.SchedulingUtils;
 
 import lombok.Getter;
 import lombok.val;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.Lazy;
+
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -44,6 +41,15 @@ public abstract class BaseOneTimeTokenRepositoryTests {
         assertTrue(token.getId() > 0);
         oneTimeTokenAuthenticatorTokenRepository.clean();
         googleAuthenticatorTokenRepositoryCleaner.clean();
+    }
+
+    @Test
+    public void verifyCaseInsensitiveUser() {
+        var token = (OneTimeToken) new GoogleAuthenticatorToken(1234, CASUSER.toUpperCase());
+        oneTimeTokenAuthenticatorTokenRepository.store(token);
+        assertTrue(oneTimeTokenAuthenticatorTokenRepository.exists(CASUSER.toLowerCase(), 1234));
+        token = oneTimeTokenAuthenticatorTokenRepository.get(CASUSER.toLowerCase(), 1234);
+        assertTrue(token.getId() > 0);
     }
 
     @Test
@@ -101,24 +107,13 @@ public abstract class BaseOneTimeTokenRepositoryTests {
 
     @Test
     public void verifySize() {
+        val uid = UUID.randomUUID().toString();
         assertEquals(oneTimeTokenAuthenticatorTokenRepository.count(), 0);
-        val token = new GoogleAuthenticatorToken(916984, "sample");
+        val token = new GoogleAuthenticatorToken(916984, uid);
         oneTimeTokenAuthenticatorTokenRepository.store(token);
         assertEquals(1, oneTimeTokenAuthenticatorTokenRepository.count());
-        assertEquals(1, oneTimeTokenAuthenticatorTokenRepository.count("sample"));
+        assertEquals(1, oneTimeTokenAuthenticatorTokenRepository.count(uid));
         oneTimeTokenAuthenticatorTokenRepository.removeAll();
         assertEquals(0, oneTimeTokenAuthenticatorTokenRepository.count(), "Repository is not empty");
-    }
-
-    @TestConfiguration("BaseOneTimeTokenRepositoryTestConfiguration")
-    @Lazy(false)
-    public static class BaseOneTimeTokenRepositoryTestConfiguration implements InitializingBean {
-        @Autowired
-        protected ApplicationContext applicationContext;
-
-        @Override
-        public void afterPropertiesSet() {
-            SchedulingUtils.prepScheduledAnnotationBeanPostProcessor(applicationContext);
-        }
     }
 }

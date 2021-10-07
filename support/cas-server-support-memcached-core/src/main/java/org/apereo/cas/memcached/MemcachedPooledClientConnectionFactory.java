@@ -49,6 +49,9 @@ public class MemcachedPooledClientConnectionFactory extends BasePooledObjectFact
         if (StringUtils.isNotBlank(memcachedProperties.getHashAlgorithm())) {
             factoryBean.setHashAlg(DefaultHashAlgorithm.valueOf(memcachedProperties.getHashAlgorithm()));
         }
+        if (StringUtils.isNotBlank(memcachedProperties.getProtocol())) {
+            factoryBean.setProtocol(ConnectionFactoryBuilder.Protocol.valueOf(memcachedProperties.getProtocol()));
+        }
 
         factoryBean.setDaemon(memcachedProperties.isDaemon());
         factoryBean.setShouldOptimize(memcachedProperties.isShouldOptimize());
@@ -92,7 +95,7 @@ public class MemcachedPooledClientConnectionFactory extends BasePooledObjectFact
      * @return the object pool
      */
     public ObjectPool<MemcachedClientIF> getObjectPool() {
-        val pool = new GenericObjectPool<MemcachedClientIF>(this);
+        val pool = new GenericObjectPool<>(this);
         pool.setMaxIdle(memcachedProperties.getMaxIdle());
         pool.setMinIdle(memcachedProperties.getMinIdle());
         pool.setMaxTotal(memcachedProperties.getMaxTotal());

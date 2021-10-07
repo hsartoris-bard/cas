@@ -50,7 +50,6 @@ public class Beans {
      * @param p the properties
      * @return the person attribute dao
      */
-    @SneakyThrows
     public static IPersonAttributeDao newStubAttributeRepository(final PrincipalAttributesProperties p) {
         val dao = new NamedStubPersonAttributeDao();
         val pdirMap = new LinkedHashMap<String, List<Object>>();
@@ -68,6 +67,7 @@ public class Beans {
                 .collect(Collectors.toList()));
         });
         dao.setBackingMap(pdirMap);
+        dao.setOrder(stub.getOrder());
         if (StringUtils.hasText(stub.getId())) {
             dao.setId(stub.getId());
         }
@@ -84,12 +84,25 @@ public class Beans {
      */
     @SneakyThrows
     public static Duration newDuration(final String value) {
+        if ("0".equalsIgnoreCase(value) || "NEVER".equalsIgnoreCase(value)) {
+            return Duration.ZERO;
+        }
+        if ("-1".equalsIgnoreCase(value) || !StringUtils.hasText(value) || "INFINITE".equalsIgnoreCase(value)) {
+            return Duration.ofDays(Integer.MAX_VALUE);
+        }
         if (NumberUtils.isCreatable(value)) {
             return Duration.ofSeconds(Long.parseLong(value));
         }
         return Duration.parse(value);
     }
 
+    /**
+     * Gets temp file path.
+     *
+     * @param prefix the prefix
+     * @param suffix the suffix
+     * @return the temp file path
+     */
     @SneakyThrows
     public static String getTempFilePath(final String prefix, final String suffix) {
         return File.createTempFile(prefix, suffix).getCanonicalPath();

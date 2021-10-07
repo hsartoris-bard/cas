@@ -1,6 +1,5 @@
 package org.apereo.cas.util.cipher;
 
-import org.apereo.cas.util.LoggingUtils;
 import org.apereo.cas.util.io.FileWatcherService;
 
 import lombok.Setter;
@@ -9,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.jooq.lambda.Unchecked;
 import org.jose4j.jwe.ContentEncryptionAlgorithmIdentifiers;
 import org.jose4j.jwe.KeyManagementAlgorithmIdentifiers;
 import org.jose4j.jwk.HttpsJwks;
@@ -58,14 +58,10 @@ public class JsonWebKeySetStringCipherExecutor extends BaseStringCipherExecutor 
                                              final String httpsJwksEndpointUrl) {
 
         val json = FileUtils.readFileToString(jwksKeystore, StandardCharsets.UTF_8);
-        keystorePatchWatcherService = new FileWatcherService(jwksKeystore, file -> {
-            try {
-                val reloadedJson = FileUtils.readFileToString(jwksKeystore, StandardCharsets.UTF_8);
-                this.webKeySet = new JsonWebKeySet(reloadedJson);
-            } catch (final Exception e) {
-                LoggingUtils.error(LOGGER, e);
-            }
-        });
+        keystorePatchWatcherService = new FileWatcherService(jwksKeystore, Unchecked.consumer(file -> {
+            val reloadedJson = FileUtils.readFileToString(jwksKeystore, StandardCharsets.UTF_8);
+            this.webKeySet = new JsonWebKeySet(reloadedJson);
+        }));
 
         this.webKeySet = new JsonWebKeySet(json);
         this.keyIdToUse = keyId;
@@ -117,51 +113,45 @@ public class JsonWebKeySetStringCipherExecutor extends BaseStringCipherExecutor 
         setSigningKey(key.getPublicKey());
     }
 
+    @SneakyThrows
     private void configureEncryptionParametersForDecoding() {
         if (httpsJkws.isEmpty()) {
             LOGGER.debug("No JWKS endpoint is defined. Configuration of encryption parameters and keys are skipped");
         } else {
-            try {
-                val keys = this.httpsJkws.get().getJsonWebKeys();
-                val encKeyResult = findRsaJsonWebKey(keys, jsonWebKey -> true);
+            val keys = this.httpsJkws.get().getJsonWebKeys();
+            val encKeyResult = findRsaJsonWebKey(keys, jsonWebKey -> true);
 
-                if (encKeyResult.isEmpty()) {
-                    throw new IllegalArgumentException("Could not locate RSA JSON web key from endpoint");
-                }
-                val encKey = encKeyResult.get();
-                if (encKey.getPrivateKey() == null) {
-                    throw new IllegalArgumentException("Private key located from endpoint for key id " + encKey.getKeyId() + " is undefined");
-                }
-                setSecretKeyEncryptionKey(encKey.getPrivateKey());
-                setContentEncryptionAlgorithmIdentifier(ContentEncryptionAlgorithmIdentifiers.AES_128_CBC_HMAC_SHA_256);
-                setEncryptionAlgorithm(KeyManagementAlgorithmIdentifiers.RSA_OAEP_256);
-            } catch (final Exception e) {
-                throw new RuntimeException(e.getMessage(), e);
+            if (encKeyResult.isEmpty()) {
+                throw new IllegalArgumentException("Could not locate RSA JSON web key from endpoint");
             }
+            val encKey = encKeyResult.get();
+            if (encKey.getPrivateKey() == null) {
+                throw new IllegalArgumentException("Private key located from endpoint for key id " + encKey.getKeyId() + " is undefined");
+            }
+            setEncryptionKey(encKey.getPrivateKey());
+            setContentEncryptionAlgorithmIdentifier(ContentEncryptionAlgorithmIdentifiers.AES_128_CBC_HMAC_SHA_256);
+            setEncryptionAlgorithm(KeyManagementAlgorithmIdentifiers.RSA_OAEP_256);
         }
     }
 
+    @SneakyThrows
     private void configureEncryptionParametersForEncoding() {
         if (httpsJkws.isEmpty()) {
             LOGGER.debug("No JWKS endpoint is defined. Configuration of encryption parameters and keys are skipped");
         } else {
-            try {
-                val keys = this.httpsJkws.get().getJsonWebKeys();
-                val encKeyResult = findRsaJsonWebKey(keys, jsonWebKey -> true);
+            val keys = this.httpsJkws.get().getJsonWebKeys();
+            val encKeyResult = findRsaJsonWebKey(keys, jsonWebKey -> true);
 
-                if (encKeyResult.isEmpty()) {
-                    throw new IllegalArgumentException("Could not locate RSA JSON web key from endpoint");
-                }
-                val encKey = encKeyResult.get();
-                if (encKey.getPublicKey() == null) {
-                    throw new IllegalArgumentException("Public key located from endpoint for key id " + encKey.getKeyId() + " is undefined");
-                }
-                setSecretKeyEncryptionKey(encKey.getPublicKey());
-                setContentEncryptionAlgorithmIdentifier(ContentEncryptionAlgorithmIdentifiers.AES_128_CBC_HMAC_SHA_256);
-                setEncryptionAlgorithm(KeyManagementAlgorithmIdentifiers.RSA_OAEP_256);
-            } catch (final Exception e) {
-                throw new RuntimeException(e.getMessage(), e);
+            if (encKeyResult.isEmpty()) {
+                throw new IllegalArgumentException("Could not locate RSA JSON web key from endpoint");
             }
+            val encKey = encKeyResult.get();
+            if (encKey.getPublicKey() == null) {
+                throw new IllegalArgumentException("Public key from endpoint for key id " + encKey.getKeyId() + " is undefined");
+            }
+            setEncryptionKey(encKey.getPublicKey());
+            setContentEncryptionAlgorithmIdentifier(ContentEncryptionAlgorithmIdentifiers.AES_128_CBC_HMAC_SHA_256);
+            setEncryptionAlgorithm(KeyManagementAlgorithmIdentifiers.RSA_OAEP_256);
         }
     }
 

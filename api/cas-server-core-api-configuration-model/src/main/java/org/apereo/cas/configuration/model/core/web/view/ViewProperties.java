@@ -1,8 +1,9 @@
 package org.apereo.cas.configuration.model.core.web.view;
 
-import org.apereo.cas.configuration.model.RestEndpointProperties;
+import org.apereo.cas.configuration.model.core.logout.LogoutProperties;
 import org.apereo.cas.configuration.support.RequiresModule;
 
+import com.fasterxml.jackson.annotation.JsonFilter;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -24,13 +25,24 @@ import java.util.Map;
 @Getter
 @Setter
 @Accessors(chain = true)
+@JsonFilter("ViewProperties")
 public class ViewProperties implements Serializable {
 
     private static final long serialVersionUID = 2719748442042197738L;
 
     /**
+     * When set to {@code true}, attempts to calculate
+     * and display the list of authorized services
+     * for the authenticated user on successful
+     * authentication attempts.
+     */
+    private boolean authorizedServicesOnSuccessfulLogin;
+
+    /**
      * The default redirect URL if none is specified
-     * after a successful authentication event.
+     * after a successful login or logout event.
+     * For logout redirects, this setting is closely
+     * related to and requires {@link LogoutProperties#isFollowServiceRedirects()}.
      */
     private String defaultRedirectUrl;
 
@@ -41,10 +53,11 @@ public class ViewProperties implements Serializable {
      * to carry additional metadata and tags.
      * Key is the name of the custom field.
      */
-    private Map<String, CustomLoginField> customLoginFormFields = new LinkedHashMap<>(0);
+    private Map<String, CustomLoginFieldViewProperties> customLoginFormFields = new LinkedHashMap<>(0);
 
     /**
      * Comma separated paths to where CAS templates may be found.
+     * Example might be {@code classpath:templates,file:/templates}.
      */
     private List<String> templatePrefixes = new ArrayList<>(1);
 
@@ -69,33 +82,6 @@ public class ViewProperties implements Serializable {
     /**
      * Resolve CAS views via REST.
      */
-    private Rest rest = new Rest();
-
-    @RequiresModule(name = "cas-server-core-web", automated = true)
-    @Getter
-    @Setter
-    public static class Rest extends RestEndpointProperties {
-        private static final long serialVersionUID = -8102345678378393382L;
-    }
-
-    @RequiresModule(name = "cas-server-core-web", automated = true)
-    @Getter
-    @Setter
-    public static class CustomLoginField implements Serializable {
-        private static final long serialVersionUID = -7122345678378395582L;
-
-        /**
-         * The key for this field found in the message bundle
-         * used to present a label/text in CAS views.
-         */
-        private String messageBundleKey;
-        /**
-         * Whether this field is required to have a value.
-         */
-        private boolean required;
-        /**
-         * The id of the custom converter to use to convert bound property values.
-         */
-        private String converter;
-    }
+    @NestedConfigurationProperty
+    private RestfulViewProperties rest = new RestfulViewProperties();
 }

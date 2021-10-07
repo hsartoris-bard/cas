@@ -4,6 +4,7 @@ import org.apereo.cas.authentication.principal.Principal;
 
 import lombok.Builder;
 import lombok.Getter;
+import lombok.experimental.SuperBuilder;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.ArrayUtils;
@@ -24,7 +25,7 @@ import java.util.Set;
  * @author Misagh Moayyed
  * @since 6.2.0
  */
-@Builder
+@SuperBuilder
 @Getter
 @Slf4j
 public class PrincipalAttributeRepositoryFetcher {
@@ -49,6 +50,7 @@ public class PrincipalAttributeRepositoryFetcher {
         var filter = IPersonAttributeDaoFilter.alwaysChoose();
         if (!activeAttributeRepositoryIdentifiers.isEmpty()) {
             val repoIdsArray = activeAttributeRepositoryIdentifiers.toArray(ArrayUtils.EMPTY_STRING_ARRAY);
+            LOGGER.trace("Active attribute repository identifiers [{}]", activeAttributeRepositoryIdentifiers);
             filter = dao -> Arrays.stream(dao.getId())
                 .anyMatch(daoId -> daoId.equalsIgnoreCase(IPersonAttributeDao.WILDCARD)
                     || StringUtils.equalsAnyIgnoreCase(daoId, repoIdsArray)
@@ -56,8 +58,7 @@ public class PrincipalAttributeRepositoryFetcher {
         }
 
         val query = new HashMap<String, Object>();
-        query.put("username", principalId);
-
+        query.put("username", principalId.trim());
         if (currentPrincipal != null) {
             query.put("principal", currentPrincipal.getId());
             query.putAll(currentPrincipal.getAttributes());

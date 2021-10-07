@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Misagh Moayyed
  * @since 6.3.0
  */
-@Tag("Simple")
+@Tag("AuthenticationThrottling")
 public class ThrottledSubmissionHandlerInterceptorTests {
 
     @Test
@@ -37,7 +37,5 @@ public class ThrottledSubmissionHandlerInterceptorTests {
                 input.afterCompletion(new MockHttpServletRequest(), new MockHttpServletResponse(), new Object(), new RuntimeException());
             }
         });
-
     }
-
 }

@@ -39,7 +39,7 @@ import org.apereo.cas.services.replication.NoOpRegisteredServiceReplicationStrat
 import org.apereo.cas.services.replication.RegisteredServiceReplicationStrategy;
 import org.apereo.cas.services.resource.DefaultRegisteredServiceResourceNamingStrategy;
 import org.apereo.cas.services.resource.RegisteredServiceResourceNamingStrategy;
-import org.apereo.cas.services.util.RegisteredServiceYamlHttpMessageConverter;
+import org.apereo.cas.web.UrlValidator;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -47,6 +47,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.jooq.lambda.Unchecked;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -62,7 +63,6 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.AnnotationAwareOrderComparator;
 import org.springframework.core.env.Environment;
-import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.EnableAsync;
 
@@ -89,6 +89,10 @@ public class CasCoreServicesConfiguration {
     private ObjectProvider<CommunicationsManager> communicationsManager;
 
     @Autowired
+    @Qualifier("urlValidator")
+    private ObjectProvider<UrlValidator> urlValidator;
+
+    @Autowired
     private CasConfigurationProperties casProperties;
 
     @Autowired
@@ -108,7 +112,7 @@ public class CasCoreServicesConfiguration {
     @Bean
     public ResponseBuilderLocator webApplicationResponseBuilderLocator() {
         val beans = applicationContext.getBeansOfType(ResponseBuilder.class, false, true);
-        val builders = new ArrayList<ResponseBuilder>(beans.values());
+        val builders = new ArrayList<>(beans.values());
         AnnotationAwareOrderComparator.sortIfNecessary(builders);
         return new DefaultWebApplicationResponseBuilderLocator(builders);
     }
@@ -116,10 +120,10 @@ public class CasCoreServicesConfiguration {
     @Bean
     @ConditionalOnMissingBean(name = "webApplicationServiceResponseBuilder")
     public ResponseBuilder<WebApplicationService> webApplicationServiceResponseBuilder() {
-        return new WebApplicationServiceResponseBuilder(servicesManager());
+        return new WebApplicationServiceResponseBuilder(servicesManager(), urlValidator.getObject());
     }
 
-    @ConditionalOnMissingBean(name = "registeredServiceCipherExecutor")
+    @ConditionalOnMissingBean(name = RegisteredServiceCipherExecutor.DEFAULT_BEAN_NAME)
     @Bean
     @RefreshScope
     public RegisteredServiceCipherExecutor registeredServiceCipherExecutor() {
@@ -141,11 +145,6 @@ public class CasCoreServicesConfiguration {
         val chain = new ChainingServicesManager();
         configurers.values().forEach(c -> chain.registerServiceManager(c.configureServicesManager()));
         return chain;
-    }
-
-    @Bean
-    public HttpMessageConverter yamlHttpMessageConverter() {
-        return new RegisteredServiceYamlHttpMessageConverter();
     }
 
     @Bean
@@ -172,10 +171,10 @@ public class CasCoreServicesConfiguration {
     public ServiceRegistryExecutionPlan serviceRegistryExecutionPlan() {
         val configurers = applicationContext.getBeansOfType(ServiceRegistryExecutionPlanConfigurer.class, false, true);
         val plan = new DefaultServiceRegistryExecutionPlan();
-        configurers.values().forEach(c -> {
+        configurers.values().forEach(Unchecked.consumer(c -> {
             LOGGER.trace("Configuring service registry [{}]", c.getName());
             c.configureServiceRegistry(plan);
-        });
+        }));
         return plan;
     }
 
@@ -241,19 +240,19 @@ public class CasCoreServicesConfiguration {
     @Bean
     @ConditionalOnMissingBean(name = "servicesManagerCache")
     public Cache<Long, RegisteredService> servicesManagerCache() {
-        val serviceRegistry = casProperties.getServiceRegistry();
-        val duration = Beans.newDuration(serviceRegistry.getCache());
-        return Caffeine.newBuilder()
-            .initialCapacity(serviceRegistry.getCacheCapacity())
-            .maximumSize(serviceRegistry.getCacheSize())
+        val cacheProperties = casProperties.getServiceRegistry().getCache();
+        val builder = Caffeine.newBuilder();
+        val duration = Beans.newDuration(cacheProperties.getDuration());
+        return builder
+            .initialCapacity(cacheProperties.getInitialCapacity())
+            .maximumSize(cacheProperties.getCacheSize())
             .expireAfterWrite(duration)
-            .recordStats()
             .build();
     }
 
     @Bean
     @ConditionalOnMissingBean(name = "defaultServicesManagerExecutionPlanConfigurer")
-    @ConditionalOnProperty(prefix = "cas.service-registry", name = "management-type", havingValue = "DEFAULT", matchIfMissing = true)
+    @ConditionalOnProperty(prefix = "cas.service-registry.core", name = "management-type", havingValue = "DEFAULT", matchIfMissing = true)
     public ServicesManagerExecutionPlanConfigurer defaultServicesManagerExecutionPlanConfigurer() {
         return () -> {
             val activeProfiles = Arrays.stream(environment.getActiveProfiles()).collect(Collectors.toSet());
@@ -285,7 +284,7 @@ public class CasCoreServicesConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(name = "domainServicesManagerExecutionPlanConfigurer")
-    @ConditionalOnProperty(prefix = "cas.service-registry", name = "management-type", havingValue = "DOMAIN")
+    @ConditionalOnProperty(prefix = "cas.service-registry.core", name = "management-type", havingValue = "DOMAIN")
     public ServicesManagerExecutionPlanConfigurer domainServicesManagerExecutionPlanConfigurer() {
         return () -> {
             val activeProfiles = Arrays.stream(environment.getActiveProfiles()).collect(Collectors.toSet());
@@ -294,6 +293,7 @@ public class CasCoreServicesConfiguration {
                 .applicationContext(applicationContext)
                 .environments(activeProfiles)
                 .servicesCache(servicesManagerCache())
+                .registeredServiceLocators(List.of(new DefaultServicesManagerRegisteredServiceLocator()))
                 .build();
             return new DefaultDomainAwareServicesManager(context, new DefaultRegisteredServiceDomainExtractor());
         };

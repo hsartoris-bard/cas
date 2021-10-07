@@ -1,5 +1,6 @@
 package org.apereo.cas.services;
 
+import org.apereo.cas.configuration.support.ExpressionLanguageCapable;
 import org.apereo.cas.util.ResourceUtils;
 import org.apereo.cas.util.scripting.ScriptingUtils;
 import org.apereo.cas.util.spring.SpringExpressionLanguageValueResolver;
@@ -10,6 +11,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.SneakyThrows;
+import lombok.experimental.Accessors;
 import lombok.val;
 
 import javax.persistence.Transient;
@@ -25,6 +27,7 @@ import java.util.Set;
  */
 @Getter
 @Setter
+@Accessors(chain = true)
 @NoArgsConstructor
 @EqualsAndHashCode(of = {"order", "groovyScript"})
 public class GroovyRegisteredServiceAccessStrategy implements RegisteredServiceAccessStrategy {
@@ -36,6 +39,7 @@ public class GroovyRegisteredServiceAccessStrategy implements RegisteredServiceA
      */
     private int order;
 
+    @ExpressionLanguageCapable
     private String groovyScript;
 
     @JsonIgnore

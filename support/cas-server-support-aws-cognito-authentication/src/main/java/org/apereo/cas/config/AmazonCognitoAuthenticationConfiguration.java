@@ -1,3 +1,4 @@
+
 package org.apereo.cas.config;
 
 import org.apereo.cas.authentication.AmazonCognitoAuthenticationAuthenticationHandler;
@@ -20,7 +21,6 @@ import com.nimbusds.jose.proc.JWSVerificationKeySelector;
 import com.nimbusds.jose.util.DefaultResourceRetriever;
 import com.nimbusds.jwt.proc.ConfigurableJWTProcessor;
 import com.nimbusds.jwt.proc.DefaultJWTProcessor;
-import lombok.SneakyThrows;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.ObjectProvider;
@@ -81,7 +81,7 @@ public class AmazonCognitoAuthenticationConfiguration {
     @ConditionalOnMissingBean(name = "amazonCognitoAuthenticationHandler")
     @RefreshScope
     @Bean
-    public AuthenticationHandler amazonCognitoAuthenticationHandler() {
+    public AuthenticationHandler amazonCognitoAuthenticationHandler() throws Exception {
         val cognito = casProperties.getAuthn().getCognito();
         val handler = new AmazonCognitoAuthenticationAuthenticationHandler(cognito.getName(),
             servicesManager.getObject(),
@@ -89,6 +89,7 @@ public class AmazonCognitoAuthenticationConfiguration {
             amazonCognitoIdentityProvider(),
             cognito,
             amazonCognitoAuthenticationJwtProcessor());
+        handler.setState(cognito.getState());
         handler.setPrincipalNameTransformer(PrincipalNameTransformerUtils.newPrincipalNameTransformer(cognito.getPrincipalTransformation()));
         handler.setPasswordEncoder(PasswordEncoderUtils.newPasswordEncoder(cognito.getPasswordEncoder(), applicationContext));
         return handler;
@@ -98,14 +99,14 @@ public class AmazonCognitoAuthenticationConfiguration {
     @Bean
     @RefreshScope
     public AuthenticationEventExecutionPlanConfigurer amazonCognitoAuthenticationEventExecutionPlanConfigurer() {
-        return plan -> plan.registerAuthenticationHandlerWithPrincipalResolver(amazonCognitoAuthenticationHandler(), defaultPrincipalResolver.getObject());
+        return plan -> plan.registerAuthenticationHandlerWithPrincipalResolver(
+            amazonCognitoAuthenticationHandler(), defaultPrincipalResolver.getObject());
     }
 
     @ConditionalOnMissingBean(name = "amazonCognitoAuthenticationJwtProcessor")
     @Bean
     @RefreshScope
-    @SneakyThrows
-    public ConfigurableJWTProcessor amazonCognitoAuthenticationJwtProcessor() {
+    public ConfigurableJWTProcessor amazonCognitoAuthenticationJwtProcessor() throws Exception {
         val cognito = casProperties.getAuthn().getCognito();
         val resourceRetriever = new DefaultResourceRetriever(
             (int) Beans.newDuration(cognito.getConnectionTimeout()).toMillis(),

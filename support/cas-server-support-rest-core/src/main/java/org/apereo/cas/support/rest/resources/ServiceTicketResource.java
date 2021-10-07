@@ -4,7 +4,6 @@ import org.apereo.cas.CasProtocolConstants;
 import org.apereo.cas.authentication.AuthenticationCredentialsThreadLocalBinder;
 import org.apereo.cas.authentication.AuthenticationException;
 import org.apereo.cas.authentication.AuthenticationSystemSupport;
-import org.apereo.cas.authentication.DefaultAuthenticationResultBuilder;
 import org.apereo.cas.rest.BadRestRequestException;
 import org.apereo.cas.rest.factory.RestHttpRequestCredentialFactory;
 import org.apereo.cas.rest.factory.ServiceTicketResourceEntityResponseFactory;
@@ -88,11 +87,11 @@ public class ServiceTicketResource {
                     throw new BadRestRequestException("No credentials are provided or extracted to authenticate the REST request");
                 }
                 val authenticationResult =
-                    authenticationSystemSupport.handleAndFinalizeSingleAuthenticationTransaction(service, credential);
+                    authenticationSystemSupport.finalizeAuthenticationTransaction(service, credential);
 
                 return this.serviceTicketResourceEntityResponseFactory.build(tgtId, service, authenticationResult);
             }
-            val builder = new DefaultAuthenticationResultBuilder();
+            val builder = authenticationSystemSupport.getAuthenticationResultBuilderFactory().newBuilder();
             val authenticationResult = builder
                 .collect(authn)
                 .build(this.authenticationSystemSupport.getPrincipalElectionStrategy(), service);

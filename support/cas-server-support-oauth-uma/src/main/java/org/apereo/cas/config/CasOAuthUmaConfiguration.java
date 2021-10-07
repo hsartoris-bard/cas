@@ -1,5 +1,6 @@
 package org.apereo.cas.config;
 
+import org.apereo.cas.CentralAuthenticationService;
 import org.apereo.cas.configuration.CasConfigurationProperties;
 import org.apereo.cas.services.ServicesManager;
 import org.apereo.cas.support.oauth.OAuth20Constants;
@@ -48,6 +49,7 @@ import org.pac4j.core.config.Config;
 import org.pac4j.core.context.session.SessionStore;
 import org.pac4j.core.credentials.authenticator.Authenticator;
 import org.pac4j.core.http.adapter.JEEHttpActionAdapter;
+import org.pac4j.core.matching.matcher.DefaultMatchers;
 import org.pac4j.http.client.direct.HeaderClient;
 import org.pac4j.springframework.web.SecurityInterceptor;
 import org.springframework.beans.factory.FactoryBean;
@@ -80,6 +82,10 @@ import static org.apereo.cas.support.oauth.OAuth20Constants.BASE_OAUTH20_URL;
 public class CasOAuthUmaConfiguration implements WebMvcConfigurer {
     @Autowired
     private ConfigurableApplicationContext applicationContext;
+
+    @Autowired
+    @Qualifier("centralAuthenticationService")
+    private ObjectProvider<CentralAuthenticationService> centralAuthenticationService;
 
     @Autowired
     @Qualifier("accessTokenJwtBuilder")
@@ -125,9 +131,9 @@ public class CasOAuthUmaConfiguration implements WebMvcConfigurer {
     @RefreshScope
     @ConditionalOnMissingBean(name = "umaRequestingPartyTokenGenerator")
     public IdTokenGeneratorService umaRequestingPartyTokenGenerator() {
-        val uma = casProperties.getAuthn().getUma();
-        val jwks = uma.getRequestingPartyToken().getJwksFile();
-        val signingService = new UmaRequestingPartyTokenSigningService(jwks, uma.getIssuer());
+        val uma = casProperties.getAuthn().getOauth().getUma();
+        val jwks = uma.getRequestingPartyToken().getJwksFile().getLocation();
+        val signingService = new UmaRequestingPartyTokenSigningService(jwks, uma.getCore().getIssuer());
         val context = OAuth20ConfigurationContext.builder()
             .ticketRegistry(ticketRegistry.getObject())
             .servicesManager(servicesManager.getObject())
@@ -244,13 +250,13 @@ public class CasOAuthUmaConfiguration implements WebMvcConfigurer {
 
     @Bean
     public SecurityInterceptor umaRequestingPartyTokenSecurityInterceptor() {
-        val authenticator = new UmaRequestingPartyTokenAuthenticator(ticketRegistry.getObject(), accessTokenJwtBuilder.getObject());
+        val authenticator = new UmaRequestingPartyTokenAuthenticator(centralAuthenticationService.getObject(), accessTokenJwtBuilder.getObject());
         return getSecurityInterceptor(authenticator, "CAS_UMA_CLIENT_RPT_AUTH");
     }
 
     @Bean
     public SecurityInterceptor umaAuthorizationApiTokenSecurityInterceptor() {
-        val authenticator = new UmaAuthorizationApiTokenAuthenticator(ticketRegistry.getObject(), accessTokenJwtBuilder.getObject());
+        val authenticator = new UmaAuthorizationApiTokenAuthenticator(centralAuthenticationService.getObject(), accessTokenJwtBuilder.getObject());
         return getSecurityInterceptor(authenticator, "CAS_UMA_CLIENT_AAT_AUTH");
     }
 
@@ -261,6 +267,7 @@ public class CasOAuthUmaConfiguration implements WebMvcConfigurer {
         val config = new Config(OAuth20Utils.casOAuthCallbackUrl(casProperties.getServer().getPrefix()), headerClient);
         config.setSessionStore(oauthDistributedSessionStore.getObject());
         val interceptor = new SecurityInterceptor(config, clients, JEEHttpActionAdapter.INSTANCE);
+        interceptor.setMatchers(DefaultMatchers.SECURITYHEADERS);
         interceptor.setAuthorizers(DefaultAuthorizers.IS_FULLY_AUTHENTICATED);
         return interceptor;
     }
@@ -269,6 +276,7 @@ public class CasOAuthUmaConfiguration implements WebMvcConfigurer {
     public void addInterceptors(final InterceptorRegistry registry) {
         registry
             .addInterceptor(umaRequestingPartyTokenSecurityInterceptor())
+            .order(100)
             .addPathPatterns(BASE_OAUTH20_URL.concat("/").concat(OAuth20Constants.UMA_PERMISSION_URL).concat("*"))
             .addPathPatterns(BASE_OAUTH20_URL.concat("/").concat(OAuth20Constants.UMA_RESOURCE_SET_REGISTRATION_URL).concat("*"))
             .addPathPatterns(BASE_OAUTH20_URL.concat("/*/").concat(OAuth20Constants.UMA_POLICY_URL).concat("*"))
@@ -277,6 +285,7 @@ public class CasOAuthUmaConfiguration implements WebMvcConfigurer {
 
         registry
             .addInterceptor(umaAuthorizationApiTokenSecurityInterceptor())
+            .order(100)
             .addPathPatterns(BASE_OAUTH20_URL.concat("/").concat(OAuth20Constants.UMA_AUTHORIZATION_REQUEST_URL).concat("*"));
     }
 
@@ -290,6 +299,7 @@ public class CasOAuthUmaConfiguration implements WebMvcConfigurer {
             .servicesManager(servicesManager.getObject())
             .sessionStore(oauthDistributedSessionStore.getObject())
             .ticketRegistry(ticketRegistry.getObject())
+            .centralAuthenticationService(centralAuthenticationService.getObject())
             .umaPermissionTicketFactory(defaultUmaPermissionTicketFactory())
             .umaResourceSetRepository(umaResourceSetRepository());
     }

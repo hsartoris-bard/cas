@@ -7,7 +7,9 @@ import org.springframework.core.Ordered;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 /**
@@ -18,6 +20,12 @@ import java.util.stream.Stream;
  * @since 3.1
  */
 public interface ServicesManager extends Ordered {
+    /**
+     * Save.
+     *
+     * @param toSave the services to import and save
+     */
+    void save(Stream<RegisteredService> toSave);
 
     /**
      * Register a service with CAS, or update an existing an entry.
@@ -46,6 +54,17 @@ public interface ServicesManager extends Ordered {
     }
 
     /**
+     * Save.
+     *
+     * @param supplier       the supplier
+     * @param andThenConsume the and then consume
+     * @param countExclusive the count exclusive
+     */
+    void save(Supplier<RegisteredService> supplier,
+              Consumer<RegisteredService> andThenConsume,
+              long countExclusive);
+
+    /**
      * Delete all entries in the underlying storage service.
      */
     void deleteAll();
@@ -69,19 +88,11 @@ public interface ServicesManager extends Ordered {
     /**
      * Find a {@link RegisteredService} by matching with the supplied service.
      *
-     * @param serviceId the service to match with.
-     * @return the {@link RegisteredService} that matches the supplied service.
-     */
-    RegisteredService findServiceBy(String serviceId);
-    
-    /**
-     * Find a {@link RegisteredService} by matching with the supplied service.
-     *
      * @param service the service to match with.
      * @return the {@link RegisteredService} that matches the supplied service.
      */
     RegisteredService findServiceBy(Service service);
-    
+
     /**
      * Find a collection of services by type.
      *
@@ -101,23 +112,13 @@ public interface ServicesManager extends Ordered {
     <T extends RegisteredService> T findServiceBy(Service serviceId, Class<T> clazz);
 
     /**
-     * Find service by type.
-     *
-     * @param <T>       the type parameter
-     * @param serviceId the service id
-     * @param clazz     the clazz
-     * @return the t
-     */
-    <T extends RegisteredService> T findServiceBy(String serviceId, Class<T> clazz);
-
-    /**
      * Find a {@link RegisteredService} by matching with the supplied id.
      *
      * @param id the id to match with.
      * @return the {@link RegisteredService} that matches the supplied service.
      */
     RegisteredService findServiceBy(long id);
-    
+
     /**
      * Find a {@link RegisteredService} by matching with the supplied id.
      *
@@ -133,15 +134,7 @@ public interface ServicesManager extends Ordered {
         }
         return null;
     }
-    
-    /**
-     * Find a {@link RegisteredService} by exact service id.
-     *
-     * @param serviceId the service
-     * @return the {@link RegisteredService} defention or null
-     */
-    RegisteredService findServiceByExactServiceId(String serviceId);
-    
+
     /**
      * Find a {@link RegisteredService} by matching with the supplied name.
      *
@@ -154,7 +147,7 @@ public interface ServicesManager extends Ordered {
      * Find a {@link RegisteredService} by matching with the supplied name.
      *
      * @param <T>   the type parameter
-     * @param name    the name to match with.
+     * @param name  the name to match with.
      * @param clazz the clazz
      * @return the {@link RegisteredService} that matches the supplied service.
      */
@@ -177,6 +170,18 @@ public interface ServicesManager extends Ordered {
     Collection<RegisteredService> getAllServices();
 
     /**
+     * Retrieve the collection of all registered services that are of the class type passed.
+     * Services that are returned are valid, non-expired, etc.
+     * Operation should perform no reloads, and must return a cached
+     * copy of services that are already loaded.
+     *
+     * @param <T>   the type parameter
+     * @param clazz type of registered service to return.
+     * @return the collection of all services that match the class type.
+     */
+    <T extends RegisteredService> Collection<T> getAllServicesOfType(Class<T> clazz);
+
+    /**
      * Gets services stream.
      * <p>
      * The returning stream may be bound to an IO channel (such as database connection),
@@ -184,7 +189,7 @@ public interface ServicesManager extends Ordered {
      *
      * @return the services stream
      */
-    default Stream<? extends RegisteredService> getAllServicesStream() {
+    default Stream<? extends RegisteredService> stream() {
         return getAllServices().stream();
     }
 
@@ -249,4 +254,23 @@ public interface ServicesManager extends Ordered {
     default int getOrder() {
         return Ordered.LOWEST_PRECEDENCE;
     }
+
+    /**
+     * Returns a list of domains being managed by the ServiceManager.
+     *
+     * @return list of domain names
+     */
+    default Stream<String> getDomains() {
+        return Stream.of("default");
+    }
+
+    /**
+     * Return a list of services for the passed domain.
+     *
+     * @param domain the domain name
+     * @return list of services
+     */
+    Collection<RegisteredService> getServicesForDomain(String domain);
+
+
 }

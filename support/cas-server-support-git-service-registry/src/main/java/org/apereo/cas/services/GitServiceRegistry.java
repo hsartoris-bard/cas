@@ -3,6 +3,8 @@ package org.apereo.cas.services;
 import org.apereo.cas.git.GitRepository;
 import org.apereo.cas.git.PathRegexPatternTreeFilter;
 import org.apereo.cas.services.locator.GitRepositoryRegisteredServiceLocator;
+import org.apereo.cas.util.LoggingUtils;
+import org.apereo.cas.util.RegexUtils;
 import org.apereo.cas.util.serialization.StringSerializer;
 
 import lombok.SneakyThrows;
@@ -10,6 +12,9 @@ import lombok.Synchronized;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.jooq.lambda.Unchecked;
 import org.springframework.context.ConfigurableApplicationContext;
 
 import java.io.File;
@@ -21,6 +26,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -39,19 +45,23 @@ public class GitServiceRegistry extends AbstractServiceRegistry {
 
     private final List<GitRepositoryRegisteredServiceLocator> registeredServiceLocators;
 
+    private final String rootDirectory;
+
     private Collection<RegisteredService> registeredServices = new ArrayList<>(0);
 
     public GitServiceRegistry(final ConfigurableApplicationContext applicationContext,
-        final GitRepository gitRepository,
-        final Collection<StringSerializer<RegisteredService>> registeredServiceSerializers,
-        final boolean pushChanges,
-        final Collection<ServiceRegistryListener> serviceRegistryListeners,
-        final List<GitRepositoryRegisteredServiceLocator> registeredServiceLocators) {
+                              final GitRepository gitRepository,
+                              final Collection<StringSerializer<RegisteredService>> registeredServiceSerializers,
+                              final boolean pushChanges,
+                              final String rootDirectory,
+                              final Collection<ServiceRegistryListener> serviceRegistryListeners,
+                              final List<GitRepositoryRegisteredServiceLocator> registeredServiceLocators) {
         super(applicationContext, serviceRegistryListeners);
         this.gitRepository = gitRepository;
         this.registeredServiceSerializers = registeredServiceSerializers;
         this.pushChanges = pushChanges;
         this.registeredServiceLocators = registeredServiceLocators;
+        this.rootDirectory = rootDirectory;
     }
 
     @Override
@@ -90,26 +100,74 @@ public class GitServiceRegistry extends AbstractServiceRegistry {
         return false;
     }
 
+    @Override
+    public void deleteAll() {
+        val currentServices = load();
+        currentServices.stream()
+            .map(this::locateExistingRegisteredServiceFile)
+            .filter(Optional::isPresent)
+            .map(Optional::get)
+            .forEach(Unchecked.consumer(FileUtils::forceDelete));
+        val message = "Deleted registered services from repository";
+        commitAndPush(message);
+    }
+
     @Synchronized
     @Override
     public Collection<RegisteredService> load() {
-        if (gitRepository.pull()) {
-            LOGGER.debug("Successfully pulled changes from the remote repository");
-        } else {
-            LOGGER.warn("Unable to pull changes from the remote repository. Service definition files may be stale.");
-        }
+        try {
+            if (gitRepository.pull()) {
+                LOGGER.debug("Successfully pulled changes from the remote repository");
+            } else {
+                LOGGER.info("Unable to pull changes from the remote repository. Service definition files may be stale.");
+            }
+            val objectPatternStr = StringUtils.isBlank(rootDirectory)
+                ? GitRepositoryRegisteredServiceLocator.PATTEN_ACCEPTED_REPOSITORY_FILES
+                : rootDirectory + "/" + GitRepositoryRegisteredServiceLocator.PATTEN_ACCEPTED_REPOSITORY_FILES;
+            val objectPattern = RegexUtils.createPattern(objectPatternStr, Pattern.CASE_INSENSITIVE);
+            val objects = gitRepository.getObjectsInRepository(
+                new PathRegexPatternTreeFilter(objectPattern));
+            registeredServices = objects
+                .stream()
+                .filter(Objects::nonNull)
+                .map(this::parseGitObjectContentIntoRegisteredService)
+                .flatMap(Collection::stream)
+                .map(this::invokeServiceRegistryListenerPostLoad)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+            return registeredServices;
+        } catch (final Exception e) {
+            LoggingUtils.warn(LOGGER, e);
+            val parentDir = StringUtils.isBlank(rootDirectory)
+                ? gitRepository.getRepositoryDirectory()
+                : new File(gitRepository.getRepositoryDirectory(), rootDirectory);
+            val files = FileUtils.listFiles(parentDir,
+                GitRepositoryRegisteredServiceLocator.FILE_EXTENSIONS.toArray(ArrayUtils.EMPTY_STRING_ARRAY), true);
+            LOGGER.debug("Located [{}] files(s)", files.size());
 
-        val objects = this.gitRepository.getObjectsInRepository(
-            new PathRegexPatternTreeFilter(GitRepositoryRegisteredServiceLocator.PATTERN_ACCEPTED_REPOSITORY_FILES));
-        registeredServices = objects
-            .stream()
-            .filter(Objects::nonNull)
-            .map(this::parseGitObjectContentIntoRegisteredService)
-            .flatMap(Collection::stream)
-            .map(this::invokeServiceRegistryListenerPostLoad)
-            .filter(Objects::nonNull)
-            .collect(Collectors.toList());
-        return registeredServices;
+            registeredServices = files
+                .stream()
+                .filter(file -> file.isFile() && file.canRead() && file.canWrite() && file.length() > 0)
+                .map(Unchecked.function(file -> {
+                    try (val in = Files.newBufferedReader(file.toPath())) {
+                        return registeredServiceSerializers
+                            .stream()
+                            .filter(s -> s.supports(file))
+                            .map(s -> s.load(in))
+                            .filter(Objects::nonNull)
+                            .flatMap(Collection::stream)
+                            .map(this::invokeServiceRegistryListenerPostLoad)
+                            .filter(Objects::nonNull)
+                            .collect(Collectors.toList());
+                    }
+                }))
+                .flatMap(List::stream)
+                .sorted()
+                .map(this::invokeServiceRegistryListenerPostLoad)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+            return registeredServices;
+        }
     }
 
     @Override
@@ -141,7 +199,6 @@ public class GitServiceRegistry extends AbstractServiceRegistry {
             .flatMap(Collection::stream)
             .collect(Collectors.toList());
     }
-
 
     private boolean writeRegisteredServiceToFile(final RegisteredService registeredService, final File file) {
         try (val out = Files.newOutputStream(file.toPath())) {

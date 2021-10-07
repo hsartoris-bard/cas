@@ -2,13 +2,17 @@ description = "Apereo CAS FIDO2 WebAuthn Support"
 dependencies {
     api project(":api:cas-server-core-api-authentication")
     api project(":api:cas-server-core-api-util")
+    api project(":api:cas-server-core-api-mfa")
 
     implementation libraries.webauthn
-
-    compileOnly project(":support:cas-server-support-trusted-mfa")
+    implementation libraries.springsecurityconfig
+    implementation libraries.springsecurityweb
+    
+    compileOnlyApi  project(":support:cas-server-support-trusted-mfa")
     
     implementation project(":support:cas-server-support-trusted-mfa-core")
     implementation project(":support:cas-server-support-webauthn-core")
+    implementation project(":support:cas-server-support-webauthn-core-webflow")
 
     implementation project(":core:cas-server-core-authentication-mfa-api")
     implementation project(":core:cas-server-core-authentication-mfa")

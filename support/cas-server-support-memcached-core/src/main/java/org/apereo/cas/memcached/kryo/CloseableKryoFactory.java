@@ -8,8 +8,8 @@ import org.apereo.cas.memcached.kryo.serial.URLSerializer;
 import org.apereo.cas.memcached.kryo.serial.ZonedDateTimeSerializer;
 
 import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.pool.KryoFactory;
 import com.esotericsoftware.kryo.serializers.DefaultSerializers;
+import com.esotericsoftware.kryo.util.DefaultInstantiatorStrategy;
 import de.javakaffee.kryoserializers.ArraysAsListSerializer;
 import de.javakaffee.kryoserializers.CollectionsEmptyListSerializer;
 import de.javakaffee.kryoserializers.CollectionsEmptyMapSerializer;
@@ -36,6 +36,7 @@ import lombok.val;
 import org.joda.time.DateTime;
 import org.joda.time.LocalDateTime;
 import org.objenesis.strategy.StdInstantiatorStrategy;
+import org.springframework.beans.factory.FactoryBean;
 
 import javax.security.auth.login.AccountNotFoundException;
 import java.net.URI;
@@ -51,6 +52,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.EnumMap;
 import java.util.EnumSet;
@@ -77,7 +79,7 @@ import java.util.regex.Pattern;
 @Slf4j
 @Setter
 @RequiredArgsConstructor
-public class CloseableKryoFactory implements KryoFactory {
+public class CloseableKryoFactory implements FactoryBean<CloseableKryo> {
 
     private final CasKryoPool kryoPool;
 
@@ -92,9 +94,9 @@ public class CloseableKryoFactory implements KryoFactory {
     private boolean autoReset;
 
     @Override
-    public Kryo create() {
+    public CloseableKryo getObject() {
         val kryo = new CloseableKryo(this.kryoPool);
-        kryo.setInstantiatorStrategy(new Kryo.DefaultInstantiatorStrategy(new StdInstantiatorStrategy()));
+        kryo.setInstantiatorStrategy(new DefaultInstantiatorStrategy(new StdInstantiatorStrategy()));
         kryo.setWarnUnregisteredClasses(this.warnUnregisteredClasses);
         kryo.setAutoReset(this.autoReset);
         kryo.setReferences(this.replaceObjectsByReferences);
@@ -109,11 +111,18 @@ public class CloseableKryoFactory implements KryoFactory {
         registerNativeJdkComponentsWithKryo(kryo);
         registerImmutableOrEmptyCollectionsWithKryo(kryo);
 
-        classesToRegister.forEach(c -> {
+        val classes = new ArrayList<>(classesToRegister);
+        classes.sort(Comparator.comparing(Class::getName));
+        classes.forEach(c -> {
             LOGGER.trace("Registering serializable class [{}] with Kryo", c.getName());
             kryo.register(c);
         });
         return kryo;
+    }
+
+    @Override
+    public Class<?> getObjectType() {
+        return CloseableKryo.class;
     }
 
     private static void registerImmutableOrEmptyCollectionsWithKryo(final Kryo kryo) {
@@ -124,6 +133,7 @@ public class CloseableKryoFactory implements KryoFactory {
         ImmutableListSerializer.registerSerializers(kryo);
         kryo.register(List.of().getClass(), new ImmutableNativeJavaListSerializer());
         kryo.register(List.class, new ImmutableNativeJavaListSerializer());
+        kryo.register(List.of("1").getClass(), new ImmutableNativeJavaListSerializer());
         kryo.register(List.of("1", "2").getClass(), new ImmutableNativeJavaListSerializer());
         kryo.register(List.of("1", "2", "3", "4").getClass(), new ImmutableNativeJavaListSerializer());
 
@@ -160,6 +170,8 @@ public class CloseableKryoFactory implements KryoFactory {
 
         val list = Arrays.asList("key");
         kryo.register(list.getClass(), new ArraysAsListSerializer());
+
+        kryo.register(String.CASE_INSENSITIVE_ORDER.getClass());
     }
 
     private static void registerNativeJdkComponentsWithKryo(final Kryo kryo) {

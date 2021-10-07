@@ -4,17 +4,13 @@ title: CAS - Cloudwatch Logging Configuration
 category: Logs & Audits
 ---
 
+{% include variables.html %}
+
 # Cloudwatch Logging
 
 Log data can be automatically routed to [AWS CloudWatch](https://aws.amazon.com/cloudwatch/). Support is enabled by including the following module in the overlay:
 
-```xml
-<dependency>
-     <groupId>org.apereo.cas</groupId>
-     <artifactId>cas-server-support-logging-config-cloudwatch</artifactId>
-     <version>${cas.version}</version>
-</dependency>
-```
+{% include_cached casmodule.html group="org.apereo.cas" module="cas-server-support-logging-config-cloudwatch" %}
 
 With the above module, you may then declare a specific appender to communicate with AWS CloudWatch:
 
@@ -34,9 +30,9 @@ With the above module, you may then declare a specific appender to communicate w
     </PatternLayout>
 </CloudWatchAppender>
 ...
-<AsyncLogger name="org.apereo" additivity="true" level="debug">
+<Logger name="org.apereo" additivity="true" level="debug">
     <appender-ref ref="cloudWatch" />
-</AsyncLogger>
+</Logger>
 ```
 
 AWS credentials are fetched from the following sources automatically, where relevant and made possible via CAS configuration:
@@ -51,4 +47,4 @@ AWS credentials are fetched from the following sources automatically, where rele
 
 `createIfNeeded`, `createLogGroupIfNeeded`, and `createLogStreamIfNeeded` are optional; `createIfNeeded` will default to
  `true` while `createLogGroupIfNeeded` and `createLogStreamIfNeeded` default to `false`. Any `true` value will take
- precendence (i.e., set all to `false` to not create anything).
+ precedence (i.e., set all to `false` to not create anything).

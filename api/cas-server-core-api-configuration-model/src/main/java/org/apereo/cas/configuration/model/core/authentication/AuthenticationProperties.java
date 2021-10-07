@@ -3,7 +3,7 @@ package org.apereo.cas.configuration.model.core.authentication;
 import org.apereo.cas.configuration.model.core.authentication.passwordsync.PasswordSynchronizationProperties;
 import org.apereo.cas.configuration.model.support.azuread.AzureActiveDirectoryAuthenticationProperties;
 import org.apereo.cas.configuration.model.support.cassandra.authentication.CassandraAuthenticationProperties;
-import org.apereo.cas.configuration.model.support.clouddirectory.CloudDirectoryProperties;
+import org.apereo.cas.configuration.model.support.clouddirectory.AmazonCloudDirectoryProperties;
 import org.apereo.cas.configuration.model.support.cognito.AmazonCognitoAuthenticationProperties;
 import org.apereo.cas.configuration.model.support.couchbase.authentication.CouchbaseAuthenticationProperties;
 import org.apereo.cas.configuration.model.support.couchdb.authentication.CouchDbAuthenticationProperties;
@@ -30,6 +30,7 @@ import org.apereo.cas.configuration.model.support.openid.OpenIdProperties;
 import org.apereo.cas.configuration.model.support.pac4j.Pac4jDelegatedAuthenticationProperties;
 import org.apereo.cas.configuration.model.support.passwordless.PasswordlessAuthenticationProperties;
 import org.apereo.cas.configuration.model.support.pm.PasswordManagementProperties;
+import org.apereo.cas.configuration.model.support.qr.QRAuthenticationProperties;
 import org.apereo.cas.configuration.model.support.radius.RadiusProperties;
 import org.apereo.cas.configuration.model.support.redis.RedisAuthenticationProperties;
 import org.apereo.cas.configuration.model.support.rest.RestAuthenticationProperties;
@@ -42,7 +43,6 @@ import org.apereo.cas.configuration.model.support.syncope.SyncopeAuthenticationP
 import org.apereo.cas.configuration.model.support.throttle.ThrottleProperties;
 import org.apereo.cas.configuration.model.support.token.TokenAuthenticationProperties;
 import org.apereo.cas.configuration.model.support.trusted.TrustedAuthenticationProperties;
-import org.apereo.cas.configuration.model.support.uma.UmaProperties;
 import org.apereo.cas.configuration.model.support.wsfed.WsFederationDelegationProperties;
 import org.apereo.cas.configuration.model.support.wsfed.WsFederationProperties;
 import org.apereo.cas.configuration.model.support.x509.X509Properties;
@@ -84,6 +84,12 @@ public class AuthenticationProperties implements Serializable {
      */
     @NestedConfigurationProperty
     private PasswordlessAuthenticationProperties passwordless = new PasswordlessAuthenticationProperties();
+
+    /**
+     * QR authentication settings.
+     */
+    @NestedConfigurationProperty
+    private QRAuthenticationProperties qr = new QRAuthenticationProperties();
 
     /**
      * Passwordless sync settings.
@@ -143,7 +149,7 @@ public class AuthenticationProperties implements Serializable {
      * Cloud Directory authentication settings.
      */
     @NestedConfigurationProperty
-    private CloudDirectoryProperties cloudDirectory = new CloudDirectoryProperties();
+    private AmazonCloudDirectoryProperties cloudDirectory = new AmazonCloudDirectoryProperties();
 
     /**
      * Configuration settings for cognito authentication.
@@ -312,12 +318,6 @@ public class AuthenticationProperties implements Serializable {
      */
     @NestedConfigurationProperty
     private OAuthProperties oauth = new OAuthProperties();
-
-    /**
-     * OAuth UMA authentication settings.
-     */
-    @NestedConfigurationProperty
-    private UmaProperties uma = new UmaProperties();
 
     /**
      * OpenID Connect authentication settings.

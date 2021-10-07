@@ -16,6 +16,7 @@ import org.apereo.cas.support.oauth.validator.token.OAuth20TokenRequestValidator
 import org.apereo.cas.support.oauth.web.response.accesstoken.OAuth20TokenGenerator;
 import org.apereo.cas.support.oauth.web.response.accesstoken.response.OAuth20AccessTokenResponseGenerator;
 import org.apereo.cas.support.oauth.web.response.callback.OAuth20AuthorizationResponseBuilder;
+import org.apereo.cas.support.oauth.web.response.callback.OAuth20InvalidAuthorizationResponseBuilder;
 import org.apereo.cas.support.oauth.web.views.ConsentApprovalViewResolver;
 import org.apereo.cas.support.oauth.web.views.OAuth20CallbackAuthorizeViewResolver;
 import org.apereo.cas.support.oauth.web.views.OAuth20UserProfileViewRenderer;
@@ -33,12 +34,11 @@ import org.apereo.cas.util.gen.RandomStringGenerator;
 import org.apereo.cas.util.serialization.StringSerializer;
 import org.apereo.cas.web.cookie.CasCookieBuilder;
 
-import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import lombok.experimental.SuperBuilder;
 import org.pac4j.core.config.Config;
-import org.pac4j.core.context.JEEContext;
 import org.pac4j.core.context.session.SessionStore;
 import org.springframework.context.ConfigurableApplicationContext;
 
@@ -55,7 +55,7 @@ import java.util.Set;
 @ToString
 @Getter
 @Setter
-@Builder
+@SuperBuilder
 public class OAuth20ConfigurationContext {
     private final ConfigurableApplicationContext applicationContext;
 
@@ -93,6 +93,8 @@ public class OAuth20ConfigurationContext {
 
     private final Set<OAuth20AuthorizationResponseBuilder> oauthAuthorizationResponseBuilders;
 
+    private final OAuth20InvalidAuthorizationResponseBuilder oauthInvalidAuthorizationResponseBuilder;
+
     private final Set<OAuth20AuthorizationRequestValidator> oauthRequestValidators;
 
     private final AuditableExecution registeredServiceAccessStrategyEnforcer;
@@ -119,7 +121,7 @@ public class OAuth20ConfigurationContext {
 
     private final SingleLogoutServiceLogoutUrlBuilder singleLogoutServiceLogoutUrlBuilder;
 
-    private final SessionStore<JEEContext> sessionStore;
+    private final SessionStore sessionStore;
 
     private final CipherExecutor<Serializable, String> registeredServiceCipherExecutor;
 

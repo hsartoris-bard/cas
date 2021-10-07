@@ -2,9 +2,10 @@ package org.apereo.cas.adaptors.swivel;
 
 import org.apereo.cas.authentication.AuthenticationHandlerExecutionResult;
 import org.apereo.cas.authentication.Credential;
+import org.apereo.cas.authentication.MultifactorAuthenticationHandler;
 import org.apereo.cas.authentication.handler.support.AbstractPreAndPostProcessingAuthenticationHandler;
 import org.apereo.cas.authentication.principal.PrincipalFactory;
-import org.apereo.cas.configuration.model.support.mfa.SwivelMultifactorProperties;
+import org.apereo.cas.configuration.model.support.mfa.SwivelMultifactorAuthenticationProperties;
 import org.apereo.cas.services.ServicesManager;
 import org.apereo.cas.web.support.WebUtils;
 
@@ -25,16 +26,16 @@ import java.util.Map;
  * @since 5.2.0
  */
 @Slf4j
-public class SwivelAuthenticationHandler extends AbstractPreAndPostProcessingAuthenticationHandler {
+public class SwivelAuthenticationHandler extends AbstractPreAndPostProcessingAuthenticationHandler implements MultifactorAuthenticationHandler {
 
     private static final String SWIVEL_ERR_CODE_AUTHN_FAIL = "swivel.server.error";
     private static final Map<String, String> ERROR_MAP = createErrorCodeMap();
 
-    private final SwivelMultifactorProperties swivelProperties;
+    private final SwivelMultifactorAuthenticationProperties swivelProperties;
 
     public SwivelAuthenticationHandler(final String name, final ServicesManager servicesManager,
                                        final PrincipalFactory principalFactory,
-                                       final SwivelMultifactorProperties swivelProperties) {
+                                       final SwivelMultifactorAuthenticationProperties swivelProperties) {
         super(name, servicesManager, principalFactory, swivelProperties.getOrder());
         this.swivelProperties = swivelProperties;
     }

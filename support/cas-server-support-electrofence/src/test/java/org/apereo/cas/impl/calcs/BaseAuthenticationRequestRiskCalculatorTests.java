@@ -3,6 +3,7 @@ package org.apereo.cas.impl.calcs;
 import org.apereo.cas.api.AuthenticationRiskEvaluator;
 import org.apereo.cas.api.AuthenticationRiskNotifier;
 import org.apereo.cas.audit.spi.config.CasCoreAuditConfiguration;
+import org.apereo.cas.authentication.CasSSLContext;
 import org.apereo.cas.config.CasCoreAuthenticationConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationHandlersConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationMetadataConfiguration;
@@ -28,8 +29,8 @@ import org.apereo.cas.config.support.CasWebApplicationServiceFactoryConfiguratio
 import org.apereo.cas.configuration.CasConfigurationProperties;
 import org.apereo.cas.impl.mock.MockTicketGrantingTicketCreatedEventProducer;
 import org.apereo.cas.logout.config.CasCoreLogoutConfiguration;
+import org.apereo.cas.notifications.sms.MockSmsSender;
 import org.apereo.cas.notifications.sms.SmsSender;
-import org.apereo.cas.sms.MockSmsSender;
 import org.apereo.cas.support.events.CasEventRepository;
 import org.apereo.cas.support.events.config.CasCoreEventsConfiguration;
 import org.apereo.cas.support.events.config.CasEventsInMemoryRepositoryConfiguration;
@@ -54,7 +55,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.test.annotation.DirtiesContext;
+
+import javax.net.ssl.HttpsURLConnection;
 
 /**
  * This is {@link BaseAuthenticationRequestRiskCalculatorTests}.
@@ -63,7 +65,6 @@ import org.springframework.test.annotation.DirtiesContext;
  * @since 5.3.0
  */
 @SpringBootTest(classes = BaseAuthenticationRequestRiskCalculatorTests.SharedTestConfiguration.class)
-@DirtiesContext
 @EnableScheduling
 public abstract class BaseAuthenticationRequestRiskCalculatorTests {
     @Autowired
@@ -91,6 +92,8 @@ public abstract class BaseAuthenticationRequestRiskCalculatorTests {
     @BeforeEach
     public void prepTest() {
         MockTicketGrantingTicketCreatedEventProducer.createEvents(this.casEventRepository);
+        HttpsURLConnection.setDefaultHostnameVerifier(CasSSLContext.disabled().getHostnameVerifier());
+        HttpsURLConnection.setDefaultSSLSocketFactory(CasSSLContext.disabled().getSslContext().getSocketFactory());
     }
 
     @TestConfiguration

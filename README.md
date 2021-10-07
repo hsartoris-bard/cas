@@ -34,7 +34,7 @@ There is no need for special ceremony to create separate issues. The pull reques
 | Version         | Reference
 |------------|-----------------------------------
 | ![](https://img.shields.io/badge/Development-WIP-blue.svg?style=flat) | [Link](https://apereo.github.io/cas/development)
-| ![](https://img.shields.io/badge/6.2.x-Current-green.svg?style=flat) | [Link](https://apereo.github.io/cas/6.2.x)
+| ![](https://img.shields.io/badge/6.4.x-Current-green.svg?style=flat) | [Link](https://apereo.github.io/cas/6.4.x)
 
 Additional resources are available as follows:
 
@@ -48,10 +48,10 @@ Additional resources are available as follows:
 
 [![Contributing Guide](https://img.shields.io/badge/Contributions-guide-green.svg?style=flat)][contribute]
 [![Open Pull Requests](https://img.shields.io/github/issues-pr/apereo/cas.svg?style=flat)][contribute]
-[![codecov](https://codecov.io/gh/apereo/cas/branch/master/graph/badge.svg)](https://codecov.io/gh/apereo/cas)
 ![CAS Build](https://github.com/apereo/cas/workflows/Build/badge.svg)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.apereo.cas/cas-server-core/badge.svg?style=flat)](https://maven-badges.herokuapp.com/maven-central/org.apereo.cas/cas-server-core)
 [![Github Releases](https://img.shields.io/github/release/apereo/cas.svg)](https://github.com/apereo/cas/releases)
+[![codecov](https://codecov.io/gh/apereo/cas/branch/master/graph/badge.svg)](https://codecov.io/gh/apereo/cas)
 
 It is recommended to deploy CAS locally using the [WAR Overlay method][overlay]. Cloning or downloading the CAS codebase
 is **ONLY** required if you wish to contribute to the development of the project.
@@ -81,10 +81,7 @@ The foundations of CAS are built upon: [Spring Boot](https://projects.spring.io/
 
 ## Development
 
-[![Codacy Badge](https://api.codacy.com/project/badge/grade/cc934b4c7d5d42d28e63757ff9e56d47)](http://bit.ly/1Uf6rwC)
 [![CLA assistant](https://cla-assistant.io/readme/badge/apereo/cas)](https://cla-assistant.io/apereo/cas)
-[![Sonarqube Quality](https://sonarcloud.io/api/project_badges/measure?project=org.apereo.cas%3Acas-server&metric=alert_status)](https://sonarcloud.io/dashboard?id=org.apereo.cas%3Acas-server)
-[![Sonarqube Quality](https://sonarcloud.io/api/project_badges/measure?project=org.apereo.cas%3Acas-server&metric=sqale_rating)](https://sonarcloud.io/dashboard?id=org.apereo.cas%3Acas-server)
 
 To build the project locally, please follow [this guide](https://apereo.github.io/cas/developer/Build-Process.html).
 The release schedule is [available here][releaseschedule].

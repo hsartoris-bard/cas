@@ -1,9 +1,11 @@
 package org.apereo.cas.authentication;
 
+import org.apereo.cas.authentication.mfa.MultifactorAuthenticationTestUtils;
 import org.apereo.cas.authentication.mfa.TestMultifactorAuthenticationProvider;
 import org.apereo.cas.authentication.mfa.trigger.AuthenticationAttributeMultifactorAuthenticationTrigger;
 import org.apereo.cas.authentication.mfa.trigger.PrincipalAttributeMultifactorAuthenticationTrigger;
 import org.apereo.cas.configuration.CasConfigurationProperties;
+import org.apereo.cas.ticket.UnsatisfiedAuthenticationContextTicketValidationException;
 import org.apereo.cas.util.CollectionUtils;
 
 import lombok.val;
@@ -42,11 +44,16 @@ public class DefaultMultifactorAuthenticationProviderResolverTests {
         applicationContext.refresh();
 
         val casProperties = new CasConfigurationProperties();
-        casProperties.getAuthn().getMfa().setGlobalPrincipalAttributeNameTriggers("mfa-principal");
+        casProperties.getAuthn().getMfa().getTriggers().getPrincipal().setGlobalPrincipalAttributeNameTriggers("mfa-principal");
 
-        val resolver = new DefaultMultifactorAuthenticationProviderResolver();
+        val resolver = new DefaultMultifactorAuthenticationProviderResolver(MultifactorAuthenticationPrincipalResolver.identical());
         val trigger = new PrincipalAttributeMultifactorAuthenticationTrigger(casProperties, resolver, applicationContext);
         assertProviderResolutionFromManyProviders(trigger, applicationContext, true);
+
+        assertThrows(UnsatisfiedAuthenticationContextTicketValidationException.class, () -> {
+            throw new UnsatisfiedAuthenticationContextTicketValidationException(
+                MultifactorAuthenticationTestUtils.getService("id"));
+        });
     }
 
     @Test
@@ -54,8 +61,8 @@ public class DefaultMultifactorAuthenticationProviderResolverTests {
         val applicationContext = new StaticApplicationContext();
         applicationContext.refresh();
         val casProperties = new CasConfigurationProperties();
-        casProperties.getAuthn().getMfa().setGlobalPrincipalAttributeNameTriggers("does-not-exist");
-        val resolver = new DefaultMultifactorAuthenticationProviderResolver();
+        casProperties.getAuthn().getMfa().getTriggers().getPrincipal().setGlobalPrincipalAttributeNameTriggers("does-not-exist");
+        val resolver = new DefaultMultifactorAuthenticationProviderResolver(MultifactorAuthenticationPrincipalResolver.identical());
         val trigger = new PrincipalAttributeMultifactorAuthenticationTrigger(casProperties, resolver, applicationContext);
         assertProviderResolutionFromManyProviders(trigger, applicationContext, false);
     }
@@ -67,9 +74,10 @@ public class DefaultMultifactorAuthenticationProviderResolverTests {
         applicationContext.refresh();
 
         val casProperties = new CasConfigurationProperties();
-        casProperties.getAuthn().getMfa().setGlobalAuthenticationAttributeNameTriggers("mfa-authn");
+        casProperties.getAuthn().getMfa()
+            .getTriggers().getAuthentication().setGlobalAuthenticationAttributeNameTriggers("mfa-authn");
 
-        val resolver = new DefaultMultifactorAuthenticationProviderResolver();
+        val resolver = new DefaultMultifactorAuthenticationProviderResolver(MultifactorAuthenticationPrincipalResolver.identical());
         val trigger = new AuthenticationAttributeMultifactorAuthenticationTrigger(casProperties, resolver, applicationContext);
         assertProviderResolutionFromManyProviders(trigger, applicationContext, true);
     }
@@ -86,7 +94,7 @@ public class DefaultMultifactorAuthenticationProviderResolverTests {
         context.setExternalContext(new ServletExternalContext(new MockServletContext(), request, response));
 
         val provider = registerProviderInApplicationContext(applicationContext, context, new TestMultifactorAuthenticationProvider());
-        val resolver = new DefaultMultifactorAuthenticationProviderResolver();
+        val resolver = new DefaultMultifactorAuthenticationProviderResolver(MultifactorAuthenticationPrincipalResolver.identical());
 
         val authentication = CoreAuthenticationTestUtils.getAuthentication("casuser",
             CollectionUtils.wrap("authlevel", List.of(provider.getId())));
@@ -108,7 +116,7 @@ public class DefaultMultifactorAuthenticationProviderResolverTests {
         context.setExternalContext(new ServletExternalContext(new MockServletContext(), request, response));
 
         val provider = registerProviderInApplicationContext(applicationContext, context, new TestMultifactorAuthenticationProvider());
-        val resolver = new DefaultMultifactorAuthenticationProviderResolver();
+        val resolver = new DefaultMultifactorAuthenticationProviderResolver(MultifactorAuthenticationPrincipalResolver.identical());
 
         val principal = CoreAuthenticationTestUtils.getPrincipal("casuser", CollectionUtils.wrap("authlevel", List.of(provider.getId())));
         var results = resolver.resolveEventViaPrincipalAttribute(principal,
@@ -134,7 +142,7 @@ public class DefaultMultifactorAuthenticationProviderResolverTests {
         val request = new MockHttpServletRequest();
         val response = new MockHttpServletResponse();
         context.setExternalContext(new ServletExternalContext(new MockServletContext(), request, response));
-        val resolver = new DefaultMultifactorAuthenticationProviderResolver();
+        val resolver = new DefaultMultifactorAuthenticationProviderResolver(MultifactorAuthenticationPrincipalResolver.identical());
         val principal = CoreAuthenticationTestUtils.getPrincipal("casuser");
         val results = resolver.resolveEventViaAttribute(principal,
             Map.of("authlevel", List.of("strong")),
@@ -153,7 +161,7 @@ public class DefaultMultifactorAuthenticationProviderResolverTests {
         val response = new MockHttpServletResponse();
         context.setExternalContext(new ServletExternalContext(new MockServletContext(), request, response));
         val provider = TestMultifactorAuthenticationProvider.registerProviderIntoApplicationContext(applicationContext);
-        val resolver = new DefaultMultifactorAuthenticationProviderResolver();
+        val resolver = new DefaultMultifactorAuthenticationProviderResolver(MultifactorAuthenticationPrincipalResolver.identical());
         val principal = CoreAuthenticationTestUtils.getPrincipal("casuser");
         val results = resolver.resolveEventViaAttribute(principal,
             Map.of("authlevel", List.of("strong")),
@@ -163,8 +171,8 @@ public class DefaultMultifactorAuthenticationProviderResolverTests {
     }
 
     private static void assertProviderResolutionFromManyProviders(final MultifactorAuthenticationTrigger trigger,
-                                                                  final ConfigurableApplicationContext applicationContext,
-                                                                  final boolean assertPresence) {
+        final ConfigurableApplicationContext applicationContext,
+        final boolean assertPresence) {
         val context = new MockRequestContext();
         val request = new MockHttpServletRequest();
         val response = new MockHttpServletResponse();
@@ -192,8 +200,8 @@ public class DefaultMultifactorAuthenticationProviderResolverTests {
     }
 
     private static TestMultifactorAuthenticationProvider registerProviderInApplicationContext(final ConfigurableApplicationContext applicationContext,
-                                                                                              final MockRequestContext context,
-                                                                                              final TestMultifactorAuthenticationProvider candidateProvider) {
+        final MockRequestContext context,
+        final TestMultifactorAuthenticationProvider candidateProvider) {
         val provider = TestMultifactorAuthenticationProvider.registerProviderIntoApplicationContext(applicationContext, candidateProvider);
         val targetResolver = new DefaultTargetStateResolver(provider.getId());
         val transition = new Transition(new DefaultTransitionCriteria(new LiteralExpression(provider.getId())), targetResolver);

@@ -1,5 +1,6 @@
 package org.apereo.cas.services;
 
+import org.apereo.cas.configuration.support.ExpressionLanguageCapable;
 import org.apereo.cas.util.spring.SpringExpressionLanguageValueResolver;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -28,16 +29,22 @@ import java.util.stream.Collectors;
  * @since 4.2
  */
 @Embeddable
-@Table(name = "RegexRegisteredServiceProperty")
+@Table(name = DefaultRegisteredServiceProperty.TABLE_NAME)
 @EqualsAndHashCode
 @ToString
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_DEFAULT)
 public class DefaultRegisteredServiceProperty implements RegisteredServiceProperty {
+    /**
+     * JPA table name.
+     */
+    public static final String TABLE_NAME = "RegexRegisteredServiceProperty";
+
     private static final long serialVersionUID = 1349556364689133211L;
 
     @Lob
     @Column(name = "property_values")
+    @ExpressionLanguageCapable
     private HashSet<String> values = new HashSet<>(0);
 
     public DefaultRegisteredServiceProperty(final String... propertyValues) {

@@ -7,6 +7,8 @@ import org.apereo.cas.util.LoggingUtils;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.file.PathUtils;
+import org.apache.commons.io.file.StandardDeleteOption;
 import org.eclipse.jgit.api.Git;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -28,7 +30,8 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @TestPropertySource(properties = {
     "cas.authn.saml-idp.metadata.git.sign-commits=false",
-    "cas.authn.saml-idp.metadata.git.repository-url=file:/tmp/cas-metadata-idp-gen.git"
+    "cas.authn.saml-idp.metadata.git.idp-metadata-enabled=true",
+    "cas.authn.saml-idp.metadata.git.repository-url=file://${java.io.tmpdir}/cas-saml-metadata"
 })
 @Tag("FileSystem")
 @Slf4j
@@ -36,14 +39,18 @@ public class GitSamlIdPMetadataGeneratorTests extends BaseGitSamlMetadataTests {
     @BeforeAll
     public static void setup() {
         try {
-            FileUtils.deleteDirectory(new File("/tmp/cas-metadata-idp-gen"));
             val gitDir = new File(FileUtils.getTempDirectory(), "cas-saml-metadata");
             if (gitDir.exists()) {
-                FileUtils.deleteDirectory(gitDir);
+                PathUtils.deleteDirectory(gitDir.toPath(), StandardDeleteOption.OVERRIDE_READ_ONLY);
+            }
+            if (!gitDir.mkdir()) {
+                throw new IllegalArgumentException("Git repository directory location " + gitDir + " cannot be located/created");
             }
             val git = Git.init().setDirectory(gitDir).setBare(false).call();
             FileUtils.write(new File(gitDir, "readme.txt"), "text", StandardCharsets.UTF_8);
+            git.add().addFilepattern("*.*").call();
             git.commit().setSign(false).setMessage("Initial commit").call();
+            assertTrue(gitDir.exists());
         } catch (final Exception e) {
             LoggingUtils.error(LOGGER, e);
             fail(e.getMessage(), e);
@@ -52,13 +59,11 @@ public class GitSamlIdPMetadataGeneratorTests extends BaseGitSamlMetadataTests {
 
     @AfterAll
     public static void cleanUp() throws Exception {
-        FileUtils.deleteDirectory(new File("/tmp/cas-metadata-idp-gen"));
         val gitDir = new File(FileUtils.getTempDirectory(), "cas-saml-metadata");
         if (gitDir.exists()) {
-            FileUtils.deleteDirectory(gitDir);
+            PathUtils.deleteDirectory(gitDir.toPath(), StandardDeleteOption.OVERRIDE_READ_ONLY);
         }
     }
-
 
     @Test
     public void verifyOperation() {

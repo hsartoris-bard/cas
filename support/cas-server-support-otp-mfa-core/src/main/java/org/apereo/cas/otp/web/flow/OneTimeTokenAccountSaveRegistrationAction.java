@@ -27,6 +27,7 @@ public class OneTimeTokenAccountSaveRegistrationAction extends AbstractAction {
      * Parameter name indicating account name.
      */
     public static final String REQUEST_PARAMETER_ACCOUNT_NAME = "accountName";
+    
     /**
      * Parameter name indicating a validation request event.
      */
@@ -69,7 +70,7 @@ public class OneTimeTokenAccountSaveRegistrationAction extends AbstractAction {
     protected Event doExecute(final RequestContext requestContext) {
         try {
             val currentAcct = getCandidateAccountFrom(requestContext);
-            if (!casProperties.getAuthn().getMfa().getGauth().isMultipleDeviceRegistrationEnabled()) {
+            if (!casProperties.getAuthn().getMfa().getGauth().getCore().isMultipleDeviceRegistrationEnabled()) {
                 if (repository.count(currentAcct.getUsername()) > 0) {
                     LOGGER.warn("Unable to register multiple devices for [{}]", currentAcct.getUsername());
                     return getErrorEvent(requestContext);

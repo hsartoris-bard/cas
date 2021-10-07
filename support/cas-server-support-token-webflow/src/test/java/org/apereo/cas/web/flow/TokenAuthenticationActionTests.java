@@ -50,7 +50,7 @@ import static org.junit.jupiter.api.Assertions.*;
     TokenAuthenticationConfiguration.class,
     TokenAuthenticationWebflowConfiguration.class
 })
-@Tag("WebflowActions")
+@Tag("WebflowAuthenticationActions")
 public class TokenAuthenticationActionTests extends AbstractCentralAuthenticationServiceTests {
     private static final RandomStringGenerator RANDOM_STRING_GENERATOR = new DefaultRandomStringGenerator();
 
@@ -82,7 +82,7 @@ public class TokenAuthenticationActionTests extends AbstractCentralAuthenticatio
 
     @Test
     public void verifyAction() throws Exception {
-        val g = new JwtGenerator<CommonProfile>();
+        val g = new JwtGenerator();
 
         g.setSignatureConfiguration(new SecretSignatureConfiguration(SIGNING_SECRET, JWSAlgorithm.HS256));
         g.setEncryptionConfiguration(new SecretEncryptionConfiguration(ENCRYPTION_SECRET, JWEAlgorithm.DIR, EncryptionMethod.A192CBC_HS384));

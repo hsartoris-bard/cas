@@ -7,6 +7,7 @@ import org.apereo.cas.util.CollectionUtils;
 import org.apereo.cas.validation.Assertion;
 import org.apereo.cas.validation.AuthenticationAttributeReleasePolicy;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -26,6 +27,7 @@ import java.util.Map;
  */
 @RequiredArgsConstructor
 @Slf4j
+@Getter
 public class DefaultAuthenticationAttributeReleasePolicy implements AuthenticationAttributeReleasePolicy {
 
     private final Collection<String> onlyReleaseAttributes;
@@ -44,7 +46,7 @@ public class DefaultAuthenticationAttributeReleasePolicy implements Authenticati
                                                                            final Map<String, Object> model,
                                                                            final RegisteredService service) {
         if (!service.getAttributeReleasePolicy().isAuthorizedToReleaseAuthenticationAttributes()) {
-            LOGGER.debug("Attribute release policy for service [{}] is configured to never release any attributes", service);
+            LOGGER.debug("Attribute release policy for service [{}] is configured to never release any authentication attributes", service.getServiceId());
             return new LinkedHashMap<>(0);
         }
 
@@ -56,12 +58,14 @@ public class DefaultAuthenticationAttributeReleasePolicy implements Authenticati
         }
 
         if (isAttributeAllowedForRelease(CasProtocolConstants.VALIDATION_CAS_MODEL_ATTRIBUTE_NAME_AUTHENTICATION_DATE)) {
-            attrs.put(CasProtocolConstants.VALIDATION_CAS_MODEL_ATTRIBUTE_NAME_AUTHENTICATION_DATE, CollectionUtils.wrap(authentication.getAuthenticationDate()));
+            attrs.put(CasProtocolConstants.VALIDATION_CAS_MODEL_ATTRIBUTE_NAME_AUTHENTICATION_DATE,
+                CollectionUtils.wrap(authentication.getAuthenticationDate()));
         }
 
         if (assertion != null) {
             if (isAttributeAllowedForRelease(CasProtocolConstants.VALIDATION_CAS_MODEL_ATTRIBUTE_NAME_FROM_NEW_LOGIN)) {
-                attrs.put(CasProtocolConstants.VALIDATION_CAS_MODEL_ATTRIBUTE_NAME_FROM_NEW_LOGIN, CollectionUtils.wrap(assertion.isFromNewLogin()));
+                attrs.put(CasProtocolConstants.VALIDATION_CAS_MODEL_ATTRIBUTE_NAME_FROM_NEW_LOGIN,
+                    CollectionUtils.wrap(assertion.isFromNewLogin()));
             }
             if (isAttributeAllowedForRelease(CasProtocolConstants.VALIDATION_REMEMBER_ME_ATTRIBUTE_NAME)) {
                 attrs.put(CasProtocolConstants.VALIDATION_REMEMBER_ME_ATTRIBUTE_NAME,
@@ -91,7 +95,8 @@ public class DefaultAuthenticationAttributeReleasePolicy implements Authenticati
      * @return true/false
      */
     protected boolean isAttributeAllowedForRelease(final String attributeName) {
-        return !this.neverReleaseAttributes.contains(attributeName);
+        return !this.neverReleaseAttributes.contains(attributeName)
+            && (this.onlyReleaseAttributes.isEmpty() || this.onlyReleaseAttributes.contains(attributeName));
     }
 
     /**
@@ -104,7 +109,8 @@ public class DefaultAuthenticationAttributeReleasePolicy implements Authenticati
      * @param authentication the authentication
      * @param service        the service
      */
-    protected void decideIfCredentialPasswordShouldBeReleasedAsAttribute(final Map<String, List<Object>> attributes, final Authentication authentication,
+    protected void decideIfCredentialPasswordShouldBeReleasedAsAttribute(final Map<String, List<Object>> attributes,
+                                                                         final Authentication authentication,
                                                                          final RegisteredService service) {
         val policy = service.getAttributeReleasePolicy();
         val isAuthorized = policy != null && policy.isAuthorizedToReleaseCredentialPassword();

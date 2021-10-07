@@ -19,10 +19,11 @@ import org.springframework.context.ApplicationEvent;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -42,14 +43,19 @@ public abstract class AbstractServicesManager implements ServicesManager {
      */
     protected final ServicesManagerConfigurationContext configurationContext;
 
+    private static Predicate<RegisteredService> getRegisteredServicesFilteringPredicate(
+        final Predicate<RegisteredService>... p) {
+        val predicates = Stream.of(p).collect(Collectors.toCollection(ArrayList::new));
+        return predicates.stream().reduce(x -> true, Predicate::and);
+    }
+
     @Override
     public RegisteredService save(final RegisteredService registeredService) {
         return save(registeredService, true);
     }
 
     @Override
-    public synchronized RegisteredService save(final RegisteredService registeredService,
-                                               final boolean publishEvent) {
+    public synchronized RegisteredService save(final RegisteredService registeredService, final boolean publishEvent) {
         publishEvent(new CasRegisteredServicePreSaveEvent(this, registeredService));
         val r = configurationContext.getServiceRegistry().save(registeredService);
         configurationContext.getServicesCache().put(r.getId(), r);
@@ -59,6 +65,35 @@ public abstract class AbstractServicesManager implements ServicesManager {
             publishEvent(new CasRegisteredServiceSavedEvent(this, r));
         }
         return r;
+    }
+
+    @Override
+    public void save(final Supplier<RegisteredService> supplier,
+                     final Consumer<RegisteredService> andThenConsume,
+                     final long countExclusive) {
+        configurationContext.getServiceRegistry().save(() -> {
+            val registeredService = supplier.get();
+            if (registeredService != null) {
+                publishEvent(new CasRegisteredServicePreSaveEvent(this, registeredService));
+                configurationContext.getServicesCache().put(registeredService.getId(), registeredService);
+                saveInternal(registeredService);
+                publishEvent(new CasRegisteredServiceSavedEvent(this, registeredService));
+                return registeredService;
+            }
+            return null;
+        }, andThenConsume, countExclusive);
+    }
+
+    @Override
+    public void save(final Stream<RegisteredService> toSave) {
+        val resultingStream = toSave.peek(registeredService ->
+            publishEvent(new CasRegisteredServicePreSaveEvent(this, registeredService)));
+        configurationContext.getServiceRegistry().save(resultingStream)
+            .forEach(r -> {
+                configurationContext.getServicesCache().put(r.getId(), r);
+                saveInternal(r);
+                publishEvent(new CasRegisteredServiceSavedEvent(this, r));
+            });
     }
 
     @Override
@@ -87,39 +122,41 @@ public abstract class AbstractServicesManager implements ServicesManager {
     }
 
     @Override
-    public RegisteredService findServiceBy(final String serviceId) {
-        if (StringUtils.isBlank(serviceId)) {
+    public RegisteredService findServiceBy(final Service service) {
+        if (service == null) {
             return null;
         }
 
-        var service = configurationContext.getRegisteredServiceLocators()
+        val candidates = getCandidateServicesToMatch(service.getId());
+        var foundService = configurationContext.getRegisteredServiceLocators()
             .stream()
-            .map(locator -> locator.locate(getCandidateServicesToMatch(serviceId), serviceId, entry -> entry.matches(serviceId)))
-            .filter(Objects::nonNull)
-            .findFirst()
-            .orElse(null);
+            .map(locator -> locator.locate(candidates, service))
+            .filter(s -> validateRegisteredService(s) != null)
+            .findFirst();
 
-        if (service == null) {
+        if (foundService.isEmpty()) {
             val serviceRegistry = configurationContext.getServiceRegistry();
-            LOGGER.trace("Service [{}] is not cached; Searching [{}]", serviceId, serviceRegistry.getName());
-            service = serviceRegistry.findServiceBy(serviceId);
-            if (service != null) {
-                configurationContext.getServicesCache().put(service.getId(), service);
-                LOGGER.trace("Service [{}] is found in [{}] and cached", service, serviceRegistry.getName());
+            LOGGER.trace("Service [{}] is not cached; Searching [{}]", service.getId(), serviceRegistry.getName());
+            foundService = Optional.ofNullable(serviceRegistry.findServiceBy(service.getId()));
+            if (foundService.isPresent()) {
+                val registeredService = foundService.get();
+                foundService = configurationContext.getRegisteredServiceLocators()
+                    .stream()
+                    .filter(locator -> locator.supports(registeredService, service))
+                    .findFirst()
+                    .map(locator -> {
+                        LOGGER.debug("Service [{}] is found in service registry and can be supported by [{}]",
+                            registeredService, locator.getName());
+                        configurationContext.getServicesCache().put(registeredService.getId(), registeredService);
+                        LOGGER.trace("Service [{}] is now cached from [{}]", service, serviceRegistry.getName());
+                        return Optional.of(registeredService);
+                    })
+                    .orElse(Optional.empty());
             }
         }
 
-        if (service != null) {
-            service.initialize();
-        }
-        return validateRegisteredService(service);
-    }
-
-    @Override
-    public RegisteredService findServiceBy(final Service service) {
-        return Optional.ofNullable(service)
-            .map(svc -> findServiceBy(svc.getId()))
-            .orElse(null);
+        foundService.ifPresent(RegisteredService::initialize);
+        return validateRegisteredService(foundService.orElse(null));
     }
 
     @Override
@@ -137,17 +174,12 @@ public abstract class AbstractServicesManager implements ServicesManager {
     }
 
     @Override
-    public <T extends RegisteredService> T findServiceBy(final Service serviceId, final Class<T> clazz) {
-        return findServiceBy(serviceId.getId(), clazz);
-    }
-
-    @Override
-    public <T extends RegisteredService> T findServiceBy(final String serviceId, final Class<T> clazz) {
-        if (StringUtils.isBlank(serviceId)) {
+    public <T extends RegisteredService> T findServiceBy(final Service requestedService, final Class<T> clazz) {
+        if (requestedService == null) {
             return null;
         }
-        val service = findServiceBy(serviceId);
-        if (service != null && service.getClass().equals(clazz)) {
+        val service = findServiceBy(requestedService);
+        if (service != null && clazz.isAssignableFrom(service.getClass())) {
             return (T) service;
         }
         return null;
@@ -162,7 +194,7 @@ public abstract class AbstractServicesManager implements ServicesManager {
     @Override
     public <T extends RegisteredService> T findServiceBy(final long id, final Class<T> clazz) {
         var service = getService(registeredService -> registeredService.getId() == id);
-        if (service != null && service.getClass().equals(clazz)) {
+        if (service != null && clazz.isAssignableFrom(service.getClass())) {
             return (T) service;
         }
         LOGGER.trace("The service with id [{}] and type [{}] is not found in the cache; trying to find it from [{}]",
@@ -179,13 +211,12 @@ public abstract class AbstractServicesManager implements ServicesManager {
 
         var service = getService(registeredService -> registeredService.getName().equals(name));
         if (service == null) {
-            LOGGER.trace("The service with name [{}] is not found in the cache; trying to find it from [{}]",
-                name, configurationContext.getServiceRegistry().getName());
-            service = configurationContext.getServiceRegistry().findServiceByExactServiceName(name);
+            val registry = configurationContext.getServiceRegistry();
+            LOGGER.trace("The service with name [{}] is not found in the cache; trying to find it from [{}]", name, registry.getName());
+            service = registry.findServiceByExactServiceName(name);
             if (service != null) {
                 configurationContext.getServicesCache().put(service.getId(), service);
-                LOGGER.trace("The service is found in [{}] and populated to the cache [{}]",
-                    configurationContext.getServiceRegistry().getName(), service);
+                LOGGER.trace("The service is found in [{}] and populated to the cache [{}]", registry.getName(), service);
             }
         }
 
@@ -201,7 +232,7 @@ public abstract class AbstractServicesManager implements ServicesManager {
             return null;
         }
         var service = getService(registeredService -> registeredService.getName().equals(name));
-        if (service != null && service.getClass().equals(clazz)) {
+        if (service != null && clazz.isAssignableFrom(service.getClass())) {
             return (T) service;
         }
         LOGGER.trace("The service with name [{}] and type [{}] is not found in the cache; trying to find it from [{}]",
@@ -209,44 +240,17 @@ public abstract class AbstractServicesManager implements ServicesManager {
         service = configurationContext.getServiceRegistry().findServiceByExactServiceName(name, clazz);
         if (service != null) {
             configurationContext.getServicesCache().put(service.getId(), service);
-            LOGGER.trace("The service is found in [{}] and populated to the cache [{}]", configurationContext.getServiceRegistry().getName(), service);
+            LOGGER.trace("The service is found in [{}] and populated to the cache [{}]", configurationContext.getServiceRegistry().getName(),
+                service);
         }
         return (T) validateRegisteredService(service);
     }
 
     @Override
-    public RegisteredService findServiceByExactServiceId(final String serviceId) {
-        if (StringUtils.isBlank(serviceId)) {
-            return null;
-        }
-
-        var service = configurationContext.getRegisteredServiceLocators()
-            .stream()
-            .map(locator -> locator.locate(getCandidateServicesToMatch(serviceId), serviceId, entry -> entry.getServiceId().equals(serviceId)))
-            .filter(Objects::nonNull)
-            .findFirst()
-            .orElse(null);
-        
-        if (service == null) {
-            LOGGER.trace("The service with service id [{}] is not found in the cache; trying to find it from [{}]",
-                serviceId, configurationContext.getServiceRegistry().getName());
-            service = configurationContext.getServiceRegistry().findServiceByExactServiceId(serviceId);
-            if (service != null) {
-                configurationContext.getServicesCache().put(service.getId(), service);
-                LOGGER.trace("The service is found in [{}] and populated to the cache [{}]  ", configurationContext.getServiceRegistry().getName(),
-                    service);
-            }
-        }
-
-        if (service != null) {
-            service.initialize();
-        }
-        return validateRegisteredService(service);
-    }
-
-    @Override
     public Collection<RegisteredService> getAllServices() {
-        return configurationContext.getServicesCache().asMap().values()
+        return configurationContext.getServicesCache()
+            .asMap()
+            .values()
             .stream()
             .filter(this::validateAndFilterServiceByEnvironment)
             .filter(getRegisteredServicesFilteringPredicate())
@@ -256,25 +260,50 @@ public abstract class AbstractServicesManager implements ServicesManager {
     }
 
     @Override
-    public Stream<? extends RegisteredService> getAllServicesStream() {
-        return configurationContext.getServiceRegistry().getServicesStream();
+    public Collection<RegisteredService> getAllServicesOfType(final Class clazz) {
+        if (supports(clazz)) {
+            return configurationContext.getServicesCache().asMap().values()
+                .stream()
+                .filter(s -> clazz.isAssignableFrom(s.getClass()))
+                .filter(this::validateAndFilterServiceByEnvironment)
+                .filter(getRegisteredServicesFilteringPredicate())
+                .sorted()
+                .peek(RegisteredService::initialize)
+                .collect(Collectors.toList());
+        }
+        return new ArrayList<>();
     }
 
     @Override
-    public Collection<RegisteredService> load() {
+    public Stream<? extends RegisteredService> stream() {
+        return configurationContext.getServiceRegistry().getServicesStream();
+    }
+
+    /**
+     * For the duration of the read, the cache store should not remain empty.
+     * Otherwise, lookup operations during that loading time window might produce
+     * unauthorized failure errors. Invalidation attempts must happen after the load
+     * to minimize chances of faliures.
+     */
+    @Override
+    public synchronized Collection<RegisteredService> load() {
         LOGGER.trace("Loading services from [{}]", configurationContext.getServiceRegistry().getName());
-        configurationContext.getServicesCache().invalidateAll();
-        configurationContext.getServicesCache().putAll(configurationContext.getServiceRegistry().load()
+        val servicesMap = configurationContext.getServiceRegistry().load()
             .stream()
+            .filter(this::supports)
+            .peek(this::loadInternal)
             .collect(Collectors.toMap(r -> {
                 LOGGER.trace("Adding registered service [{}] with name [{}] and internal identifier [{}]",
                     r.getServiceId(), r.getName(), r.getId());
                 return r.getId();
-            }, Function.identity(), (r, s) -> s)));
+            }, Function.identity(), (r, s) -> s));
+        configurationContext.getServicesCache().invalidateAll();
+        configurationContext.getServicesCache().putAll(servicesMap);
         loadInternal();
         publishEvent(new CasRegisteredServicesLoadedEvent(this, getAllServices()));
         evaluateExpiredServiceDefinitions();
-        LOGGER.info("Loaded [{}] service(s) from [{}].", configurationContext.getServicesCache().asMap().size(), configurationContext.getServiceRegistry().getName());
+        LOGGER.info("Loaded [{}] service(s) from [{}].", configurationContext.getServicesCache().asMap().size(),
+            configurationContext.getServiceRegistry().getName());
         return configurationContext.getServicesCache().asMap().values();
     }
 
@@ -283,17 +312,48 @@ public abstract class AbstractServicesManager implements ServicesManager {
         return configurationContext.getServiceRegistry().size();
     }
 
-    private static Predicate<RegisteredService> getRegisteredServicesFilteringPredicate(
-        final Predicate<RegisteredService>... p) {
-        val predicates = Stream.of(p).collect(Collectors.toCollection(ArrayList::new));
-        return predicates.stream().reduce(x -> true, Predicate::and);
+    /**
+     * Gets candidate services to match the service id.
+     *
+     * @param serviceId the service id
+     * @return the candidate services to match
+     */
+    protected abstract Collection<RegisteredService> getCandidateServicesToMatch(String serviceId);
+
+    /**
+     * Delete internal.
+     *
+     * @param service the service
+     */
+    protected void deleteInternal(final RegisteredService service) {
+    }
+
+    /**
+     * Save internal.
+     *
+     * @param service the service
+     */
+    protected void saveInternal(final RegisteredService service) {
+    }
+
+    /**
+     * Load internal.
+     */
+    protected void loadInternal() {
+    }
+
+    /**
+     * Load internal.
+     *
+     * @param service the service
+     */
+    protected void loadInternal(final RegisteredService service) {
     }
 
     private void evaluateExpiredServiceDefinitions() {
         configurationContext.getServicesCache().asMap().values()
             .stream()
             .filter(RegisteredServiceAccessStrategyUtils.getRegisteredServiceExpirationPolicyPredicate().negate())
-            .filter(Objects::nonNull)
             .forEach(this::processExpiredRegisteredService);
     }
 
@@ -364,35 +424,5 @@ public abstract class AbstractServicesManager implements ServicesManager {
             .filter(filter)
             .findFirst()
             .orElse(null);
-    }
-
-    /**
-     * Gets candidate services to match the service id.
-     *
-     * @param serviceId the service id
-     * @return the candidate services to match
-     */
-    protected abstract Collection<RegisteredService> getCandidateServicesToMatch(String serviceId);
-
-    /**
-     * Delete internal.
-     *
-     * @param service the service
-     */
-    protected void deleteInternal(final RegisteredService service) {
-    }
-
-    /**
-     * Save internal.
-     *
-     * @param service the service
-     */
-    protected void saveInternal(final RegisteredService service) {
-    }
-
-    /**
-     * Load internal.
-     */
-    protected void loadInternal() {
     }
 }

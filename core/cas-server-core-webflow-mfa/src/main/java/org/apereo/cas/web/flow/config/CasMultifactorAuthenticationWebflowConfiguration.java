@@ -1,14 +1,10 @@
 package org.apereo.cas.web.flow.config;
 
-import org.apereo.cas.CentralAuthenticationService;
-import org.apereo.cas.audit.AuditableExecution;
-import org.apereo.cas.authentication.AuthenticationEventExecutionPlan;
-import org.apereo.cas.authentication.AuthenticationServiceSelectionPlan;
-import org.apereo.cas.authentication.AuthenticationSystemSupport;
 import org.apereo.cas.authentication.DefaultMultifactorAuthenticationProviderResolver;
-import org.apereo.cas.authentication.DefaultMultifactorTriggerSelectionStrategy;
+import org.apereo.cas.authentication.DefaultMultifactorAuthenticationTriggerSelectionStrategy;
 import org.apereo.cas.authentication.MultifactorAuthenticationContextValidator;
 import org.apereo.cas.authentication.MultifactorAuthenticationFailureModeEvaluator;
+import org.apereo.cas.authentication.MultifactorAuthenticationPrincipalResolver;
 import org.apereo.cas.authentication.MultifactorAuthenticationProviderResolver;
 import org.apereo.cas.authentication.MultifactorAuthenticationProviderSelector;
 import org.apereo.cas.authentication.MultifactorAuthenticationTrigger;
@@ -27,10 +23,7 @@ import org.apereo.cas.authentication.mfa.trigger.RestEndpointMultifactorAuthenti
 import org.apereo.cas.authentication.mfa.trigger.ScriptedRegisteredServiceMultifactorAuthenticationTrigger;
 import org.apereo.cas.authentication.mfa.trigger.TimedMultifactorAuthenticationTrigger;
 import org.apereo.cas.configuration.CasConfigurationProperties;
-import org.apereo.cas.services.ServicesManager;
-import org.apereo.cas.ticket.registry.TicketRegistry;
-import org.apereo.cas.ticket.registry.TicketRegistrySupport;
-import org.apereo.cas.web.cookie.CasCookieBuilder;
+import org.apereo.cas.util.spring.ApplicationContextProvider;
 import org.apereo.cas.web.flow.CasWebflowConfigurer;
 import org.apereo.cas.web.flow.CasWebflowExecutionPlanConfigurer;
 import org.apereo.cas.web.flow.SingleSignOnParticipationStrategy;
@@ -85,10 +78,6 @@ public class CasMultifactorAuthenticationWebflowConfiguration {
     private ObjectProvider<FlowDefinitionRegistry> loginFlowDefinitionRegistry;
 
     @Autowired
-    @Qualifier("ticketRegistry")
-    private ObjectProvider<TicketRegistry> ticketRegistry;
-
-    @Autowired
     @Qualifier("flowBuilderServices")
     private ObjectProvider<FlowBuilderServices> flowBuilderServices;
 
@@ -97,55 +86,19 @@ public class CasMultifactorAuthenticationWebflowConfiguration {
     private ObjectProvider<GeoLocationService> geoLocationService;
 
     @Autowired
-    @Qualifier("initialAuthenticationAttemptWebflowEventResolver")
-    private ObjectProvider<CasDelegatingWebflowEventResolver> initialAuthenticationAttemptWebflowEventResolver;
+    @Qualifier("casWebflowConfigurationContext")
+    private ObjectProvider<CasWebflowEventResolutionConfigurationContext> casWebflowConfigurationContext;
 
     @Autowired
     @Qualifier("authenticationContextValidator")
     private ObjectProvider<MultifactorAuthenticationContextValidator> authenticationContextValidator;
 
     @Autowired
-    @Qualifier("centralAuthenticationService")
-    private ObjectProvider<CentralAuthenticationService> centralAuthenticationService;
-
-    @Autowired
-    @Qualifier("authenticationEventExecutionPlan")
-    private ObjectProvider<AuthenticationEventExecutionPlan> authenticationEventExecutionPlan;
-
-    @Autowired
-    @Qualifier("defaultAuthenticationSystemSupport")
-    private ObjectProvider<AuthenticationSystemSupport> authenticationSystemSupport;
-
-    @Autowired
-    @Qualifier("defaultTicketRegistrySupport")
-    private ObjectProvider<TicketRegistrySupport> ticketRegistrySupport;
-
-    @Autowired
-    @Qualifier("servicesManager")
-    private ObjectProvider<ServicesManager> servicesManager;
-
-    @Autowired
-    @Qualifier("ticketGrantingTicketCookieGenerator")
-    private ObjectProvider<CasCookieBuilder> ticketGrantingTicketCookieGenerator;
-
-    @Autowired
-    @Qualifier("warnCookieGenerator")
-    private ObjectProvider<CasCookieBuilder> warnCookieGenerator;
-
-    @Autowired
     private CasConfigurationProperties casProperties;
 
     @Autowired
     private ConfigurableApplicationContext applicationContext;
-
-    @Autowired
-    @Qualifier("authenticationServiceSelectionPlan")
-    private ObjectProvider<AuthenticationServiceSelectionPlan> authenticationServiceSelectionPlan;
-
-    @Autowired
-    @Qualifier("registeredServiceAccessStrategyEnforcer")
-    private ObjectProvider<AuditableExecution> registeredServiceAccessStrategyEnforcer;
-
+    
     @Autowired
     @Qualifier("failureModeEvaluator")
     private ObjectProvider<MultifactorAuthenticationFailureModeEvaluator> failureModeEvaluator;
@@ -157,7 +110,14 @@ public class CasMultifactorAuthenticationWebflowConfiguration {
     @Bean
     @ConditionalOnMissingBean(name = "multifactorAuthenticationProviderResolver")
     public MultifactorAuthenticationProviderResolver multifactorAuthenticationProviderResolver() {
-        return new DefaultMultifactorAuthenticationProviderResolver();
+        val resolvers = ApplicationContextProvider.getMultifactorAuthenticationPrincipalResolvers();
+        return new DefaultMultifactorAuthenticationProviderResolver(resolvers);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(name = "defaultMultifactorAuthenticationPrincipalResolver")
+    public MultifactorAuthenticationPrincipalResolver defaultMultifactorAuthenticationPrincipalResolver() {
+        return MultifactorAuthenticationPrincipalResolver.identical();
     }
 
     @ConditionalOnMissingBean(name = "adaptiveAuthenticationPolicyWebflowEventResolver")
@@ -165,7 +125,7 @@ public class CasMultifactorAuthenticationWebflowConfiguration {
     @RefreshScope
     public CasWebflowEventResolver adaptiveAuthenticationPolicyWebflowEventResolver() {
         return new DefaultMultifactorAuthenticationProviderWebflowEventResolver(
-            getWebflowConfigurationContext(),
+            casWebflowConfigurationContext.getObject(),
             adaptiveMultifactorAuthenticationTrigger());
     }
 
@@ -187,8 +147,8 @@ public class CasMultifactorAuthenticationWebflowConfiguration {
     @Bean
     @RefreshScope
     public CasWebflowEventResolver timedAuthenticationPolicyWebflowEventResolver() {
-        return new DefaultMultifactorAuthenticationProviderWebflowEventResolver(getWebflowConfigurationContext(),
-            timedMultifactorAuthenticationTrigger());
+        return new DefaultMultifactorAuthenticationProviderWebflowEventResolver(
+            casWebflowConfigurationContext.getObject(), timedMultifactorAuthenticationTrigger());
     }
 
     @ConditionalOnMissingBean(name = "principalAttributeMultifactorAuthenticationTrigger")
@@ -203,7 +163,7 @@ public class CasMultifactorAuthenticationWebflowConfiguration {
     @RefreshScope
     public CasWebflowEventResolver principalAttributeAuthenticationPolicyWebflowEventResolver() {
         return new DefaultMultifactorAuthenticationProviderWebflowEventResolver(
-            getWebflowConfigurationContext(),
+            casWebflowConfigurationContext.getObject(),
             principalAttributeMultifactorAuthenticationTrigger());
     }
 
@@ -218,7 +178,7 @@ public class CasMultifactorAuthenticationWebflowConfiguration {
     @Bean
     @RefreshScope
     public CasWebflowEventResolver predicatedPrincipalAttributeMultifactorAuthenticationPolicyEventResolver() {
-        return new DefaultMultifactorAuthenticationProviderWebflowEventResolver(getWebflowConfigurationContext(),
+        return new DefaultMultifactorAuthenticationProviderWebflowEventResolver(casWebflowConfigurationContext.getObject(),
             predicatedPrincipalAttributeMultifactorAuthenticationTrigger());
     }
 
@@ -227,7 +187,7 @@ public class CasMultifactorAuthenticationWebflowConfiguration {
     @RefreshScope
     public CasDelegatingWebflowEventResolver rankedAuthenticationProviderWebflowEventResolver() {
         return new RankedMultifactorAuthenticationProviderWebflowEventResolver(
-            getWebflowConfigurationContext(),
+            casWebflowConfigurationContext.getObject(),
             initialAuthenticationAttemptWebflowEventResolver(),
             authenticationContextValidator.getObject(),
             webflowSingleSignOnParticipationStrategy.getObject());
@@ -244,7 +204,8 @@ public class CasMultifactorAuthenticationWebflowConfiguration {
     @Bean
     @RefreshScope
     public CasWebflowEventResolver authenticationAttributeAuthenticationPolicyWebflowEventResolver() {
-        return new DefaultMultifactorAuthenticationProviderWebflowEventResolver(getWebflowConfigurationContext(),
+        return new DefaultMultifactorAuthenticationProviderWebflowEventResolver(
+            casWebflowConfigurationContext.getObject(),
             authenticationAttributeMultifactorAuthenticationTrigger());
     }
 
@@ -254,11 +215,11 @@ public class CasMultifactorAuthenticationWebflowConfiguration {
     public MultifactorAuthenticationProviderSelector multifactorAuthenticationProviderSelector() {
         val mfa = casProperties.getAuthn().getMfa();
 
-        val script = mfa.getProviderSelectorGroovyScript();
-        if (script != null) {
-            return new GroovyScriptMultifactorAuthenticationProviderSelector(script);
+        val script = mfa.getCore().getProviderSelectorGroovyScript();
+        if (script.getLocation() != null) {
+            return new GroovyScriptMultifactorAuthenticationProviderSelector(script.getLocation());
         }
-        if (mfa.isProviderSelectionEnabled()) {
+        if (mfa.getCore().isProviderSelectionEnabled()) {
             return new ChainingMultifactorAuthenticationProviderSelector(failureModeEvaluator.getObject());
         }
         return new RankedMultifactorAuthenticationProviderSelector();
@@ -270,12 +231,11 @@ public class CasMultifactorAuthenticationWebflowConfiguration {
     public CasDelegatingWebflowEventResolver initialAuthenticationAttemptWebflowEventResolver() {
         val mfa = casProperties.getAuthn().getMfa();
 
-        val selectiveResolver = mfa.isProviderSelectionEnabled()
+        val selectiveResolver = mfa.getCore().isProviderSelectionEnabled()
             ? compositeProviderSelectionMultifactorWebflowEventResolver()
             : selectiveAuthenticationProviderWebflowEventResolver();
 
-        val r = new DefaultCasDelegatingWebflowEventResolver(getWebflowConfigurationContext(), selectiveResolver);
-
+        val r = new DefaultCasDelegatingWebflowEventResolver(casWebflowConfigurationContext.getObject(), selectiveResolver);
         r.addDelegate(adaptiveAuthenticationPolicyWebflowEventResolver());
         r.addDelegate(timedAuthenticationPolicyWebflowEventResolver());
         r.addDelegate(globalAuthenticationPolicyWebflowEventResolver());
@@ -297,7 +257,7 @@ public class CasMultifactorAuthenticationWebflowConfiguration {
     @Autowired
     public MultifactorAuthenticationTriggerSelectionStrategy defaultMultifactorTriggerSelectionStrategy(final List<MultifactorAuthenticationTrigger> triggers) {
         AnnotationAwareOrderComparator.sortIfNecessary(triggers);
-        return new DefaultMultifactorTriggerSelectionStrategy(triggers);
+        return new DefaultMultifactorAuthenticationTriggerSelectionStrategy(triggers);
     }
 
     @Bean
@@ -312,7 +272,7 @@ public class CasMultifactorAuthenticationWebflowConfiguration {
     @RefreshScope
     public CasWebflowEventResolver restEndpointAuthenticationPolicyWebflowEventResolver() {
         return new DefaultMultifactorAuthenticationProviderWebflowEventResolver(
-            getWebflowConfigurationContext(),
+            casWebflowConfigurationContext.getObject(),
             restEndpointMultifactorAuthenticationTrigger());
     }
 
@@ -328,7 +288,7 @@ public class CasMultifactorAuthenticationWebflowConfiguration {
     @RefreshScope
     public CasWebflowEventResolver globalAuthenticationPolicyWebflowEventResolver() {
         return new DefaultMultifactorAuthenticationProviderWebflowEventResolver(
-            getWebflowConfigurationContext(),
+            casWebflowConfigurationContext.getObject(),
             globalMultifactorAuthenticationTrigger());
     }
 
@@ -344,7 +304,7 @@ public class CasMultifactorAuthenticationWebflowConfiguration {
     @RefreshScope
     public CasWebflowEventResolver groovyScriptAuthenticationPolicyWebflowEventResolver() {
         return new DefaultMultifactorAuthenticationProviderWebflowEventResolver(
-            getWebflowConfigurationContext(),
+            casWebflowConfigurationContext.getObject(),
             groovyScriptMultifactorAuthenticationTrigger());
     }
 
@@ -352,14 +312,14 @@ public class CasMultifactorAuthenticationWebflowConfiguration {
     @Bean
     @RefreshScope
     public CasWebflowEventResolver selectiveAuthenticationProviderWebflowEventResolver() {
-        return new SelectiveMultifactorAuthenticationProviderWebflowEventResolver(getWebflowConfigurationContext());
+        return new SelectiveMultifactorAuthenticationProviderWebflowEventResolver(casWebflowConfigurationContext.getObject());
     }
 
     @ConditionalOnMissingBean(name = "compositeProviderSelectionMultifactorWebflowEventResolver")
     @Bean
     @RefreshScope
     public CasWebflowEventResolver compositeProviderSelectionMultifactorWebflowEventResolver() {
-        return new CompositeProviderSelectionMultifactorWebflowEventResolver(getWebflowConfigurationContext());
+        return new CompositeProviderSelectionMultifactorWebflowEventResolver(casWebflowConfigurationContext.getObject());
     }
 
     @ConditionalOnMissingBean(name = "httpRequestMultifactorAuthenticationTrigger")
@@ -373,7 +333,8 @@ public class CasMultifactorAuthenticationWebflowConfiguration {
     @Bean
     @RefreshScope
     public CasWebflowEventResolver httpRequestAuthenticationPolicyWebflowEventResolver() {
-        return new DefaultMultifactorAuthenticationProviderWebflowEventResolver(getWebflowConfigurationContext(),
+        return new DefaultMultifactorAuthenticationProviderWebflowEventResolver(
+            casWebflowConfigurationContext.getObject(),
             httpRequestMultifactorAuthenticationTrigger());
     }
 
@@ -382,14 +343,15 @@ public class CasMultifactorAuthenticationWebflowConfiguration {
     @RefreshScope
     public MultifactorAuthenticationTrigger registeredServicePrincipalAttributeMultifactorAuthenticationTrigger() {
         return new RegisteredServicePrincipalAttributeMultifactorAuthenticationTrigger(casProperties,
-            multifactorAuthenticationProviderResolver(), applicationContext);
+            multifactorAuthenticationProviderResolver(), applicationContext, multifactorAuthenticationProviderSelector());
     }
 
     @ConditionalOnMissingBean(name = "registeredServicePrincipalAttributeAuthenticationPolicyWebflowEventResolver")
     @Bean
     @RefreshScope
     public CasWebflowEventResolver registeredServicePrincipalAttributeAuthenticationPolicyWebflowEventResolver() {
-        return new DefaultMultifactorAuthenticationProviderWebflowEventResolver(getWebflowConfigurationContext(),
+        return new DefaultMultifactorAuthenticationProviderWebflowEventResolver(
+            casWebflowConfigurationContext.getObject(),
             registeredServicePrincipalAttributeMultifactorAuthenticationTrigger());
     }
 
@@ -404,7 +366,8 @@ public class CasMultifactorAuthenticationWebflowConfiguration {
     @Bean
     @RefreshScope
     public CasWebflowEventResolver scriptedRegisteredServiceAuthenticationPolicyWebflowEventResolver() {
-        return new DefaultMultifactorAuthenticationProviderWebflowEventResolver(getWebflowConfigurationContext(),
+        return new DefaultMultifactorAuthenticationProviderWebflowEventResolver(
+            casWebflowConfigurationContext.getObject(),
             scriptedRegisteredServiceMultifactorAuthenticationTrigger());
     }
 
@@ -412,14 +375,16 @@ public class CasMultifactorAuthenticationWebflowConfiguration {
     @ConditionalOnMissingBean(name = "registeredServiceMultifactorAuthenticationTrigger")
     @RefreshScope
     public MultifactorAuthenticationTrigger registeredServiceMultifactorAuthenticationTrigger() {
-        return new RegisteredServiceMultifactorAuthenticationTrigger(casProperties, multifactorAuthenticationProviderSelector());
+        return new RegisteredServiceMultifactorAuthenticationTrigger(casProperties,
+            multifactorAuthenticationProviderSelector(), applicationContext);
     }
 
     @ConditionalOnMissingBean(name = "registeredServiceAuthenticationPolicyWebflowEventResolver")
     @Bean
     @RefreshScope
     public CasWebflowEventResolver registeredServiceAuthenticationPolicyWebflowEventResolver() {
-        return new DefaultMultifactorAuthenticationProviderWebflowEventResolver(getWebflowConfigurationContext(),
+        return new DefaultMultifactorAuthenticationProviderWebflowEventResolver(
+            casWebflowConfigurationContext.getObject(),
             registeredServiceMultifactorAuthenticationTrigger());
     }
 
@@ -427,21 +392,21 @@ public class CasMultifactorAuthenticationWebflowConfiguration {
     @RefreshScope
     @ConditionalOnMissingBean(name = "mfaAvailableAction")
     public Action mfaAvailableAction() {
-        return new MultifactorAuthenticationAvailableAction(applicationContext);
+        return new MultifactorAuthenticationAvailableAction();
     }
 
     @Bean
     @RefreshScope
     @ConditionalOnMissingBean(name = "mfaBypassAction")
     public Action mfaBypassAction() {
-        return new MultifactorAuthenticationBypassAction(applicationContext);
+        return new MultifactorAuthenticationBypassAction();
     }
 
     @Bean
     @RefreshScope
     @ConditionalOnMissingBean(name = "mfaFailureAction")
     public Action mfaFailureAction() {
-        return new MultifactorAuthenticationFailureAction(applicationContext);
+        return new MultifactorAuthenticationFailureAction();
     }
 
     @Bean
@@ -473,23 +438,4 @@ public class CasMultifactorAuthenticationWebflowConfiguration {
         return new PrepareMultifactorProviderSelectionAction();
     }
 
-    private CasWebflowEventResolutionConfigurationContext getWebflowConfigurationContext() {
-        return CasWebflowEventResolutionConfigurationContext.builder()
-            .casDelegatingWebflowEventResolver(initialAuthenticationAttemptWebflowEventResolver.getObject())
-            .authenticationContextValidator(authenticationContextValidator.getObject())
-            .authenticationSystemSupport(authenticationSystemSupport.getObject())
-            .centralAuthenticationService(centralAuthenticationService.getObject())
-            .servicesManager(servicesManager.getObject())
-            .ticketRegistrySupport(ticketRegistrySupport.getObject())
-            .warnCookieGenerator(warnCookieGenerator.getObject())
-            .authenticationRequestServiceSelectionStrategies(authenticationServiceSelectionPlan.getObject())
-            .registeredServiceAccessStrategyEnforcer(registeredServiceAccessStrategyEnforcer.getObject())
-            .casProperties(casProperties)
-            .ticketRegistry(ticketRegistry.getObject())
-            .singleSignOnParticipationStrategy(webflowSingleSignOnParticipationStrategy.getObject())
-            .applicationContext(applicationContext)
-            .ticketGrantingTicketCookieGenerator(ticketGrantingTicketCookieGenerator.getObject())
-            .authenticationEventExecutionPlan(authenticationEventExecutionPlan.getObject())
-            .build();
-    }
 }

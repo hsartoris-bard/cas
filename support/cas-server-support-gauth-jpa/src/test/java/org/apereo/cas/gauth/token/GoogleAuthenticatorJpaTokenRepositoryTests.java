@@ -31,11 +31,13 @@ import org.apereo.cas.web.flow.config.CasMultifactorAuthenticationWebflowConfigu
 import org.apereo.cas.web.flow.config.CasWebflowContextConfiguration;
 
 import lombok.Getter;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.springframework.boot.autoconfigure.aop.AopAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
+import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
@@ -77,12 +79,18 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
     AopAutoConfiguration.class,
     RefreshAutoConfiguration.class,
     CasCoreWebConfiguration.class
-}, properties = "cas.jdbc.show-sql=true"
+}, properties = "cas.jdbc.show-sql=false"
 )
 @EnableTransactionManagement(proxyTargetClass = true)
 @EnableAspectJAutoProxy(proxyTargetClass = true)
 @EnableScheduling
 @Getter
 @Tag("JDBC")
+@EnableRetry
 public class GoogleAuthenticatorJpaTokenRepositoryTests extends BaseOneTimeTokenRepositoryTests {
+
+    @BeforeEach
+    public void setup() {
+        oneTimeTokenAuthenticatorTokenRepository.removeAll();
+    }
 }

@@ -9,11 +9,11 @@ import org.apereo.cas.support.saml.idp.metadata.CouchDbSamlIdPMetadataLocator;
 import org.apereo.cas.support.saml.idp.metadata.generator.SamlIdPMetadataGenerator;
 import org.apereo.cas.support.saml.idp.metadata.generator.SamlIdPMetadataGeneratorConfigurationContext;
 import org.apereo.cas.support.saml.idp.metadata.locator.SamlIdPMetadataLocator;
-import org.apereo.cas.support.saml.idp.metadata.writer.SamlIdPCertificateAndKeyWriter;
+import org.apereo.cas.support.saml.services.idp.metadata.SamlIdPMetadataDocument;
 import org.apereo.cas.util.cipher.CipherExecutorUtils;
 import org.apereo.cas.util.crypto.CipherExecutor;
 
-import lombok.SneakyThrows;
+import com.github.benmanes.caffeine.cache.Cache;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.ektorp.CouchDbConnector;
@@ -25,7 +25,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
-import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -46,11 +45,12 @@ public class CouchDbSamlIdPMetadataConfiguration {
     private CasConfigurationProperties casProperties;
 
     @Autowired
-    @Qualifier("samlSelfSignedCertificateWriter")
-    private ObjectProvider<SamlIdPCertificateAndKeyWriter> samlSelfSignedCertificateWriter;
+    @Qualifier("samlIdPMetadataGeneratorConfigurationContext")
+    private ObjectProvider<SamlIdPMetadataGeneratorConfigurationContext> samlIdPMetadataGeneratorConfigurationContext;
 
     @Autowired
-    private ConfigurableApplicationContext applicationContext;
+    @Qualifier("samlIdPMetadataCache")
+    private ObjectProvider<Cache<String, SamlIdPMetadataDocument>> samlIdPMetadataCache;
 
     @Autowired
     @Qualifier("samlMetadataCouchDbFactory")
@@ -82,13 +82,11 @@ public class CouchDbSamlIdPMetadataConfiguration {
             casProperties.getAuthn().getSamlIdp().getMetadata().getCouchDb().isCreateIfNotExists());
         repository.initStandardDesignDocument();
         return repository;
-
     }
 
     @Bean
     @RefreshScope
-    @ConditionalOnMissingBean(name = "couchDbSamlIdPMetadataCipherExecutor")
-    public CipherExecutor couchDbSamlIdPMetadataCipherExecutor() {
+    public CipherExecutor samlIdPMetadataGeneratorCipherExecutor() {
         val idp = casProperties.getAuthn().getSamlIdp();
         val crypto = idp.getMetadata().getCouchDb().getCrypto();
 
@@ -105,24 +103,17 @@ public class CouchDbSamlIdPMetadataConfiguration {
     @Bean
     @RefreshScope
     public SamlIdPMetadataGenerator samlIdPMetadataGenerator() {
-        val context = SamlIdPMetadataGeneratorConfigurationContext.builder()
-            .samlIdPMetadataLocator(samlIdPMetadataLocator())
-            .samlIdPCertificateAndKeyWriter(samlSelfSignedCertificateWriter.getObject())
-            .applicationContext(applicationContext)
-            .casProperties(casProperties)
-            .metadataCipherExecutor(couchDbSamlIdPMetadataCipherExecutor())
-            .build();
-
-        val generator = new CouchDbSamlIdPMetadataGenerator(context, samlIdPMetadataRepository.getObject());
+        val generator = new CouchDbSamlIdPMetadataGenerator(
+            samlIdPMetadataGeneratorConfigurationContext.getObject(), samlIdPMetadataRepository.getObject());
         generator.generate(Optional.empty());
         return generator;
     }
 
     @ConditionalOnMissingBean(name = "couchDbSamlIdPMetadataLocator")
     @Bean
-    @SneakyThrows
     @RefreshScope
     public SamlIdPMetadataLocator samlIdPMetadataLocator() {
-        return new CouchDbSamlIdPMetadataLocator(couchDbSamlIdPMetadataCipherExecutor(), samlIdPMetadataRepository.getObject());
+        return new CouchDbSamlIdPMetadataLocator(samlIdPMetadataGeneratorCipherExecutor(),
+            samlIdPMetadataCache.getObject(), samlIdPMetadataRepository.getObject());
     }
 }

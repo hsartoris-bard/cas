@@ -19,6 +19,8 @@ import org.springframework.webflow.context.servlet.ServletExternalContext;
 import org.springframework.webflow.execution.Action;
 import org.springframework.webflow.test.MockRequestContext;
 
+import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -30,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag("WebflowActions")
 public class ServiceWarningActionTests extends AbstractWebflowActionsTests {
     @Autowired
-    @Qualifier("serviceWarningAction")
+    @Qualifier(CasWebflowConstants.ACTION_ID_SERVICE_WARNING)
     private Action action;
 
     @Test
@@ -46,7 +48,10 @@ public class ServiceWarningActionTests extends AbstractWebflowActionsTests {
         WebUtils.putTicketGrantingTicketInScopes(context, tgt);
         assertThrows(InvalidTicketException.class, () -> action.execute(context).getId());
 
-        WebUtils.putServiceIntoFlowScope(context, RegisteredServiceTestUtils.getService("https://google.com"));
+        val service = RegisteredServiceTestUtils.getService("https://google.com");
+        getServicesManager().save(RegisteredServiceTestUtils.getRegisteredService(service.getId(), Map.of()));
+        
+        WebUtils.putServiceIntoFlowScope(context, service);
         WebUtils.putCredential(context, CoreAuthenticationTestUtils.getCredentialsWithSameUsernameAndPassword());
 
         getTicketRegistry().addTicket(tgt);

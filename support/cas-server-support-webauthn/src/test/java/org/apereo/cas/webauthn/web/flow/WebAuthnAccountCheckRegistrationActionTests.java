@@ -1,11 +1,12 @@
 package org.apereo.cas.webauthn.web.flow;
 
+import org.apereo.cas.authentication.MultifactorAuthenticationProvider;
 import org.apereo.cas.services.RegisteredServiceTestUtils;
 import org.apereo.cas.web.flow.CasWebflowConstants;
 import org.apereo.cas.web.support.WebUtils;
 import org.apereo.cas.webauthn.storage.WebAuthnCredentialRepository;
 
-import com.yubico.webauthn.data.CredentialRegistration;
+import com.yubico.data.CredentialRegistration;
 import lombok.val;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -42,6 +43,10 @@ public class WebAuthnAccountCheckRegistrationActionTests {
     @Qualifier("webAuthnCredentialRepository")
     private WebAuthnCredentialRepository webAuthnCredentialRepository;
 
+    @Autowired
+    @Qualifier("webAuthnMultifactorAuthenticationProvider")
+    private MultifactorAuthenticationProvider webAuthnMultifactorAuthenticationProvider;
+
     @Test
     public void verifyOperation() throws Exception {
         val context = new MockRequestContext();
@@ -49,6 +54,7 @@ public class WebAuthnAccountCheckRegistrationActionTests {
         val response = new MockHttpServletResponse();
         context.setExternalContext(new ServletExternalContext(new MockServletContext(), request, response));
         RequestContextHolder.setRequestContext(context);
+        WebUtils.putMultifactorAuthenticationProviderIdIntoFlowScope(context, webAuthnMultifactorAuthenticationProvider);
         ExternalContextHolder.setExternalContext(context.getExternalContext());
 
         val authentication = RegisteredServiceTestUtils.getAuthentication(UUID.randomUUID().toString());

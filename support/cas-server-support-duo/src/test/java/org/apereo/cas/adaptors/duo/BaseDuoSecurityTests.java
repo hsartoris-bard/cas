@@ -1,9 +1,11 @@
 package org.apereo.cas.adaptors.duo;
 
+import org.apereo.cas.adaptors.duo.authn.DuoSecurityMultifactorAuthenticationProvider;
 import org.apereo.cas.adaptors.duo.config.DuoSecurityAuthenticationEventExecutionPlanConfiguration;
 import org.apereo.cas.adaptors.duo.config.DuoSecurityComponentSerializationConfiguration;
 import org.apereo.cas.adaptors.duo.config.DuoSecurityConfiguration;
 import org.apereo.cas.adaptors.duo.config.DuoSecurityMultifactorProviderBypassConfiguration;
+import org.apereo.cas.adaptors.duo.config.DuoSecurityRestConfiguration;
 import org.apereo.cas.authentication.Authentication;
 import org.apereo.cas.authentication.AuthenticationResultBuilder;
 import org.apereo.cas.authentication.CoreAuthenticationTestUtils;
@@ -26,7 +28,7 @@ import org.apereo.cas.config.CasCoreWebConfiguration;
 import org.apereo.cas.config.CasDefaultServiceTicketIdGeneratorsConfiguration;
 import org.apereo.cas.config.CasPersonDirectoryTestConfiguration;
 import org.apereo.cas.config.support.CasWebApplicationServiceFactoryConfiguration;
-import org.apereo.cas.configuration.model.support.mfa.DuoSecurityMultifactorProperties;
+import org.apereo.cas.configuration.model.support.mfa.DuoSecurityMultifactorAuthenticationProperties;
 import org.apereo.cas.logout.config.CasCoreLogoutConfiguration;
 import org.apereo.cas.services.web.config.CasThemesConfiguration;
 import org.apereo.cas.trusted.config.MultifactorAuthnTrustConfiguration;
@@ -46,7 +48,6 @@ import org.springframework.binding.expression.support.LiteralExpression;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.aop.AopAutoConfiguration;
-import org.springframework.boot.autoconfigure.mail.MailSenderAutoConfiguration;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Import;
@@ -103,14 +104,14 @@ public abstract class BaseDuoSecurityTests {
     }
 
     public static MultifactorAuthenticationProvider getDuoSecurityMultifactorAuthenticationProvider() {
-        val provider = new TestMultifactorAuthenticationProvider();
-        provider.setId(DuoSecurityMultifactorProperties.DEFAULT_IDENTIFIER);
+        val provider = mock(DuoSecurityMultifactorAuthenticationProvider.class);
+        when(provider.getId()).thenReturn(DuoSecurityMultifactorAuthenticationProperties.DEFAULT_IDENTIFIER);
+        when(provider.matches(argThat(DuoSecurityMultifactorAuthenticationProperties.DEFAULT_IDENTIFIER::matches))).thenReturn(true);
         return provider;
     }
 
     @ImportAutoConfiguration({
         RefreshAutoConfiguration.class,
-        MailSenderAutoConfiguration.class,
         AopAutoConfiguration.class
     })
     @SpringBootConfiguration
@@ -122,6 +123,7 @@ public abstract class BaseDuoSecurityTests {
         DuoSecurityAuthenticationEventExecutionPlanConfiguration.class,
         DuoSecurityComponentSerializationConfiguration.class,
         DuoSecurityMultifactorProviderBypassConfiguration.class,
+        DuoSecurityRestConfiguration.class,
         DuoSecurityConfiguration.class,
 
         CasCoreNotificationsConfiguration.class,

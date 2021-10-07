@@ -81,7 +81,7 @@ import static org.junit.jupiter.api.Assertions.*;
         "cas.monitor.mongo.database-name=monitor"
     })
 @EnabledIfPortOpen(port = 27017)
-@SuppressWarnings("JdkObsolete")
+@SuppressWarnings("JavaUtilDate")
 public class MongoDbHealthIndicatorTests {
     @Autowired
     @Qualifier("mongoHealthIndicator")
@@ -112,8 +112,8 @@ public class MongoDbHealthIndicatorTests {
                 assertTrue(map.containsKey("capacity"));
                 assertTrue(map.containsKey("evictions"));
                 assertTrue(map.containsKey("percentFree"));
+                assertTrue(map.containsKey("state"));
             }
         });
-        assertNotNull(mongoHealthIndicator.toString());
     }
 }

@@ -27,6 +27,7 @@ import org.apereo.cas.logout.config.CasCoreLogoutConfiguration;
 import org.apereo.cas.services.RegisteredServiceTestUtils;
 import org.apereo.cas.services.ServicesManager;
 import org.apereo.cas.util.MockWebServer;
+import org.apereo.cas.util.serialization.JacksonObjectMapperFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.aad.adal4j.AuthenticationResult;
@@ -85,10 +86,11 @@ import static org.junit.jupiter.api.Assertions.*;
         "cas.authn.attribute-repository.azure-active-directory[0].client-id=12345678-bc3b-4e2d-a9bf-bf6c7ded8b7e",
         "cas.authn.attribute-repository.azure-active-directory[0].client-secret=msdbdsf84d"
     })
-@Tag("Authentication")
+@Tag("AuthenticationHandler")
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 public class AzureActiveDirectoryAuthenticationHandlerTests {
-    private static final ObjectMapper MAPPER = new ObjectMapper().findAndRegisterModules();
+    private static final ObjectMapper MAPPER = JacksonObjectMapperFactory.builder()
+        .defaultTypingEnabled(true).build().toObjectMapper();
 
     @Autowired
     private CasConfigurationProperties casProperties;

@@ -1,5 +1,7 @@
 package org.apereo.cas.util;
 
+import org.apereo.cas.util.function.FunctionUtils;
+
 import lombok.experimental.UtilityClass;
 import lombok.val;
 import org.joda.time.DateTime;
@@ -19,13 +21,16 @@ import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAccessor;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
+ * Date/Time utility methods.
  * @author Timur Duehr timur.duehr@nccgroup.trust
  * @since 5.0.0
  */
-@SuppressWarnings("JdkObsolete")
+@SuppressWarnings("JavaUtilDate")
 @UtilityClass
 public class DateTimeUtils {
 
@@ -141,11 +146,13 @@ public class DateTimeUtils {
      * @return the date/time instance
      */
     public static ZonedDateTime zonedDateTimeOf(final String value) {
-        try {
-            return ZonedDateTime.parse(value);
-        } catch (final Exception e) {
-            return null;
-        }
+        val parsers = List.of(DateTimeFormatter.ISO_ZONED_DATE_TIME, DateTimeFormatter.RFC_1123_DATE_TIME);
+        return parsers
+            .stream()
+            .map(parser -> FunctionUtils.doAndHandle(() -> ZonedDateTime.parse(value, parser), throwable -> null).get())
+            .filter(Objects::nonNull)
+            .findFirst()
+            .orElse(null);
     }
 
     /**
@@ -307,12 +314,12 @@ public class DateTimeUtils {
      * @return the zoned date time
      */
     public static ZonedDateTime convertToZonedDateTime(final String value) {
-        val dt = DateTimeUtils.zonedDateTimeOf(value);
+        val dt = zonedDateTimeOf(value);
         if (dt != null) {
             return dt;
         }
-        val lt = DateTimeUtils.localDateTimeOf(value);
-        return DateTimeUtils.zonedDateTimeOf(lt.atZone(ZoneOffset.UTC));
+        val lt = localDateTimeOf(value);
+        return zonedDateTimeOf(lt.atZone(ZoneOffset.UTC));
     }
 
     /**

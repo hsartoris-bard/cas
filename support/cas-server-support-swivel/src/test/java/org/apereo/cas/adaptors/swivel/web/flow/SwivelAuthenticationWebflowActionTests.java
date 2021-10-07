@@ -24,11 +24,11 @@ import org.springframework.webflow.core.collection.LocalAttributeMap;
 import org.springframework.webflow.execution.Action;
 import org.springframework.webflow.execution.RequestContext;
 import org.springframework.webflow.execution.RequestContextHolder;
+import org.springframework.webflow.test.MockParameterMap;
 
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
@@ -44,7 +44,7 @@ import static org.mockito.Mockito.*;
         "cas.authn.mfa.swivel.shared-secret=$ecret",
         "cas.authn.mfa.swivel.ignore-ssl-errors=true",
         "cas.authn.mfa.swivel.trusted-device-enabled=true",
-        "cas.authn.mfa.trusted.device-registration-enabled=true"
+        "cas.authn.mfa.trusted.core.device-registration-enabled=true"
     })
 public class SwivelAuthenticationWebflowActionTests {
     @Autowired
@@ -57,6 +57,7 @@ public class SwivelAuthenticationWebflowActionTests {
         val response = new MockHttpServletResponse();
         val context = mock(RequestContext.class);
         when(context.getMessageContext()).thenReturn(mock(MessageContext.class));
+        when(context.getRequestParameters()).thenReturn(new MockParameterMap());
         when(context.getFlowScope()).thenReturn(new LocalAttributeMap<>());
         when(context.getConversationScope()).thenReturn(new LocalAttributeMap<>());
         when(context.getRequestScope()).thenReturn(new LocalAttributeMap<>());

@@ -1,6 +1,14 @@
 package org.apereo.cas.adaptors.x509.authentication.principal;
 
+import org.apereo.cas.authentication.CoreAuthenticationTestUtils;
+import org.apereo.cas.authentication.CoreAuthenticationUtils;
+import org.apereo.cas.authentication.principal.PrincipalFactoryUtils;
+import org.apereo.cas.authentication.principal.resolvers.PrincipalResolutionContext;
+import org.apereo.cas.configuration.model.core.authentication.PrincipalAttributesCoreProperties;
+import org.apereo.cas.util.CollectionUtils;
+
 import lombok.val;
+import org.apereo.services.persondir.IPersonAttributeDao;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -15,9 +23,13 @@ import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.params.provider.Arguments.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit test for {@link X509SubjectAlternativeNameUPNPrincipalResolver}.
@@ -72,8 +84,19 @@ public class X509SubjectAlternativeNameUPNPrincipalResolverTests {
                                                final String expectedResult,
                                                final String alternatePrincipalAttribute) throws FileNotFoundException, CertificateException {
 
-        val resolver = new X509SubjectAlternativeNameUPNPrincipalResolver();
+        val context = PrincipalResolutionContext.builder()
+            .attributeMerger(CoreAuthenticationUtils.getAttributeMerger(PrincipalAttributesCoreProperties.MergingStrategyTypes.REPLACE))
+            .attributeRepository(CoreAuthenticationTestUtils.getAttributeRepository())
+            .principalFactory(PrincipalFactoryUtils.newPrincipalFactory())
+            .returnNullIfNoAttributes(false)
+            .principalNameTransformer(formUserId -> formUserId)
+            .useCurrentPrincipalId(false)
+            .resolveAttributes(true)
+            .activeAttributeRepositoryIdentifiers(CollectionUtils.wrapSet(IPersonAttributeDao.WILDCARD))
+            .build();
+        val resolver = new X509SubjectAlternativeNameUPNPrincipalResolver(context);
         resolver.setAlternatePrincipalAttribute(alternatePrincipalAttribute);
+        resolver.setX509AttributeExtractor(new DefaultX509AttributeExtractor());
         val certificate = (X509Certificate) CertificateFactory.getInstance("X509").generateCertificate(
             new FileInputStream(getClass().getResource(certPath).getPath()));
 
@@ -93,7 +116,18 @@ public class X509SubjectAlternativeNameUPNPrincipalResolverTests {
 
     @Test
     public void verifyAlternate() throws Exception {
-        val resolver = new X509SubjectAlternativeNameUPNPrincipalResolver();
+        val context = PrincipalResolutionContext.builder()
+            .attributeMerger(CoreAuthenticationUtils.getAttributeMerger(PrincipalAttributesCoreProperties.MergingStrategyTypes.REPLACE))
+            .attributeRepository(CoreAuthenticationTestUtils.getAttributeRepository())
+            .principalFactory(PrincipalFactoryUtils.newPrincipalFactory())
+            .returnNullIfNoAttributes(false)
+            .principalNameTransformer(formUserId -> formUserId)
+            .useCurrentPrincipalId(false)
+            .resolveAttributes(true)
+            .activeAttributeRepositoryIdentifiers(CollectionUtils.wrapSet(IPersonAttributeDao.WILDCARD))
+            .build();
+        val resolver = new X509SubjectAlternativeNameUPNPrincipalResolver(context);
+        resolver.setX509AttributeExtractor(new DefaultX509AttributeExtractor());
         val certificate = mock(X509Certificate.class);
         when(certificate.getSubjectAlternativeNames()).thenThrow(new CertificateParsingException());
         assertNull(resolver.resolvePrincipalInternal(certificate));

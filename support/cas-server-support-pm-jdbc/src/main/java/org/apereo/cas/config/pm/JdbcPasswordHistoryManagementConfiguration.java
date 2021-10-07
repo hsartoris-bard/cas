@@ -26,7 +26,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import javax.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
-import java.util.List;
+import java.util.Set;
 
 /**
  * This is {@link JdbcPasswordHistoryManagementConfiguration}.
@@ -37,7 +37,7 @@ import java.util.List;
 @Configuration("jdbcPasswordHistoryManagementConfiguration")
 @EnableTransactionManagement(proxyTargetClass = true)
 @EnableConfigurationProperties(CasConfigurationProperties.class)
-@ConditionalOnProperty(prefix = "cas.authn.pm.history", name = "enabled", havingValue = "true")
+@ConditionalOnProperty(prefix = "cas.authn.pm.history.core", name = "enabled", havingValue = "true")
 public class JdbcPasswordHistoryManagementConfiguration {
     @Autowired
     private CasConfigurationProperties casProperties;
@@ -57,8 +57,8 @@ public class JdbcPasswordHistoryManagementConfiguration {
     }
 
     @Bean
-    public List<String> jpaPasswordHistoryPackagesToScan() {
-        return CollectionUtils.wrapList(JdbcPasswordHistoryEntity.class.getPackage().getName());
+    public Set<String> jpaPasswordHistoryPackagesToScan() {
+        return CollectionUtils.wrapSet(JdbcPasswordHistoryEntity.class.getPackage().getName());
     }
 
     @Lazy

@@ -5,33 +5,26 @@ import org.apereo.cas.util.DateTimeUtils;
 import org.apereo.cas.util.LoggingUtils;
 import org.apereo.cas.util.crypto.CipherExecutor;
 
-import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
-import com.yubico.internal.util.JacksonCodecs;
+import com.yubico.data.CredentialRegistration;
 import com.yubico.webauthn.AssertionResult;
 import com.yubico.webauthn.RegisteredCredential;
 import com.yubico.webauthn.data.ByteArray;
-import com.yubico.webauthn.data.CredentialRegistration;
 import com.yubico.webauthn.data.PublicKeyCredentialDescriptor;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.apache.commons.lang3.StringUtils;
 
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * This is {@link BaseWebAuthnCredentialRepository}.
@@ -44,19 +37,17 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
 public abstract class BaseWebAuthnCredentialRepository implements WebAuthnCredentialRepository {
 
-    private final ObjectMapper objectMapper = JacksonCodecs
-        .json()
-        .addMixIn(CredentialRegistration.class, CredentialRegistrationMixin.class)
-        .addMixIn(CredentialRegistration.CredentialRegistrationBuilder.class, CredentialRegistrationBuilderMixin.class)
-        .addMixIn(RegisteredCredential.class, RegisteredCredentialMixin.class)
-        .addMixIn(RegisteredCredential.RegisteredCredentialBuilder.class, RegisteredCredentialBuilderMixin.class)
-        .findAndRegisterModules()
-        .setDefaultPrettyPrinter(new DefaultPrettyPrinter())
-        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
     private final CasConfigurationProperties properties;
 
     private final CipherExecutor<String, String> cipherExecutor;
+
+    @Override
+    public boolean addRegistrationByUsername(final String username, final CredentialRegistration credentialRegistration) {
+        val registrations = getRegistrationsByUsername(username);
+        registrations.add(credentialRegistration);
+        update(username, new HashSet<>(registrations));
+        return true;
+    }
 
     @Override
     public Optional<CredentialRegistration> getRegistrationByUsernameAndCredentialId(final String username, final ByteArray id) {
@@ -65,16 +56,8 @@ public abstract class BaseWebAuthnCredentialRepository implements WebAuthnCreden
     }
 
     @Override
-    public boolean addRegistrationByUsername(final String username, final CredentialRegistration credentialRegistration) {
-        val registrations = getRegistrationsByUsername(username);
-        val result = registrations.add(credentialRegistration);
-        update(username, new HashSet<>(registrations));
-        return result;
-    }
-
-    @Override
     public Collection<CredentialRegistration> getRegistrationsByUserHandle(final ByteArray handle) {
-        return load()
+        return stream()
             .filter(credentialRegistration -> handle.equals(credentialRegistration.getUserIdentity().getId()))
             .collect(Collectors.toList());
     }
@@ -130,7 +113,8 @@ public abstract class BaseWebAuthnCredentialRepository implements WebAuthnCreden
 
     @Override
     public Optional<RegisteredCredential> lookup(final ByteArray credentialId, final ByteArray userHandle) {
-        val registration = load()
+        val registration = stream()
+            .filter(Objects::nonNull)
             .filter(credReg -> credentialId.equals(credReg.getCredential().getCredentialId()))
             .findAny();
 
@@ -144,7 +128,8 @@ public abstract class BaseWebAuthnCredentialRepository implements WebAuthnCreden
 
     @Override
     public Set<RegisteredCredential> lookupAll(final ByteArray credentialId) {
-        return load()
+        return stream()
+            .filter(Objects::nonNull)
             .filter(reg -> reg.getCredential().getCredentialId().equals(credentialId))
             .map(reg -> RegisteredCredential.builder()
                 .credentialId(reg.getCredential().getCredentialId())
@@ -158,14 +143,15 @@ public abstract class BaseWebAuthnCredentialRepository implements WebAuthnCreden
     @Override
     public void clean() {
         try {
-            val webAuthn = properties.getAuthn().getMfa().getWebAuthn();
+            val webAuthn = properties.getAuthn().getMfa().getWebAuthn().getCore();
             val expirationDate = LocalDate.now(ZoneOffset.UTC)
                 .minus(webAuthn.getExpireDevices(), DateTimeUtils.toChronoUnit(webAuthn.getExpireDevicesTimeUnit()));
             LOGGER.debug("Filtering devices based on device expiration date [{}]", expirationDate);
 
             val expInstant = expirationDate.atStartOfDay(ZoneOffset.UTC).toInstant();
-            val removingDevices = load()
-                .filter(d -> d.getRegistrationTime().isBefore(expInstant))
+            val removingDevices = stream()
+                .filter(Objects::nonNull)
+                .filter(d -> d.getRegistrationTime() != null && d.getRegistrationTime().isBefore(expInstant))
                 .collect(Collectors.toList());
             if (!removingDevices.isEmpty()) {
                 LOGGER.debug("There are [{}] expired device(s) remaining in repository. Cleaning...", removingDevices.size());
@@ -175,29 +161,6 @@ public abstract class BaseWebAuthnCredentialRepository implements WebAuthnCreden
             LoggingUtils.error(LOGGER, e);
         }
     }
-
-    @JsonDeserialize(builder = CredentialRegistration.CredentialRegistrationBuilder.class)
-    private static class CredentialRegistrationMixin {
-    }
-
-    @JsonPOJOBuilder(withPrefix = StringUtils.EMPTY)
-    private static class CredentialRegistrationBuilderMixin {
-    }
-
-    @JsonDeserialize(builder = RegisteredCredential.RegisteredCredentialBuilder.class)
-    private static class RegisteredCredentialMixin {
-    }
-
-    @JsonPOJOBuilder(withPrefix = StringUtils.EMPTY)
-    private static class RegisteredCredentialBuilderMixin {
-    }
-
-    /**
-     * Load records as stream.
-     *
-     * @return the stream
-     */
-    protected abstract Stream<CredentialRegistration> load();
 
     /**
      * Update records by user.

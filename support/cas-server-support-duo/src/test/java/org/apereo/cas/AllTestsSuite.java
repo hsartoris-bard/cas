@@ -1,15 +1,19 @@
 package org.apereo.cas;
 
-import org.apereo.cas.adaptors.duo.web.flow.DuoSecurityAuthenticationWebflowActionTests;
+import org.apereo.cas.adaptors.duo.authn.DuoSecurityMultifactorAuthenticationProviderFactoryTests;
+import org.apereo.cas.adaptors.duo.authn.UniversalPromptDuoSecurityAuthenticationServiceTests;
 import org.apereo.cas.adaptors.duo.web.flow.DuoSecurityAuthenticationWebflowEventResolverTests;
-import org.apereo.cas.adaptors.duo.web.flow.DuoSecurityDetermineUserAccountActionTests;
-import org.apereo.cas.adaptors.duo.web.flow.DuoSecurityDirectAuthenticationActionTests;
 import org.apereo.cas.adaptors.duo.web.flow.DuoSecurityMultifactorWebflowConfigurerTests;
-import org.apereo.cas.adaptors.duo.web.flow.DuoSecurityPrepareWebLoginFormActionTests;
+import org.apereo.cas.adaptors.duo.web.flow.DuoSecurityUniversalPromptMultifactorWebflowConfigurerTests;
+import org.apereo.cas.adaptors.duo.web.flow.action.DuoSecurityAuthenticationWebflowActionTests;
+import org.apereo.cas.adaptors.duo.web.flow.action.DuoSecurityDetermineUserAccountActionTests;
+import org.apereo.cas.adaptors.duo.web.flow.action.DuoSecurityDirectAuthenticationActionTests;
+import org.apereo.cas.adaptors.duo.web.flow.action.DuoSecurityPrepareWebLoginFormActionTests;
+import org.apereo.cas.adaptors.duo.web.flow.action.DuoSecurityUniversalPromptPrepareLoginActionTests;
+import org.apereo.cas.adaptors.duo.web.flow.action.DuoSecurityUniversalPromptValidateLoginActionTests;
 
-import org.junit.platform.runner.JUnitPlatform;
 import org.junit.platform.suite.api.SelectClasses;
-import org.junit.runner.RunWith;
+import org.junit.platform.suite.api.Suite;
 
 /**
  * This is {@link org.apereo.cas.AllTestsSuite}.
@@ -19,12 +23,17 @@ import org.junit.runner.RunWith;
  */
 @SelectClasses({
     DuoSecurityAuthenticationWebflowEventResolverTests.class,
+    DuoSecurityMultifactorAuthenticationProviderFactoryTests.class,
+    DuoSecurityUniversalPromptMultifactorWebflowConfigurerTests.class,
     DuoSecurityMultifactorWebflowConfigurerTests.class,
+    DuoSecurityUniversalPromptPrepareLoginActionTests.class,
+    DuoSecurityUniversalPromptValidateLoginActionTests.class,
+    UniversalPromptDuoSecurityAuthenticationServiceTests.class,
     DuoSecurityPrepareWebLoginFormActionTests.class,
     DuoSecurityDirectAuthenticationActionTests.class,
     DuoSecurityAuthenticationWebflowActionTests.class,
     DuoSecurityDetermineUserAccountActionTests.class
 })
-@RunWith(JUnitPlatform.class)
+@Suite
 public class AllTestsSuite {
 }

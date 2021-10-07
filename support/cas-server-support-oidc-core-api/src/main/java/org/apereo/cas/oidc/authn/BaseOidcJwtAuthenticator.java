@@ -33,30 +33,36 @@ import org.springframework.context.ApplicationContext;
  */
 @Slf4j
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
-public abstract class BaseOidcJwtAuthenticator implements Authenticator<UsernamePasswordCredentials> {
+public abstract class BaseOidcJwtAuthenticator implements Authenticator {
 
     /**
      * Services Manager.
      */
     protected final ServicesManager servicesManager;
+
     /**
      * Registered service access strategy.
      */
     protected final AuditableExecution registeredServiceAccessStrategyEnforcer;
+
     /**
      * Ticket registry.
      */
     protected final TicketRegistry ticketRegistry;
+
     /**
      * Web application service factory.
      */
     protected final ServiceFactory<WebApplicationService> webApplicationServiceServiceFactory;
+
     /**
      * CAS properties.
      */
     protected final CasConfigurationProperties casProperties;
 
-    /** Resource loader instance. */
+    /**
+     * Resource loader instance.
+     */
     protected final ApplicationContext applicationContext;
 
     /**
@@ -93,17 +99,13 @@ public abstract class BaseOidcJwtAuthenticator implements Authenticator<Username
         val code = webContext.getRequestParameter(OAuth20Constants.CODE)
             .map(String::valueOf).orElse(StringUtils.EMPTY);
         val oauthCode = ticketRegistry.getTicket(code, OAuth20Code.class);
-        if (oauthCode == null || oauthCode.isExpired()) {
-            LOGGER.error("Provided code [{}] is either not found in the ticket registry or has expired", code);
-            return null;
-        }
         val clientId = oauthCode.getClientId();
         val registeredService = (OidcRegisteredService)
             OAuth20Utils.getRegisteredOAuthServiceByClientId(this.servicesManager, clientId);
         val audit = AuditableContext.builder()
             .registeredService(registeredService)
             .build();
-        val accessResult = this.registeredServiceAccessStrategyEnforcer.execute(audit);
+        val accessResult = registeredServiceAccessStrategyEnforcer.execute(audit);
         if (accessResult.isExecutionFailure()) {
             return null;
         }

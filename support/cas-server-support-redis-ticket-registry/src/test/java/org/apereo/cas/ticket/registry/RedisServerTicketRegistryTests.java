@@ -1,6 +1,7 @@
 package org.apereo.cas.ticket.registry;
 
 import org.apereo.cas.authentication.CoreAuthenticationTestUtils;
+import org.apereo.cas.ticket.Ticket;
 import org.apereo.cas.ticket.TicketGrantingTicket;
 import org.apereo.cas.ticket.TicketGrantingTicketImpl;
 import org.apereo.cas.ticket.expiration.NeverExpiresExpirationPolicy;
@@ -10,6 +11,7 @@ import org.apereo.cas.util.junit.EnabledIfPortOpen;
 import lombok.val;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.function.Executable;
 import org.springframework.test.context.TestPropertySource;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -47,7 +49,24 @@ public class RedisServerTicketRegistryTests extends BaseRedisSentinelTicketRegis
         val ticket = secondRegistry.getTicket(ticketGrantingTicketId);
         assertNull(ticket);
         assertTrue(secondRegistry.getTickets().isEmpty());
-        assertEquals(0, getNewTicketRegistry().getTicketsStream().count());
+        assertEquals(0, getNewTicketRegistry().stream().count());
+    }
+
+    @RepeatedTest(1)
+    public void verifyFailure() {
+        val originalAuthn = CoreAuthenticationTestUtils.getAuthentication();
+        getNewTicketRegistry().addTicket(new TicketGrantingTicketImpl(ticketGrantingTicketId,
+            originalAuthn, NeverExpiresExpirationPolicy.INSTANCE));
+        assertNull(getNewTicketRegistry().getTicket(ticketGrantingTicketId, t -> {
+            throw new IllegalArgumentException();
+        }));
+        assertDoesNotThrow(new Executable() {
+            @Override
+            public void execute() {
+                getNewTicketRegistry().addTicket((Ticket) null);
+                getNewTicketRegistry().updateTicket(null);
+            }
+        });
     }
 
 }

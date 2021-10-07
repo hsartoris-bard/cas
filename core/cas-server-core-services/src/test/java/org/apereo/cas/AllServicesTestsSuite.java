@@ -7,6 +7,7 @@ import org.apereo.cas.authentication.principal.ShibbolethCompatiblePersistentIdG
 import org.apereo.cas.authentication.principal.SimpleWebApplicationServiceImplTests;
 import org.apereo.cas.authentication.principal.WebApplicationServiceFactoryTests;
 import org.apereo.cas.config.CasServiceRegistryInitializationConfigurationTests;
+import org.apereo.cas.config.DomainServicesManagerConfigurationTests;
 import org.apereo.cas.services.AnonymousRegisteredServiceUsernameAttributeProviderTests;
 import org.apereo.cas.services.ChainingRegisteredServiceSingleSignOnParticipationPolicyTests;
 import org.apereo.cas.services.ChainingServicesManagerTests;
@@ -19,6 +20,7 @@ import org.apereo.cas.services.DefaultRegisteredServiceProxyTicketExpirationPoli
 import org.apereo.cas.services.DefaultRegisteredServiceServiceTicketExpirationPolicyTests;
 import org.apereo.cas.services.DefaultRegisteredServiceUsernameProviderTests;
 import org.apereo.cas.services.DefaultServicesManagerByEnvironmentTests;
+import org.apereo.cas.services.DefaultServicesManagerCachingTests;
 import org.apereo.cas.services.DefaultServicesManagerRegisteredServiceLocatorTests;
 import org.apereo.cas.services.DefaultServicesManagerTests;
 import org.apereo.cas.services.FullRegexRegisteredServiceMatchingStrategyTests;
@@ -37,6 +39,7 @@ import org.apereo.cas.services.RegisteredServiceAccessStrategyUtilsTests;
 import org.apereo.cas.services.RegisteredServiceAuthenticationHandlerResolverTests;
 import org.apereo.cas.services.RegisteredServiceAuthenticationPolicyResolverTests;
 import org.apereo.cas.services.RegisteredServicePublicKeyImplTests;
+import org.apereo.cas.services.RegisteredServiceTests;
 import org.apereo.cas.services.RegisteredServicesEventListenerTests;
 import org.apereo.cas.services.RemoteEndpointServiceAccessStrategyTests;
 import org.apereo.cas.services.ReturnEncryptedAttributeReleasePolicyTests;
@@ -55,9 +58,8 @@ import org.apereo.cas.services.support.RegisteredServiceScriptedAttributeFilterT
 import org.apereo.cas.services.util.RegisteredServiceJsonSerializerTests;
 import org.apereo.cas.services.util.RegisteredServiceYamlSerializerTests;
 
-import org.junit.platform.runner.JUnitPlatform;
 import org.junit.platform.suite.api.SelectClasses;
-import org.junit.runner.RunWith;
+import org.junit.platform.suite.api.Suite;
 
 /**
  * This is {@link AllServicesTestsSuite}.
@@ -90,6 +92,7 @@ import org.junit.runner.RunWith;
     UnauthorizedServiceExceptionTests.class,
     UnauthorizedSsoServiceExceptionTests.class,
     ResponseTests.class,
+    DefaultServicesManagerCachingTests.class,
     GroovyAuthenticationHandlerResolverTests.class,
     RegisteredServicesEventListenerTests.class,
     DefaultRegisteredServiceDomainExtractorTests.class,
@@ -105,6 +108,7 @@ import org.junit.runner.RunWith;
     CasServiceRegistryInitializationConfigurationTests.class,
     DefaultRegisteredServiceAuthenticationPolicyTests.class,
     UnauthorizedProxyingExceptionTests.class,
+    RegisteredServiceTests.class,
     LiteralRegisteredServiceMatchingStrategyTests.class,
     PartialRegexRegisteredServiceMatchingStrategyTests.class,
     FullRegexRegisteredServiceMatchingStrategyTests.class,
@@ -122,8 +126,9 @@ import org.junit.runner.RunWith;
     RegisteredServiceScriptedAttributeFilterTests.class,
     GroovyRegisteredServiceAccessStrategyTests.class,
     ChainingServicesManagerTests.class,
+    DomainServicesManagerConfigurationTests.class,
     RegisteredServiceJsonSerializerTests.class
 })
-@RunWith(JUnitPlatform.class)
+@Suite
 public class AllServicesTestsSuite {
 }

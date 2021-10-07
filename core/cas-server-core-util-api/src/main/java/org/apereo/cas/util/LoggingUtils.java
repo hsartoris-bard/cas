@@ -1,8 +1,12 @@
 package org.apereo.cas.util;
 
 import lombok.experimental.UtilityClass;
+import lombok.val;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
+
+import java.util.Objects;
 
 /**
  * This is {@link LoggingUtils}.
@@ -12,6 +16,15 @@ import org.slf4j.Logger;
  */
 @UtilityClass
 public class LoggingUtils {
+    /**
+     * Error.
+     *
+     * @param logger the logger
+     * @param msg    the msg
+     */
+    public static void error(final Logger logger, final String msg) {
+        logger.error(msg);
+    }
 
     /**
      * Error.
@@ -21,11 +34,7 @@ public class LoggingUtils {
      * @param throwable the throwable
      */
     public static void error(final Logger logger, final String msg, final Throwable throwable) {
-        if (logger.isDebugEnabled()) {
-            logger.error(msg, throwable);
-        } else {
-            logger.error(msg);
-        }
+        logger.error(msg, throwable);
     }
 
     /**
@@ -34,8 +43,8 @@ public class LoggingUtils {
      * @param logger    the logger
      * @param throwable the throwable
      */
-    public void error(final Logger logger, final Throwable throwable) {
-        error(logger, StringUtils.defaultIfEmpty(throwable.getMessage(), throwable.getClass().getSimpleName()), throwable);
+    public static void error(final Logger logger, final Throwable throwable) {
+        error(logger, getMessage(throwable), throwable);
     }
 
     /**
@@ -44,12 +53,8 @@ public class LoggingUtils {
      * @param logger    the logger
      * @param throwable the throwable
      */
-    public void warn(final Logger logger, final Throwable throwable) {
-        if (logger.isDebugEnabled()) {
-            logger.warn(throwable.getMessage(), throwable);
-        } else {
-            logger.warn(throwable.getMessage());
-        }
+    public static void warn(final Logger logger, final Throwable throwable) {
+        warn(logger, getMessage(throwable), throwable);
     }
 
     /**
@@ -59,12 +64,24 @@ public class LoggingUtils {
      * @param message   the message
      * @param throwable the throwable
      */
-    public void warn(final Logger logger, final String message, final Throwable throwable) {
-        if (logger.isDebugEnabled()) {
-            logger.warn(message, throwable);
-        } else {
-            logger.warn(message);
+    public static void warn(final Logger logger, final String message, final Throwable throwable) {
+        logger.warn(message, throwable);
+    }
+
+    /**
+     * Get first non-null exception message, and return class name if all messages null.
+     * @param throwable Top level throwable
+     * @return String containing first non-null exception message, or Throwable simple class name
+     */
+    static String getMessage(final Throwable throwable) {
+        if (StringUtils.isEmpty(throwable.getMessage())) {
+            val message = ExceptionUtils.getThrowableList(throwable)
+                    .stream().map(Throwable::getMessage).filter(Objects::nonNull).findFirst();
+            if (message.isPresent()) {
+                return message.get();
+            }
         }
+        return StringUtils.defaultIfEmpty(throwable.getMessage(), throwable.getClass().getSimpleName());
     }
 
 }

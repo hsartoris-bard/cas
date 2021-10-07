@@ -10,8 +10,8 @@ import org.apereo.cas.services.resource.RegisteredServiceResourceNamingStrategy;
 import org.apereo.cas.util.function.FunctionUtils;
 import org.apereo.cas.util.io.WatcherService;
 
-import lombok.SneakyThrows;
 import lombok.val;
+import org.jooq.lambda.Unchecked;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -53,8 +53,8 @@ public class YamlServiceRegistryConfiguration {
 
     @Bean
     @RefreshScope
-    @SneakyThrows
-    public ServiceRegistry yamlServiceRegistry() {
+    @ConditionalOnMissingBean(name = "yamlServiceRegistry")
+    public ServiceRegistry yamlServiceRegistry() throws Exception {
         val registry = casProperties.getServiceRegistry();
         val yaml = new YamlServiceRegistry(registry.getYaml().getLocation(),
             WatcherService.noOp(),
@@ -62,7 +62,7 @@ public class YamlServiceRegistryConfiguration {
             registeredServiceReplicationStrategy.getObject(),
             resourceNamingStrategy.getObject(),
             serviceRegistryListeners.getObject());
-        if (registry.isWatcherEnabled()) {
+        if (registry.getYaml().isWatcherEnabled()) {
             yaml.enableDefaultWatcherService();
         }
         return yaml;
@@ -73,6 +73,7 @@ public class YamlServiceRegistryConfiguration {
     @RefreshScope
     public ServiceRegistryExecutionPlanConfigurer yamlServiceRegistryExecutionPlanConfigurer() {
         val registry = casProperties.getServiceRegistry().getYaml();
-        return plan -> FunctionUtils.doIfNotNull(registry.getLocation(), input -> plan.registerServiceRegistry(yamlServiceRegistry()));
+        return plan -> FunctionUtils.doIfNotNull(registry.getLocation(),
+            Unchecked.consumer(input -> plan.registerServiceRegistry(yamlServiceRegistry())));
     }
 }

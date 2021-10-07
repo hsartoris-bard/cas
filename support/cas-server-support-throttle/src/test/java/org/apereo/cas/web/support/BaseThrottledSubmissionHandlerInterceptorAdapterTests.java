@@ -4,7 +4,7 @@ import org.apereo.cas.audit.spi.config.CasCoreAuditConfiguration;
 import org.apereo.cas.authentication.AuthenticationException;
 import org.apereo.cas.authentication.AuthenticationManager;
 import org.apereo.cas.authentication.CoreAuthenticationTestUtils;
-import org.apereo.cas.authentication.DefaultAuthenticationTransaction;
+import org.apereo.cas.authentication.DefaultAuthenticationTransactionFactory;
 import org.apereo.cas.authentication.credential.UsernamePasswordCredential;
 import org.apereo.cas.config.CasCoreAuthenticationConfiguration;
 import org.apereo.cas.config.CasCoreAuthenticationHandlersConfiguration;
@@ -57,7 +57,6 @@ import org.springframework.webflow.execution.Event;
 import org.springframework.webflow.test.MockRequestContext;
 
 import javax.servlet.http.HttpServletResponse;
-
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -118,6 +117,8 @@ public abstract class BaseThrottledSubmissionHandlerInterceptorAdapterTests {
         failLoop(3, 1000, HttpStatus.SC_UNAUTHORIZED);
     }
 
+    public abstract ThrottledSubmissionHandlerInterceptor getThrottle();
+
     @SneakyThrows
     protected void failLoop(final int trials, final int period, final int expected) {
         /* Seed with something to compare against */
@@ -149,16 +150,17 @@ public abstract class BaseThrottledSubmissionHandlerInterceptorAdapterTests {
         getThrottle().preHandle(request, response, null);
 
         try {
-            val transaction = DefaultAuthenticationTransaction.of(CoreAuthenticationTestUtils.getService(), badCredentials(username));
+            val transaction = new DefaultAuthenticationTransactionFactory()
+                .newTransaction(CoreAuthenticationTestUtils.getService(), badCredentials(username));
             authenticationManager.authenticate(transaction);
         } catch (final AuthenticationException e) {
             getThrottle().postHandle(request, response, null, null);
             return response;
+        } finally {
+            getThrottle().afterCompletion(request, response, null, null);
         }
         throw new AssertionError("Expected AbstractAuthenticationException");
     }
-
-    public abstract ThrottledSubmissionHandlerInterceptor getThrottle();
 
     @ImportAutoConfiguration({
         RefreshAutoConfiguration.class,

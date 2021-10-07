@@ -3,6 +3,7 @@ package org.apereo.cas.services;
 import org.apereo.cas.authentication.principal.Response;
 import org.apereo.cas.authentication.principal.Service;
 import org.apereo.cas.authentication.principal.WebApplicationService;
+import org.apereo.cas.configuration.support.ExpressionLanguageCapable;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -56,6 +57,14 @@ public interface RegisteredService extends Serializable, Comparable<RegisteredSe
      */
     RegisteredServiceMatchingStrategy getMatchingStrategy();
 
+
+    /**
+     * Gets interrupt policy that is assigned to this service.
+     *
+     * @return the interrupt policy
+     */
+    RegisteredServiceWebflowInterruptPolicy getWebflowInterruptPolicy();
+
     /**
      * The unique identifier for this service.
      *
@@ -72,7 +81,8 @@ public interface RegisteredService extends Serializable, Comparable<RegisteredSe
     long getId();
 
     /**
-     * Sets the identifier for this service. Use {@link #INITIAL_IDENTIFIER_VALUE} to indicate a branch new service definition.
+     * Sets the identifier for this service. Use {@link #INITIAL_IDENTIFIER_VALUE} to
+     * indicate a branch new service definition.
      *
      * @param id the numeric identifier for the service.
      */
@@ -91,7 +101,16 @@ public interface RegisteredService extends Serializable, Comparable<RegisteredSe
      *
      * @return the theme name associated with this service.
      */
+    @ExpressionLanguageCapable
     String getTheme();
+
+    /**
+     * Returns a locale name to be activated when this service is used.
+     *
+     * @return the locale name associated with this service.
+     */
+    @ExpressionLanguageCapable
+    String getLocale();
 
     /**
      * Returns the description of the service.
@@ -350,8 +369,6 @@ public interface RegisteredService extends Serializable, Comparable<RegisteredSe
         return this.getClass().getSimpleName();
     }
     
-    
-
     /**
      * Initialize the registered service instance by defaulting fields to specific
      * values or object instances, etc.

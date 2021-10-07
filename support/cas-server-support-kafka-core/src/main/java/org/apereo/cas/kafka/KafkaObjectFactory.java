@@ -21,9 +21,9 @@ import java.util.Map;
 /**
  * This is {@link KafkaObjectFactory}.
  *
+ * @author Misagh Moayyed
  * @param <K> the type parameter
  * @param <V> the type parameter
- * @author Misagh Moayyed
  * @since 6.2.0
  */
 @RequiredArgsConstructor
@@ -106,7 +106,7 @@ public class KafkaObjectFactory<K, V> {
      */
     public KafkaTemplate<K, V> getKafkaTemplate(final Serializer<K> keySerializer,
                                                 final Serializer<V> valueSerializer) {
-        val producerFactory = new DefaultKafkaProducerFactory<K, V>(getProducerConfiguration(), keySerializer, valueSerializer);
+        val producerFactory = new DefaultKafkaProducerFactory<>(getProducerConfiguration(), keySerializer, valueSerializer);
         return new KafkaTemplate<>(producerFactory);
     }
 }

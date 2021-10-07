@@ -22,9 +22,9 @@ import org.springframework.webflow.definition.registry.FlowDefinitionRegistry;
         "cas.authn.mfa.swivel.shared-secret=$ecret",
         "cas.authn.mfa.swivel.ignore-ssl-errors=true",
         "cas.authn.mfa.swivel.trusted-device-enabled=true",
-        "cas.authn.mfa.trusted.device-registration-enabled=true"
+        "cas.authn.mfa.trusted.core.device-registration-enabled=true"
     })
-@Tag("WebflowConfig")
+@Tag("WebflowMfaConfig")
 @Getter
 public class SwivelMultifactorWebflowConfigurerTests extends BaseMultifactorWebflowConfigurerTests {
     @Autowired

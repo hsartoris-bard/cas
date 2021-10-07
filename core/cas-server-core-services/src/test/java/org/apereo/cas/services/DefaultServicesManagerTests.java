@@ -4,6 +4,8 @@ import lombok.val;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import java.util.UUID;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -14,6 +16,34 @@ import static org.junit.jupiter.api.Assertions.*;
 public class DefaultServicesManagerTests extends AbstractServicesManagerTests<DefaultServicesManager> {
 
     private static final String TEST = "test";
+
+    @Test
+    public void verifyFindByName() {
+        val service = new RegexRegisteredService();
+        service.setId(6100);
+        service.setName(TEST);
+        service.setServiceId(TEST);
+
+        assertNull(servicesManager.findServiceByName(null));
+
+        serviceRegistry.save(service);
+        assertNotNull(servicesManager.findServiceByName(service.getName()));
+        assertNotEquals(servicesManager.stream().count(), 0);
+        assertEquals(1, servicesManager.getDomains().count());
+        assertFalse(servicesManager.getServicesForDomain(UUID.randomUUID().toString()).isEmpty());
+    }
+
+    @Test
+    public void verifyFindByNameAndType() {
+        val service = new RegexRegisteredService();
+        service.setId(6200);
+        service.setName(TEST);
+        service.setServiceId(TEST);
+
+        serviceRegistry.save(service);
+        assertNotNull(servicesManager.findServiceByName(service.getName(), RegexRegisteredService.class));
+        assertNotEquals(servicesManager.stream().count(), 0);
+    }
 
     @Test
     public void verifySaveAndRemoveFromCache() throws InterruptedException {

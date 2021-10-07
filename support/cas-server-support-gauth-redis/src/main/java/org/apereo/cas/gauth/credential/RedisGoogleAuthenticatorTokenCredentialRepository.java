@@ -119,6 +119,14 @@ public class RedisGoogleAuthenticatorTokenCredentialRepository extends BaseGoogl
     }
 
     @Override
+    public void delete(final long id) {
+        val redisKey = getGoogleAuthenticatorTokenKeys("*", String.valueOf(id));
+        LOGGER.trace("Deleting tokens using key [{}]", redisKey);
+        this.template.delete(redisKey);
+        LOGGER.trace("Deleted tokens");
+    }
+
+    @Override
     public long count() {
         val keys = getGoogleAuthenticatorTokenKeys();
         return keys.size();
@@ -131,11 +139,11 @@ public class RedisGoogleAuthenticatorTokenCredentialRepository extends BaseGoogl
     }
 
     private static String getGoogleAuthenticatorRedisKey(final OneTimeTokenAccount account) {
-        return CAS_PREFIX + KEY_SEPARATOR + account.getUsername() + KEY_SEPARATOR + account.getId();
+        return CAS_PREFIX + KEY_SEPARATOR + account.getUsername().trim().toLowerCase() + KEY_SEPARATOR + account.getId();
     }
 
     private Set<String> getGoogleAuthenticatorTokenKeys(final String username, final String id) {
-        val key = CAS_PREFIX + KEY_SEPARATOR + username + KEY_SEPARATOR + id;
+        val key = CAS_PREFIX + KEY_SEPARATOR + username.trim().toLowerCase() + KEY_SEPARATOR + id;
         LOGGER.trace("Fetching Google Authenticator records based on key [{}]", key);
         return this.template.keys(key);
     }

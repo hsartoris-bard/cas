@@ -59,6 +59,11 @@ public interface OAuth20Constants {
     String CLAIMS = "claims";
 
     /**
+     * {@code userinfo} claims found as claims request parameter.
+     */
+    String CLAIMS_USERINFO = "userinfo";
+
+    /**
      * The request passed as a jwt.
      */
     String REQUEST = "request";
@@ -112,6 +117,26 @@ public interface OAuth20Constants {
      * The error.
      */
     String ERROR = "error";
+
+    /**
+     * The error description.
+     */
+    String ERROR_DESCRIPTION = "error_description";
+
+    /**
+     * The error with callback.
+     */
+    String ERROR_WITH_CALLBACK = "error_with_callback";
+
+    /**
+     * Request parameter is not supported.
+     */
+    String REQUEST_NOT_SUPPORTED = "request_not_supported";
+
+    /**
+     * Unsupported response_type error.
+     */
+    String UNSUPPORTED_RESPONSE_TYPE = "unsupported_response_type";
 
     /**
      * The state.

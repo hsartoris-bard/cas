@@ -86,7 +86,7 @@ import static org.mockito.Mockito.*;
     CasCoreServicesConfiguration.class,
     CasWebApplicationServiceFactoryConfiguration.class
 })
-@Tag("Authentication")
+@Tag("AuthenticationPolicy")
 public class AuthenticationPolicyAwareServiceTicketValidationAuthorizerTests {
     @Autowired
     @Qualifier("servicesManager")
@@ -215,7 +215,7 @@ public class AuthenticationPolicyAwareServiceTicketValidationAuthorizerTests {
 
     private ServiceTicketValidationAuthorizer getAuthorizer(final AuthenticationPolicy policy,
         final List<? extends AuthenticationHandler> authenticationHandlers) {
-        val plan = new DefaultAuthenticationEventExecutionPlan();
+        val plan = new DefaultAuthenticationEventExecutionPlan(CoreAuthenticationTestUtils.getAuthenticationSystemSupport());
         plan.registerAuthenticationHandlers(authenticationHandlers);
         plan.registerAuthenticationPolicy(policy);
         return new AuthenticationPolicyAwareServiceTicketValidationAuthorizer(servicesManager, plan, applicationContext);

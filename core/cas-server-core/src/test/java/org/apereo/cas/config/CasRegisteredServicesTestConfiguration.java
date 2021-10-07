@@ -12,6 +12,7 @@ import org.apereo.cas.services.DefaultRegisteredServiceDelegatedAuthenticationPo
 import org.apereo.cas.services.DefaultRegisteredServiceProperty;
 import org.apereo.cas.services.DefaultRegisteredServiceUsernameProvider;
 import org.apereo.cas.services.PrincipalAttributeRegisteredServiceUsernameProvider;
+import org.apereo.cas.services.RefuseRegisteredServiceProxyPolicy;
 import org.apereo.cas.services.RegexMatchingRegisteredServiceProxyPolicy;
 import org.apereo.cas.services.RegisteredServiceProperty;
 import org.apereo.cas.services.RegisteredServicePublicKeyImpl;
@@ -21,7 +22,6 @@ import org.apereo.cas.services.ReturnAllowedAttributeReleasePolicy;
 import org.apereo.cas.services.consent.DefaultRegisteredServiceConsentPolicy;
 import org.apereo.cas.util.CollectionUtils;
 
-import lombok.SneakyThrows;
 import lombok.val;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -50,8 +50,7 @@ public class CasRegisteredServicesTestConfiguration {
 
     @ConditionalOnMissingBean(name = "inMemoryRegisteredServices")
     @Bean
-    @SneakyThrows
-    public List inMemoryRegisteredServices() {
+    public List inMemoryRegisteredServices() throws Exception {
         val l = new ArrayList<>();
 
         val svc = RegisteredServiceTestUtils.getRegisteredService("testencryption$");
@@ -104,6 +103,7 @@ public class CasRegisteredServicesTestConfiguration {
         svc6.setUsernameAttributeProvider(new PrincipalAttributeRegisteredServiceUsernameProvider("eduPersonAffiliation"));
         svc6.setAttributeReleasePolicy(new ReturnAllAttributeReleasePolicy());
         svc6.setAccessStrategy(new DefaultRegisteredServiceAccessStrategy(new HashMap<>()));
+        svc6.setProxyPolicy(new RefuseRegisteredServiceProxyPolicy());
         l.add(svc6);
 
         val svc7 = RegisteredServiceTestUtils.getRegisteredService("testencryption$");

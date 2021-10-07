@@ -10,8 +10,8 @@ import org.apereo.cas.services.resource.RegisteredServiceResourceNamingStrategy;
 import org.apereo.cas.util.function.FunctionUtils;
 import org.apereo.cas.util.io.WatcherService;
 
-import lombok.SneakyThrows;
 import lombok.val;
+import org.jooq.lambda.Unchecked;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -56,9 +56,9 @@ public class JsonServiceRegistryConfiguration {
     private ObjectProvider<Collection<ServiceRegistryListener>> serviceRegistryListeners;
 
     @Bean
-    @SneakyThrows
     @RefreshScope
-    public ServiceRegistry jsonServiceRegistry() {
+    @ConditionalOnMissingBean(name = "jsonServiceRegistry")
+    public ServiceRegistry jsonServiceRegistry() throws Exception {
         val registry = casProperties.getServiceRegistry();
         val json = new JsonServiceRegistry(registry.getJson().getLocation(),
             WatcherService.noOp(),
@@ -66,7 +66,7 @@ public class JsonServiceRegistryConfiguration {
             registeredServiceReplicationStrategy.getObject(),
             resourceNamingStrategy.getObject(),
             serviceRegistryListeners.getObject());
-        if (registry.isWatcherEnabled()) {
+        if (registry.getJson().isWatcherEnabled()) {
             json.enableDefaultWatcherService();
         }
         return json;
@@ -77,6 +77,7 @@ public class JsonServiceRegistryConfiguration {
     @ConditionalOnMissingBean(name = "jsonServiceRegistryExecutionPlanConfigurer")
     public ServiceRegistryExecutionPlanConfigurer jsonServiceRegistryExecutionPlanConfigurer() {
         val registry = casProperties.getServiceRegistry().getJson();
-        return plan -> FunctionUtils.doIfNotNull(registry.getLocation(), input -> plan.registerServiceRegistry(jsonServiceRegistry()));
+        return plan -> FunctionUtils.doIfNotNull(registry.getLocation(),
+            Unchecked.consumer(input -> plan.registerServiceRegistry(jsonServiceRegistry())));
     }
 }

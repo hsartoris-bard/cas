@@ -8,6 +8,7 @@ import org.apereo.cas.ticket.registry.TicketRegistry;
 import org.apereo.cas.ticket.registry.TicketRegistryCleaner;
 import org.apereo.cas.ticket.registry.support.LockingStrategy;
 import org.apereo.cas.util.LoggingUtils;
+import org.apereo.cas.util.spring.boot.ConditionalOnMatchingHostname;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,7 +48,7 @@ public class CasCoreTicketsSchedulingConfiguration {
     private ObjectProvider<LockingStrategy> lockingStrategy;
 
     @Autowired
-    @Qualifier("logoutManager")
+    @Qualifier(LogoutManager.DEFAULT_BEAN_NAME)
     private ObjectProvider<LogoutManager> logoutManager;
 
     @Autowired
@@ -75,6 +76,7 @@ public class CasCoreTicketsSchedulingConfiguration {
 
     @ConditionalOnMissingBean(name = "ticketRegistryCleanerScheduler")
     @ConditionalOnProperty(prefix = "cas.ticket.registry.cleaner.schedule", name = "enabled", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnMatchingHostname(name = "cas.ticket.registry.cleaner.schedule.enabled-on-host")
     @Bean
     @RefreshScope
     @Autowired
@@ -87,7 +89,7 @@ public class CasCoreTicketsSchedulingConfiguration {
     /**
      * The Ticket registry cleaner scheduler. Because the cleaner itself is marked
      * with {@link org.springframework.transaction.annotation.Transactional},
-     * we need to create a separate scheduler component that simply invokes it
+     * we need to create a separate scheduler component that invokes it
      * so that {@link Scheduled} annotations can be processed and not interfere
      * with transaction semantics of the cleaner.
      */

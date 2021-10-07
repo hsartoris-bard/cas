@@ -9,7 +9,6 @@ import org.apereo.cas.util.crypto.CipherExecutor;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
-import lombok.SneakyThrows;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.ObjectProvider;
@@ -52,7 +51,6 @@ public class U2FDynamoDbConfiguration {
 
     @RefreshScope
     @Bean
-    @SneakyThrows
     @ConditionalOnMissingBean(name = "u2fDynamoDbClient")
     public DynamoDbClient u2fDynamoDbClient() {
         val db = casProperties.getAuthn().getMfa().getU2f().getDynamoDb();
@@ -67,9 +65,9 @@ public class U2FDynamoDbConfiguration {
         val u2f = casProperties.getAuthn().getMfa().getU2f();
         final LoadingCache<String, String> requestStorage =
             Caffeine.newBuilder()
-                .expireAfterWrite(u2f.getExpireRegistrations(), u2f.getExpireRegistrationsTimeUnit())
+                .expireAfterWrite(u2f.getCore().getExpireRegistrations(), u2f.getCore().getExpireRegistrationsTimeUnit())
                 .build(key -> StringUtils.EMPTY);
         return new U2FDynamoDbDeviceRepository(requestStorage, u2fRegistrationRecordCipherExecutor.getObject(),
-            u2f.getExpireDevices(), u2f.getExpireDevicesTimeUnit(), u2fDynamoDbFacilitator);
+            u2f.getCore().getExpireDevices(), u2f.getCore().getExpireDevicesTimeUnit(), u2fDynamoDbFacilitator);
     }
 }

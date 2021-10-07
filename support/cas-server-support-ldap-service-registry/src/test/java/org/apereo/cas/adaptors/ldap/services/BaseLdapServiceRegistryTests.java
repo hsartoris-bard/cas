@@ -4,6 +4,8 @@ import org.apereo.cas.adaptors.ldap.services.config.LdapServiceRegistryConfigura
 import org.apereo.cas.config.CasCoreNotificationsConfiguration;
 import org.apereo.cas.config.CasCoreServicesConfiguration;
 import org.apereo.cas.config.CasCoreUtilConfiguration;
+import org.apereo.cas.config.CasCoreWebConfiguration;
+import org.apereo.cas.config.support.CasWebApplicationServiceFactoryConfiguration;
 import org.apereo.cas.services.AbstractRegisteredService;
 import org.apereo.cas.services.AbstractServiceRegistryTests;
 import org.apereo.cas.services.RegexRegisteredService;
@@ -12,7 +14,9 @@ import org.apereo.cas.services.ServiceRegistry;
 
 import lombok.Getter;
 import lombok.val;
+import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +24,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.test.annotation.DirtiesContext;
 
 import java.util.stream.Stream;
 
@@ -33,10 +36,11 @@ import static org.junit.jupiter.api.Assertions.*;
  * @since 5.3.0
  */
 @EnableScheduling
-@DirtiesContext
 @SpringBootTest(classes = {
     LdapServiceRegistryConfiguration.class,
     CasCoreServicesConfiguration.class,
+    CasCoreWebConfiguration.class,
+    CasWebApplicationServiceFactoryConfiguration.class,
     CasCoreUtilConfiguration.class,
     CasCoreNotificationsConfiguration.class,
     RefreshAutoConfiguration.class
@@ -45,6 +49,7 @@ import static org.junit.jupiter.api.Assertions.*;
     "cas.service-registry.ldap.base-dn=dc=example,dc=org"
 })
 @Getter
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public abstract class BaseLdapServiceRegistryTests extends AbstractServiceRegistryTests {
 
     @Autowired

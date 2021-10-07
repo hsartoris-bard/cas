@@ -5,7 +5,8 @@ import org.apereo.cas.authentication.principal.ServiceFactory;
 import org.apereo.cas.authentication.principal.ServiceFactoryConfigurer;
 import org.apereo.cas.authentication.principal.WebApplicationService;
 import org.apereo.cas.configuration.CasConfigurationProperties;
-import org.apereo.cas.web.ProtocolEndpointConfigurer;
+import org.apereo.cas.web.CasYamlHttpMessageConverter;
+import org.apereo.cas.web.ProtocolEndpointWebSecurityConfigurer;
 import org.apereo.cas.web.SimpleUrlValidatorFactoryBean;
 import org.apereo.cas.web.UrlValidator;
 import org.apereo.cas.web.support.ArgumentExtractor;
@@ -19,6 +20,7 @@ import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.config.PropertiesFactoryBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.context.HierarchicalMessageSource;
@@ -27,6 +29,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.AnnotationAwareOrderComparator;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
+import org.springframework.http.converter.HttpMessageConverter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -89,6 +92,7 @@ public class CasCoreWebConfiguration {
 
     @Autowired
     @Bean
+    @ConditionalOnMissingBean(name = "argumentExtractor")
     public ArgumentExtractor argumentExtractor(final List<ServiceFactoryConfigurer> configurers) {
         val serviceFactoryList = new ArrayList<ServiceFactory<? extends WebApplicationService>>();
         configurers.forEach(c -> serviceFactoryList.addAll(c.buildServiceFactories()));
@@ -98,24 +102,37 @@ public class CasCoreWebConfiguration {
 
     @Bean
     @RefreshScope
+    @ConditionalOnMissingBean(name = "urlValidator")
     public FactoryBean<UrlValidator> urlValidator() {
         val httpClient = this.casProperties.getHttpClient();
-        val allowLocalLogoutUrls = httpClient.isAllowLocalLogoutUrls();
-        val authorityValidationRegEx = httpClient.getAuthorityValidationRegEx();
+        val allowLocalLogoutUrls = httpClient.isAllowLocalUrls();
+        val authorityValidationRegEx = httpClient.getAuthorityValidationRegex();
         val authorityValidationRegExCaseSensitive = httpClient.isAuthorityValidationRegExCaseSensitive();
         return new SimpleUrlValidatorFactoryBean(allowLocalLogoutUrls, authorityValidationRegEx, authorityValidationRegExCaseSensitive);
     }
 
     @Bean
-    public ProtocolEndpointConfigurer casProtocolEndpointConfigurer() {
-        return () -> List.of(
-            StringUtils.prependIfMissing(CasProtocolConstants.ENDPOINT_LOGIN, "/"),
-            StringUtils.prependIfMissing(CasProtocolConstants.ENDPOINT_LOGOUT, "/"),
-            StringUtils.prependIfMissing(CasProtocolConstants.ENDPOINT_VALIDATE, "/"),
-            StringUtils.prependIfMissing(CasProtocolConstants.ENDPOINT_SERVICE_VALIDATE, "/"),
-            StringUtils.prependIfMissing(CasProtocolConstants.ENDPOINT_SERVICE_VALIDATE_V3, "/"),
-            StringUtils.prependIfMissing(CasProtocolConstants.ENDPOINT_PROXY_VALIDATE, "/"),
-            StringUtils.prependIfMissing(CasProtocolConstants.ENDPOINT_PROXY_VALIDATE_V3, "/"),
-            StringUtils.prependIfMissing(CasProtocolConstants.ENDPOINT_PROXY, "/"));
+    @ConditionalOnMissingBean(name = "yamlHttpMessageConverter")
+    public HttpMessageConverter yamlHttpMessageConverter() {
+        return new CasYamlHttpMessageConverter();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(name = "casProtocolEndpointConfigurer")
+    public ProtocolEndpointWebSecurityConfigurer<Void> casProtocolEndpointConfigurer() {
+        return new ProtocolEndpointWebSecurityConfigurer<>() {
+            @Override
+            public List<String> getIgnoredEndpoints() {
+                return List.of(
+                    StringUtils.prependIfMissing(CasProtocolConstants.ENDPOINT_LOGIN, "/"),
+                    StringUtils.prependIfMissing(CasProtocolConstants.ENDPOINT_LOGOUT, "/"),
+                    StringUtils.prependIfMissing(CasProtocolConstants.ENDPOINT_VALIDATE, "/"),
+                    StringUtils.prependIfMissing(CasProtocolConstants.ENDPOINT_SERVICE_VALIDATE, "/"),
+                    StringUtils.prependIfMissing(CasProtocolConstants.ENDPOINT_SERVICE_VALIDATE_V3, "/"),
+                    StringUtils.prependIfMissing(CasProtocolConstants.ENDPOINT_PROXY_VALIDATE, "/"),
+                    StringUtils.prependIfMissing(CasProtocolConstants.ENDPOINT_PROXY_VALIDATE_V3, "/"),
+                    StringUtils.prependIfMissing(CasProtocolConstants.ENDPOINT_PROXY, "/"));
+            }
+        };
     }
 }

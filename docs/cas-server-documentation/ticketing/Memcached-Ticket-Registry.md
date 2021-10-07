@@ -4,17 +4,14 @@ title: CAS - Memcached Ticket Registry
 category: Ticketing
 ---
 
+{% include variables.html %}
+
 # Memcached Ticket Registry
 
 Memcached integration is enabled by including the following dependency in the WAR overlay:
 
-```xml
-<dependency>
-    <groupId>org.apereo.cas</groupId>
-    <artifactId>cas-server-support-memcached-ticket-registry</artifactId>
-    <version>${cas.version}</version>
-</dependency>
-```
+{% include_cached casmodule.html group="org.apereo.cas" 
+module="cas-server-support-memcached-ticket-registry,cas-server-support-memcached-core" %}
 
 This registry stores tickets in one or more [memcached](http://memcached.org/) instances. 
 Memcached stores data in exactly one node among many in a distributed cache, thus avoiding the requirement to replicate
@@ -30,6 +27,11 @@ Note that a change in the set of available cache nodes may produce a different t
 
 The actual memcached implementation may be supported via one of the following options, expected to be defined in the overlay.
 
+<div class="alert alert-warning"><strong>Usage Warning!</strong><p>Not all ticket 
+registry operations are supported by the memcached ticket registry implementation. In particular, operations
+that execute bulk queries such as deleting and fetching all tickets in a single request may be unsupported,
+as memcached itself is rather unable to process and support that type of query.</p></div>
+
 ##  Spymemcached
 
 Enable support via the [spymemcached library](https://code.google.com/p/spymemcached/). This is a simple, asynchronous, 
@@ -37,13 +39,7 @@ single-threaded memcached client that should be the default choice for the major
 
 Support is enabled by including the following dependency in the WAR overlay:
 
-```xml
-<dependency>
-    <groupId>org.apereo.cas</groupId>
-    <artifactId>cas-server-support-memcached-spy</artifactId>
-    <version>${cas.version}</version>
-</dependency>
-```
+{% include_cached casmodule.html group="org.apereo.cas" module="cas-server-support-memcached-spy" %}
 
 ## AWS ElastiCache
 
@@ -65,13 +61,7 @@ This metadata is updated whenever nodes are added or removed from the cluster.
 
 Support is enabled by including the following dependency in the WAR overlay:
 
-```xml
-<dependency>
-    <groupId>org.apereo.cas</groupId>
-    <artifactId>cas-server-support-memcached-aws-elasticache</artifactId>
-    <version>${cas.version}</version>
-</dependency>
-```
+{% include_cached casmodule.html group="org.apereo.cas" module="cas-server-support-memcached-aws-elasticache" %}
 
 ## Configuration Considerations
 
@@ -98,7 +88,7 @@ underlying spymemcached library. There are two choices:
 2. [CONSISTENT](https://github.com/couchbase/spymemcached/blob/2.9.0/src/main/java/net/spy/memcached/KetamaNodeLocator.java)
 
 The array modulus mechanism is the default and suitable for cases when the number of nodes in the memcached pool is
-expected to be consistent. The algorithm simply computes an index into the array of memcached nodes:
+expected to be consistent. The algorithm computes an index into the array of memcached nodes:
 
     hash(key) % length(nodes)
 
@@ -109,7 +99,6 @@ The consistent strategy generally provides a target node that does not vary with
 should be used in cases where the memcached pool may grow or shrink dynamically, including due to frequent node
 failure.
 
-
 ### Object Serialization
 
 Memcached stores bytes of data, so CAS tickets must be serialized to a byte array prior to storage. CAS ships with
@@ -119,12 +108,12 @@ compact data, which benefits both storage requirements and throughput.
 
 ## Configuration
 
-To see the relevant list of CAS properties, please [review this guide](../configuration/Configuration-Properties.html#memcached-ticket-registry).
+{% include_cached casproperties.html properties="cas.ticket.registry.memcached" %}
 
 ## High Availability Considerations
 
 Memcached does not provide for replication by design, but the client is tolerant to node failures with
-`failureMode="Redistribute"`. In this mode a write failure will simply cause the client to flag the node as failed
+`failureMode="Redistribute"`. In this mode a write failure will cause the client to flag the node as failed
 and remove it from the set of available nodes. It subsequently recomputes the node location function with the reduced
 node set to find a new node on which to store the key. If the node location function selects the same node,
 which is likely for the _CONSISTENT_ strategy, a backup node will be computed. The value is written to and read from

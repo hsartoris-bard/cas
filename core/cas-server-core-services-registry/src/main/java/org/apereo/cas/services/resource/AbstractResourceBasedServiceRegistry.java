@@ -197,7 +197,6 @@ public abstract class AbstractResourceBasedServiceRegistry extends AbstractServi
     @Override
     @SneakyThrows
     public synchronized boolean delete(final RegisteredService service) {
-
         val f = getRegisteredServiceFileName(service);
         publishEvent(new CasRegisteredServicePreDeleteEvent(this, service));
         val result = !f.exists() || f.delete();
@@ -209,6 +208,12 @@ public abstract class AbstractResourceBasedServiceRegistry extends AbstractServi
         }
         publishEvent(new CasRegisteredServiceDeletedEvent(this, service));
         return result;
+    }
+
+    @Override
+    public void deleteAll() {
+        val files = FileUtils.listFiles(this.serviceRegistryDirectory.toFile(), getExtensions(), true);
+        files.forEach(File::delete);
     }
 
     @Override
@@ -228,7 +233,7 @@ public abstract class AbstractResourceBasedServiceRegistry extends AbstractServi
                     BaseResourceBasedRegisteredServiceWatcher.LOG_SERVICE_DUPLICATE.accept(s2);
                     return s1;
                 }, LinkedHashMap::new));
-        val listedServices = new ArrayList<RegisteredService>(this.services.values());
+        val listedServices = new ArrayList<>(this.services.values());
         val results = this.registeredServiceReplicationStrategy.updateLoadedRegisteredServicesFromCache(listedServices, this);
         results.forEach(service -> publishEvent(new CasRegisteredServiceLoadedEvent(this, service)));
         return results;
@@ -267,7 +272,7 @@ public abstract class AbstractResourceBasedServiceRegistry extends AbstractServi
                 fileName, this.serviceFileNamePattern.pattern());
         }
 
-        LOGGER.trace("Attempting to read and parse [{}]", file.getCanonicalFile());
+        LOGGER.debug("Attempting to read and parse [{}]", file.getCanonicalFile());
         try (val in = Files.newBufferedReader(file.toPath())) {
             return this.registeredServiceSerializers
                 .stream()
@@ -387,9 +392,8 @@ public abstract class AbstractResourceBasedServiceRegistry extends AbstractServi
     protected File getRegisteredServiceFileName(final RegisteredService service) {
         val fileName = resourceNamingStrategy.build(service, getExtensions()[0]);
         val svcFile = new File(this.serviceRegistryDirectory.toFile(), fileName);
-        LOGGER.debug("Using [{}] as the service definition file", svcFile.getCanonicalPath());
+        LOGGER.debug("Using [{}] as the service definition file", svcFile.getAbsolutePath());
         return svcFile;
-
     }
 
     /**

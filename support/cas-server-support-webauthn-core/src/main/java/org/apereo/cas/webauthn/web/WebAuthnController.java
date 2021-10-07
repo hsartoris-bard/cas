@@ -1,12 +1,12 @@
 package org.apereo.cas.webauthn.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.yubico.core.WebAuthnServer;
+import com.yubico.data.AssertionRequestWrapper;
+import com.yubico.data.RegistrationRequest;
 import com.yubico.internal.util.JacksonCodecs;
 import com.yubico.util.Either;
-import com.yubico.webauthn.core.WebAuthnServer;
-import com.yubico.webauthn.data.AssertionRequestWrapper;
 import com.yubico.webauthn.data.ByteArray;
-import com.yubico.webauthn.data.RegistrationRequest;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -15,13 +15,17 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 import org.jooq.lambda.Unchecked;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -58,13 +62,36 @@ public class WebAuthnController {
 
     private final WebAuthnServer server;
 
-    @PostMapping(WEBAUTHN_ENDPOINT_REGISTER)
+    /**
+     * Start registration and provide response entity.
+     *
+     * @param username           the username
+     * @param displayName        the display name
+     * @param credentialNickname the credential nickname
+     * @param requireResidentKey the require resident key
+     * @param sessionTokenBase64 the session token base 64
+     * @param request            the request
+     * @param response           the response
+     * @return the response entity
+     * @throws Exception the exception
+     */
+    @PostMapping(value = WEBAUTHN_ENDPOINT_REGISTER, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Object> startRegistration(
-        @NonNull @RequestParam("username") final String username,
-        @NonNull @RequestParam("displayName") final String displayName,
-        @RequestParam(value = "credentialNickname", required = false, defaultValue = StringUtils.EMPTY) final String credentialNickname,
-        @RequestParam(value = "requireResidentKey", required = false) final boolean requireResidentKey,
-        @RequestParam(value = "sessionToken", required = false, defaultValue = StringUtils.EMPTY) final String sessionTokenBase64)
+        @NonNull
+        @RequestParam("username")
+        final String username,
+        @NonNull
+        @RequestParam("displayName")
+        final String displayName,
+        @RequestParam(value = "credentialNickname", required = false, defaultValue = StringUtils.EMPTY)
+        final String credentialNickname,
+        @RequestParam(value = "requireResidentKey", required = false)
+        final boolean requireResidentKey,
+        @RequestParam(value = "sessionToken", required = false, defaultValue = StringUtils.EMPTY)
+        final String sessionTokenBase64,
+        final HttpServletRequest request,
+        final HttpServletResponse response)
         throws Exception {
 
         val result = server.startRegistration(
@@ -80,14 +107,27 @@ public class WebAuthnController {
         return messagesJson(ResponseEntity.badRequest(), result.left().get());
     }
 
-    @PostMapping(WEBAUTHN_ENDPOINT_REGISTER + WEBAUTHN_ENDPOINT_FINISH)
+    /**
+     * Finish registration and provide response entity.
+     *
+     * @param responseJson the response json
+     * @return the response entity
+     */
+    @PostMapping(value = WEBAUTHN_ENDPOINT_REGISTER + WEBAUTHN_ENDPOINT_FINISH, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Object> finishRegistration(@RequestBody final String responseJson) {
         val result = server.finishRegistration(responseJson);
         return finishResponse(result, responseJson);
     }
 
-    @PostMapping(WEBAUTHN_ENDPOINT_AUTHENTICATE)
-    public ResponseEntity<Object> startAuthentication(@RequestParam("username") final String username) {
+    /**
+     * Start authentication and provide response entity.
+     *
+     * @param username the username
+     * @return the response entity
+     */
+    @PostMapping(value = WEBAUTHN_ENDPOINT_AUTHENTICATE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Object> startAuthentication(@RequestParam(value = "username", required = false) final String username) {
         val request = server.startAuthentication(Optional.ofNullable(username));
         if (request.isRight()) {
             return startResponse(new StartAuthenticationResponse(request.right().get()));
@@ -95,7 +135,13 @@ public class WebAuthnController {
         return messagesJson(ResponseEntity.badRequest(), request.left().get());
     }
 
-    @PostMapping(WEBAUTHN_ENDPOINT_AUTHENTICATE + WEBAUTHN_ENDPOINT_FINISH)
+    /**
+     * Finish authentication and create response entity.
+     *
+     * @param responseJson the response json
+     * @return the response entity
+     */
+    @PostMapping(value = WEBAUTHN_ENDPOINT_AUTHENTICATE + WEBAUTHN_ENDPOINT_FINISH, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Object> finishAuthentication(@RequestBody final String responseJson) {
         val result = server.finishAuthentication(responseJson);
         return finishResponse(result, responseJson);
@@ -108,11 +154,10 @@ public class WebAuthnController {
 
     @SneakyThrows
     private static String writeJson(final Object o) {
-        return MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(o);
+        return MAPPER.writeValueAsString(o);
     }
 
-    private static ResponseEntity<Object> finishResponse(final Either<List<String>, ?> result,
-                                                         final String responseJson) {
+    private static ResponseEntity<Object> finishResponse(final Either<List<String>, ?> result, final String responseJson) {
         if (result.isRight()) {
             LOGGER.trace("Response: [{}]", responseJson);
             return ResponseEntity.ok(writeJson(result.right().get()));

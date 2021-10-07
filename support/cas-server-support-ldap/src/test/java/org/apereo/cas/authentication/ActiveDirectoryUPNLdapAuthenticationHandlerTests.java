@@ -22,15 +22,16 @@ import org.springframework.test.context.TestPropertySource;
     "cas.authn.ldap[0].use-start-tls=true",
     "cas.authn.ldap[0].subtree-search=true",
     "cas.authn.ldap[0].base-dn=cn=Users,dc=cas,dc=example,dc=org",
-    "cas.authn.ldap[0].dnFormat=%s",
-    "cas.authn.ldap[0].principalAttributeList=sAMAccountName,cn",
+    "cas.authn.ldap[0].dn-format=%s",
+    "cas.authn.ldap[0].principal-attribute-list=sAMAccountName,cn",
     "cas.authn.ldap[0].enhance-with-entry-resolver=true",
     "cas.authn.ldap[0].search-filter=(userPrincipalName={user})",
     "cas.authn.ldap[0].min-pool-size=0",
     "cas.authn.ldap[0].trust-store=" + BaseActiveDirectoryLdapAuthenticationHandlerTests.AD_TRUST_STORE,
     "cas.authn.ldap[0].trust-store-type=JKS",
     "cas.authn.ldap[0].trust-store-password=changeit",
-    "cas.authn.ldap[0].hostname-verifier=ANY"
+    "cas.authn.ldap[0].hostname-verifier=ANY",
+    "cas.authn.ldap[0].trust-manager=ANY"
 })
 @EnabledIfPortOpen(port = 10390)
 @Tag("Ldap")

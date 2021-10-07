@@ -3,11 +3,9 @@ package org.apereo.cas.services;
 import org.apereo.cas.authentication.principal.Service;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import lombok.EqualsAndHashCode;
 import org.apache.commons.lang3.StringUtils;
-
-import javax.persistence.DiscriminatorValue;
-import javax.persistence.Entity;
 
 /**
  * Mutable registered service that uses Java regular expressions for service matching.
@@ -18,10 +16,14 @@ import javax.persistence.Entity;
  * @author Misagh Moayyed
  * @since 3.4
  */
-@Entity
-@DiscriminatorValue("regex")
 @EqualsAndHashCode(callSuper = true)
+@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
 public class RegexRegisteredService extends AbstractRegisteredService {
+    /**
+     * The friendly name for this client.
+     */
+    public static final String FRIENDLY_NAME = "CAS Client";
+
     private static final long serialVersionUID = -8258660210826975771L;
 
     @Override
@@ -43,7 +45,7 @@ public class RegexRegisteredService extends AbstractRegisteredService {
     @JsonIgnore
     @Override
     public String getFriendlyName() {
-        return "CAS Client";
+        return FRIENDLY_NAME;
     }
 
     /**

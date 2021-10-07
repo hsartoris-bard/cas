@@ -3,10 +3,11 @@ package org.apereo.cas.config;
 import org.apereo.cas.configuration.CasConfigurationProperties;
 import org.apereo.cas.configuration.model.support.jpa.JpaConfigurationContext;
 import org.apereo.cas.configuration.support.JpaBeans;
+import org.apereo.cas.hibernate.CasHibernatePersistenceProvider;
 import org.apereo.cas.jpa.JpaBeanFactory;
+import org.apereo.cas.jpa.JpaPersistenceProviderContext;
 import org.apereo.cas.util.CollectionUtils;
 
-import lombok.SneakyThrows;
 import lombok.val;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -55,7 +56,10 @@ public class DatabaseAuthenticationTestConfiguration {
     @Qualifier("jpaBeanFactory")
     private JpaBeanFactory jpaBeanFactory;
 
-    @SneakyThrows
+    @Autowired
+    @Qualifier("persistenceProviderContext")
+    private JpaPersistenceProviderContext persistenceProviderContext;
+
     @Bean
     public DataSource dataSource() {
         return JpaBeans.newDataSource(databaseDriverClassName, databaseUser, databasePassword, this.databaseUrl + databaseName);
@@ -72,7 +76,8 @@ public class DatabaseAuthenticationTestConfiguration {
             .jpaVendorAdapter(jpaVendorAdapter())
             .persistenceUnitName("databaseAuthnContext")
             .dataSource(dataSource())
-            .packagesToScan(CollectionUtils.wrap("org.apereo.cas.adaptors.jdbc"))
+            .persistenceProvider(new CasHibernatePersistenceProvider(persistenceProviderContext))
+            .packagesToScan(CollectionUtils.wrapSet("org.apereo.cas.adaptors.jdbc"))
             .build();
         val jpaProperties = ctx.getJpaProperties();
         jpaProperties.put("hibernate.dialect", databaseDialect);

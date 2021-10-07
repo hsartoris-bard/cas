@@ -21,10 +21,10 @@ import org.springframework.webflow.definition.registry.FlowDefinitionRegistry;
 @SpringBootTest(classes = BaseCasSimpleMultifactorAuthenticationTests.SharedTestConfiguration.class,
     properties = {
         "cas.authn.mfa.simple.trusted-device-enabled=true",
-        "cas.authn.mfa.trusted.device-registration-enabled=true"
+        "cas.authn.mfa.trusted.core.device-registration-enabled=true"
     })
 @EnableConfigurationProperties(CasConfigurationProperties.class)
-@Tag("WebflowConfig")
+@Tag("WebflowMfaConfig")
 @Getter
 public class CasSimpleMultifactorWebflowConfigurerTests extends BaseMultifactorWebflowConfigurerTests {
     @Autowired

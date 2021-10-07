@@ -2,7 +2,6 @@ package org.apereo.cas.token.authentication.principal;
 
 import org.apereo.cas.CasProtocolConstants;
 import org.apereo.cas.authentication.principal.Response;
-import org.apereo.cas.authentication.principal.Service;
 import org.apereo.cas.authentication.principal.WebApplicationService;
 import org.apereo.cas.authentication.principal.WebApplicationServiceResponseBuilder;
 import org.apereo.cas.services.RegisteredServiceAccessStrategyUtils;
@@ -10,6 +9,8 @@ import org.apereo.cas.services.RegisteredServiceProperty;
 import org.apereo.cas.services.RegisteredServiceProperty.RegisteredServiceProperties;
 import org.apereo.cas.services.ServicesManager;
 import org.apereo.cas.token.TokenTicketBuilder;
+import org.apereo.cas.web.UrlValidator;
+
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -29,8 +30,9 @@ public class TokenWebApplicationServiceResponseBuilder extends WebApplicationSer
     private final transient TokenTicketBuilder tokenTicketBuilder;
 
     public TokenWebApplicationServiceResponseBuilder(final ServicesManager servicesManager,
-                                                     final TokenTicketBuilder tokenTicketBuilder) {
-        super(servicesManager);
+                                                     final TokenTicketBuilder tokenTicketBuilder,
+                                                     final UrlValidator urlValidator) {
+        super(servicesManager, urlValidator);
         this.tokenTicketBuilder = tokenTicketBuilder;
     }
 
@@ -62,7 +64,7 @@ public class TokenWebApplicationServiceResponseBuilder extends WebApplicationSer
         return jwtService;
     }
     
-    private boolean isTicketIdAvailable(final Map<String, String> parameters){
+    private static boolean isTicketIdAvailable(final Map<String, String> parameters){
         return StringUtils.isNotBlank(parameters.get(CasProtocolConstants.PARAMETER_TICKET));
     }
 
@@ -74,7 +76,7 @@ public class TokenWebApplicationServiceResponseBuilder extends WebApplicationSer
      * @return the jwt
      */
     @SneakyThrows
-    protected String generateToken(final Service service, final Map<String, String> parameters) {
+    protected String generateToken(final WebApplicationService service, final Map<String, String> parameters) {
         val ticketId = parameters.get(CasProtocolConstants.PARAMETER_TICKET);
         return this.tokenTicketBuilder.build(ticketId, service);
     }

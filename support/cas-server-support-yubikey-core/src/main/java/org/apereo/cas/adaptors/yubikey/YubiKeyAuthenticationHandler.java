@@ -3,6 +3,7 @@ package org.apereo.cas.adaptors.yubikey;
 import org.apereo.cas.adaptors.yubikey.registry.OpenYubiKeyAccountRegistry;
 import org.apereo.cas.authentication.AuthenticationHandlerExecutionResult;
 import org.apereo.cas.authentication.Credential;
+import org.apereo.cas.authentication.MultifactorAuthenticationHandler;
 import org.apereo.cas.authentication.handler.support.AbstractPreAndPostProcessingAuthenticationHandler;
 import org.apereo.cas.authentication.principal.PrincipalFactory;
 import org.apereo.cas.services.ServicesManager;
@@ -35,11 +36,13 @@ import java.security.GeneralSecurityException;
  */
 @Slf4j
 @Getter
-public class YubiKeyAuthenticationHandler extends AbstractPreAndPostProcessingAuthenticationHandler {
+public class YubiKeyAuthenticationHandler extends AbstractPreAndPostProcessingAuthenticationHandler implements MultifactorAuthenticationHandler {
     private final YubiKeyAccountRegistry registry;
+
     private final YubicoClient client;
 
-    public YubiKeyAuthenticationHandler(final String name, final ServicesManager servicesManager,
+    public YubiKeyAuthenticationHandler(final String name,
+                                        final ServicesManager servicesManager,
                                         final PrincipalFactory principalFactory,
                                         final YubicoClient client,
                                         final YubiKeyAccountRegistry registry,
@@ -52,6 +55,16 @@ public class YubiKeyAuthenticationHandler extends AbstractPreAndPostProcessingAu
     public YubiKeyAuthenticationHandler(final YubicoClient client) {
         this(StringUtils.EMPTY, null, null,
             client, new OpenYubiKeyAccountRegistry(new AcceptAllYubiKeyAccountValidator()), null);
+    }
+
+    @Override
+    public boolean supports(final Class<? extends Credential> clazz) {
+        return YubiKeyCredential.class.isAssignableFrom(clazz);
+    }
+
+    @Override
+    public boolean supports(final Credential credential) {
+        return YubiKeyCredential.class.isAssignableFrom(credential.getClass());
     }
 
     @Override
@@ -89,15 +102,5 @@ public class YubiKeyAuthenticationHandler extends AbstractPreAndPostProcessingAu
             LoggingUtils.error(LOGGER, e);
             throw new FailedLoginException("YubiKey validation failed: " + e.getMessage());
         }
-    }
-
-    @Override
-    public boolean supports(final Class<? extends Credential> clazz) {
-        return YubiKeyCredential.class.isAssignableFrom(clazz);
-    }
-
-    @Override
-    public boolean supports(final Credential credential) {
-        return YubiKeyCredential.class.isAssignableFrom(credential.getClass());
     }
 }

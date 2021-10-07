@@ -51,7 +51,7 @@ public class InitialFlowSetupCookieActionTests extends AbstractWebflowActionsTes
     private AuthenticationServiceSelectionPlan authenticationRequestServiceSelectionStrategies;
 
     @Autowired
-    @Qualifier("authenticationEventExecutionPlan")
+    @Qualifier(AuthenticationEventExecutionPlan.DEFAULT_BEAN_NAME)
     private AuthenticationEventExecutionPlan authenticationEventExecutionPlan;
 
     private InitialFlowSetupAction action;
@@ -62,7 +62,6 @@ public class InitialFlowSetupCookieActionTests extends AbstractWebflowActionsTes
 
     @BeforeEach
     public void initialize() throws Exception {
-
         val warn = CookieGenerationContext.builder()
             .name("warn")
             .path(StringUtils.EMPTY)

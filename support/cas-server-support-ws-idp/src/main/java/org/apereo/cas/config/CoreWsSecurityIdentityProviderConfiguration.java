@@ -1,13 +1,14 @@
 package org.apereo.cas.config;
 
+import org.apereo.cas.CentralAuthenticationService;
 import org.apereo.cas.authentication.AuthenticationServiceSelectionStrategy;
 import org.apereo.cas.authentication.AuthenticationServiceSelectionStrategyConfigurer;
 import org.apereo.cas.authentication.SecurityTokenServiceClientBuilder;
 import org.apereo.cas.authentication.SecurityTokenServiceTokenFetcher;
 import org.apereo.cas.authentication.principal.Service;
 import org.apereo.cas.authentication.principal.ServiceFactory;
+import org.apereo.cas.authentication.principal.WebApplicationService;
 import org.apereo.cas.configuration.CasConfigurationProperties;
-import org.apereo.cas.jpa.JpaPersistenceProviderConfigurer;
 import org.apereo.cas.services.RegexRegisteredService;
 import org.apereo.cas.services.ServiceRegistryExecutionPlanConfigurer;
 import org.apereo.cas.services.ServicesManager;
@@ -15,16 +16,17 @@ import org.apereo.cas.services.ServicesManagerRegisteredServiceLocator;
 import org.apereo.cas.ticket.SecurityTokenTicketFactory;
 import org.apereo.cas.ticket.registry.TicketRegistry;
 import org.apereo.cas.ticket.registry.TicketRegistrySupport;
+import org.apereo.cas.util.InternalTicketValidator;
 import org.apereo.cas.util.RandomUtils;
 import org.apereo.cas.util.crypto.CipherExecutor;
 import org.apereo.cas.util.http.HttpClient;
-import org.apereo.cas.web.ProtocolEndpointConfigurer;
+import org.apereo.cas.validation.AuthenticationAttributeReleasePolicy;
+import org.apereo.cas.web.ProtocolEndpointWebSecurityConfigurer;
 import org.apereo.cas.web.cookie.CasCookieBuilder;
 import org.apereo.cas.ws.idp.WSFederationConstants;
 import org.apereo.cas.ws.idp.authentication.WSFederationAuthenticationServiceSelectionStrategy;
 import org.apereo.cas.ws.idp.metadata.WSFederationMetadataController;
 import org.apereo.cas.ws.idp.services.DefaultRelyingPartyTokenProducer;
-import org.apereo.cas.ws.idp.services.WSFederationRegisteredService;
 import org.apereo.cas.ws.idp.services.WSFederationRelyingPartyTokenProducer;
 import org.apereo.cas.ws.idp.services.WSFederationServiceRegistry;
 import org.apereo.cas.ws.idp.services.WsFederationServicesManagerRegisteredServiceLocator;
@@ -35,11 +37,10 @@ import org.apereo.cas.ws.idp.web.WSFederationValidateRequestController;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
-import org.jasig.cas.client.validation.AbstractUrlBasedTicketValidator;
+import org.jasig.cas.client.validation.TicketValidator;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
@@ -63,14 +64,17 @@ import java.util.List;
 @ImportResource(locations = "classpath:META-INF/cxf/cxf.xml")
 @Slf4j
 public class CoreWsSecurityIdentityProviderConfiguration {
+    @Autowired
+    @Qualifier("authenticationAttributeReleasePolicy")
+    private ObjectProvider<AuthenticationAttributeReleasePolicy> authenticationAttributeReleasePolicy;
+
+    @Autowired
+    @Qualifier("centralAuthenticationService")
+    private ObjectProvider<CentralAuthenticationService> centralAuthenticationService;
 
     @Autowired
     private ConfigurableApplicationContext applicationContext;
-
-    @Autowired
-    @Qualifier("casClientTicketValidator")
-    private ObjectProvider<AbstractUrlBasedTicketValidator> casClientTicketValidator;
-
+    
     @Autowired
     @Qualifier("ticketGrantingTicketCookieGenerator")
     private ObjectProvider<CasCookieBuilder> ticketGrantingTicketCookieGenerator;
@@ -89,7 +93,7 @@ public class CoreWsSecurityIdentityProviderConfiguration {
 
     @Autowired
     @Qualifier("webApplicationServiceFactory")
-    private ObjectProvider<ServiceFactory> webApplicationServiceFactory;
+    private ObjectProvider<ServiceFactory<WebApplicationService>> webApplicationServiceFactory;
 
     @Autowired
     private CasConfigurationProperties casProperties;
@@ -149,7 +153,8 @@ public class CoreWsSecurityIdentityProviderConfiguration {
     @RefreshScope
     @ConditionalOnMissingBean(name = "wsFederationAuthenticationServiceSelectionStrategy")
     public AuthenticationServiceSelectionStrategy wsFederationAuthenticationServiceSelectionStrategy() {
-        return new WSFederationAuthenticationServiceSelectionStrategy(webApplicationServiceFactory.getObject());
+        return new WSFederationAuthenticationServiceSelectionStrategy(servicesManager.getObject(),
+            webApplicationServiceFactory.getObject());
     }
 
     @Bean
@@ -170,16 +175,21 @@ public class CoreWsSecurityIdentityProviderConfiguration {
             service.setName(service.getClass().getSimpleName());
             service.setDescription("WS-Federation Authentication Request");
             service.setServiceId(callbackService.getId().concat(".+"));
-            LOGGER.debug("Saving callback service [{}] into the registry", service);
+            LOGGER.debug("Saving callback service [{}] into the registry", service.getServiceId());
             plan.registerServiceRegistry(new WSFederationServiceRegistry(applicationContext, service));
         };
     }
 
     @Bean
-    public ProtocolEndpointConfigurer wsFederationProtocolEndpointConfigurer() {
-        return () -> List.of(
-            StringUtils.prependIfMissing(WSFederationConstants.BASE_ENDPOINT_IDP, "/"),
-            StringUtils.prependIfMissing(WSFederationConstants.BASE_ENDPOINT_STS, "/"));
+    public ProtocolEndpointWebSecurityConfigurer<Void> wsFederationProtocolEndpointConfigurer() {
+        return new ProtocolEndpointWebSecurityConfigurer<>() {
+            @Override
+            public List<String> getIgnoredEndpoints() {
+                return List.of(
+                    StringUtils.prependIfMissing(WSFederationConstants.BASE_ENDPOINT_IDP, "/"),
+                    StringUtils.prependIfMissing(WSFederationConstants.BASE_ENDPOINT_STS, "/"));
+            }
+        };
     }
 
     @Bean
@@ -188,12 +198,20 @@ public class CoreWsSecurityIdentityProviderConfiguration {
         return new WsFederationServicesManagerRegisteredServiceLocator();
     }
 
+    @Bean
+    @ConditionalOnMissingBean(name = "wsFederationTicketValidator")
+    public TicketValidator wsFederationTicketValidator() {
+        return new InternalTicketValidator(centralAuthenticationService.getObject(),
+            webApplicationServiceFactory.getObject(), authenticationAttributeReleasePolicy.getObject(),
+            servicesManager.getObject());
+    }
+
     private WSFederationRequestConfigurationContext.WSFederationRequestConfigurationContextBuilder getConfigurationContext() {
         return WSFederationRequestConfigurationContext.builder()
             .servicesManager(servicesManager.getObject())
             .webApplicationServiceFactory(webApplicationServiceFactory.getObject())
             .casProperties(casProperties)
-            .ticketValidator(casClientTicketValidator.getObject())
+            .ticketValidator(wsFederationTicketValidator())
             .securityTokenServiceTokenFetcher(securityTokenServiceTokenFetcher.getObject())
             .serviceSelectionStrategy(wsFederationAuthenticationServiceSelectionStrategy())
             .httpClient(httpClient.getObject())
@@ -202,15 +220,5 @@ public class CoreWsSecurityIdentityProviderConfiguration {
             .ticketRegistry(ticketRegistry.getObject())
             .ticketRegistrySupport(ticketRegistrySupport.getObject())
             .callbackService(wsFederationCallbackService());
-    }
-
-    @ConditionalOnClass(value = JpaPersistenceProviderConfigurer.class)
-    @Configuration("coreWsSecurityJpaServiceRegistryConfiguration")
-    public static class CoreWsSecurityJpaServiceRegistryConfiguration {
-        @Bean
-        @ConditionalOnMissingBean(name = "wsFederationJpaServicePersistenceProviderConfigurer")
-        public JpaPersistenceProviderConfigurer wsFederationJpaServicePersistenceProviderConfigurer() {
-            return context -> context.getIncludeEntityClasses().addAll(List.of(WSFederationRegisteredService.class.getName()));
-        }
     }
 }

@@ -4,21 +4,21 @@ import org.apereo.cas.services.RegisteredServiceTestUtils;
 import org.apereo.cas.util.RandomUtils;
 import org.apereo.cas.webauthn.web.WebAuthnController;
 
+import com.yubico.core.WebAuthnServer;
+import com.yubico.data.AssertionRequestWrapper;
+import com.yubico.data.AssertionResponse;
+import com.yubico.data.CredentialRegistration;
+import com.yubico.data.RegistrationRequest;
+import com.yubico.data.RegistrationResponse;
 import com.yubico.util.Either;
 import com.yubico.webauthn.AssertionRequest;
 import com.yubico.webauthn.RegisteredCredential;
-import com.yubico.webauthn.core.WebAuthnServer;
-import com.yubico.webauthn.data.AssertionRequestWrapper;
-import com.yubico.webauthn.data.AssertionResponse;
 import com.yubico.webauthn.data.AuthenticatorAttestationResponse;
 import com.yubico.webauthn.data.ByteArray;
 import com.yubico.webauthn.data.ClientRegistrationExtensionOutputs;
-import com.yubico.webauthn.data.CredentialRegistration;
 import com.yubico.webauthn.data.PublicKeyCredential;
 import com.yubico.webauthn.data.PublicKeyCredentialCreationOptions;
 import com.yubico.webauthn.data.PublicKeyCredentialRequestOptions;
-import com.yubico.webauthn.data.RegistrationRequest;
-import com.yubico.webauthn.data.RegistrationResponse;
 import com.yubico.webauthn.data.RelyingPartyIdentity;
 import com.yubico.webauthn.data.TokenBindingStatus;
 import com.yubico.webauthn.data.UserIdentity;
@@ -26,6 +26,8 @@ import lombok.val;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
@@ -117,7 +119,8 @@ public class WebAuthnControllerTests {
         val assertionJson = "{\"id\":\"ibE9wQddsF806g8uL9hDzgwLJipKhS9esD07Jmj0N98\","
             + "\"response\":{\"authenticatorData\":\"SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MBAAAFOQ\","
             + "\"clientDataJSON\":\"eyJjaGFsbGVuZ2UiOiJOM0xqSTJKNXlseVdlM0VENU9UNFhITFJxSHdtX0o0OF9EX2hvSk9GZjMwIiwib3JpZ2"
-            + "luIjoiaHR0cHM6Ly9sb2NhbGhvc3QiLCJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwidG9rZW5CaW5kaW5nIjp7InN0YXR1cyI6InN1cHBvcnRlZCJ9LCJjbGllbnRFeHRlbnNpb25zIjp7fX0\","
+            +
+            "luIjoiaHR0cHM6Ly9sb2NhbGhvc3QiLCJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwidG9rZW5CaW5kaW5nIjp7InN0YXR1cyI6InN1cHBvcnRlZCJ9LCJjbGllbnRFeHRlbnNpb25zIjp7fX0\","
             + "\"signature\":\"-8AKZkFZSNUemUihJhsUp8LqXFHgVTjfCuKVvf1kbIkuwz5ClZK2u562C8rkUnIorxtzD7ujYh1z4FstXKyRDg\"},"
             + "\"clientExtensionResults\":{},\"type\":\"public-key\"}";
         val publicKeyCredential = PublicKeyCredential.parseAssertionResponseJson(assertionJson);
@@ -158,11 +161,13 @@ public class WebAuthnControllerTests {
         when(server.startRegistration(anyString(), any(), any(), anyBoolean(), any()))
             .thenReturn(Either.right(registrationRequest));
 
-        var result = controller.startRegistration("casuser", "displayName", "nickName", false, "sessionToken");
+        val request = new MockHttpServletRequest();
+        val response = new MockHttpServletResponse();
+        var result = controller.startRegistration("casuser", "displayName", "nickName", false, "sessionToken", request, response);
         assertEquals(HttpStatus.OK, result.getStatusCode());
 
         when(server.startRegistration(anyString(), any(), any(), anyBoolean(), any())).thenReturn(Either.left("failed"));
-        result = controller.startRegistration("casuser", "displayName", "nickName", false, "sessionToken");
+        result = controller.startRegistration("casuser", "displayName", "nickName", false, "sessionToken", request, response);
         assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
     }
 

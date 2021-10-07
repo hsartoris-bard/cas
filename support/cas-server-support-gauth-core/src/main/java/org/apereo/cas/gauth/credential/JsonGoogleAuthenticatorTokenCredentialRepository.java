@@ -13,7 +13,6 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.springframework.core.io.Resource;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -41,24 +40,19 @@ public class JsonGoogleAuthenticatorTokenCredentialRepository extends BaseGoogle
     }
 
     @Override
-    public OneTimeTokenAccount get(final String username, final long id) {
-        return get(username).stream().filter(ac -> ac.getId() == id).findFirst().orElse(null);
+    public OneTimeTokenAccount get(final long id) {
+        val accounts = readAccountsFromJsonRepository();
+        return accounts.values()
+            .stream()
+            .flatMap(List::stream)
+            .filter(ac -> ac.getId() == id)
+            .findFirst()
+            .orElse(null);
     }
 
     @Override
-    public OneTimeTokenAccount get(final long id) {
-        try {
-            val accounts = readAccountsFromJsonRepository();
-            return accounts.values()
-                .stream()
-                .flatMap(List::stream)
-                .filter(ac -> ac.getId() == id)
-                .findFirst()
-                .orElse(null);
-        } catch (final Exception e) {
-            LoggingUtils.error(LOGGER, e);
-        }
-        return null;
+    public OneTimeTokenAccount get(final String username, final long id) {
+        return get(username).stream().filter(ac -> ac.getId() == id).findFirst().orElse(null);
     }
 
     @Override
@@ -79,10 +73,21 @@ public class JsonGoogleAuthenticatorTokenCredentialRepository extends BaseGoogle
                 return new ArrayList<>(0);
             }
 
-            val account = map.get(username);
+            val account = map.get(username.trim().toLowerCase());
             if (account != null) {
                 return decode(account);
             }
+        } catch (final Exception e) {
+            LoggingUtils.error(LOGGER, e);
+        }
+        return new ArrayList<>(0);
+    }
+
+    @Override
+    public Collection<? extends OneTimeTokenAccount> load() {
+        try {
+            return readAccountsFromJsonRepository().values()
+                .stream().flatMap(List::stream).collect(Collectors.toList());
         } catch (final Exception e) {
             LoggingUtils.error(LOGGER, e);
         }
@@ -97,9 +102,9 @@ public class JsonGoogleAuthenticatorTokenCredentialRepository extends BaseGoogle
             LOGGER.debug("Found [{}] account(s) and added google authenticator account for [{}]",
                 accounts.size(), account.getUsername());
             val encoded = encode(account);
-            val records = accounts.getOrDefault(account.getUsername(), new ArrayList<>());
+            val records = accounts.getOrDefault(account.getUsername().trim().toLowerCase(), new ArrayList<>());
             records.add(encoded);
-            accounts.put(account.getUsername(), records);
+            accounts.put(account.getUsername().trim().toLowerCase(), records);
             writeAccountsToJsonRepository(accounts);
             return encoded;
         } catch (final Exception e) {
@@ -112,8 +117,8 @@ public class JsonGoogleAuthenticatorTokenCredentialRepository extends BaseGoogle
     public OneTimeTokenAccount update(final OneTimeTokenAccount account) {
         try {
             val accounts = readAccountsFromJsonRepository();
-            if (accounts.containsKey(account.getUsername())) {
-                val records = accounts.get(account.getUsername());
+            if (accounts.containsKey(account.getUsername().trim().toLowerCase())) {
+                val records = accounts.get(account.getUsername().trim().toLowerCase());
                 return records.stream()
                     .filter(rec -> rec.getId() == account.getId())
                     .findFirst()
@@ -140,67 +145,28 @@ public class JsonGoogleAuthenticatorTokenCredentialRepository extends BaseGoogle
 
     @Override
     public void delete(final String username) {
-        try {
-            val accounts = readAccountsFromJsonRepository();
-            accounts.remove(username);
-            writeAccountsToJsonRepository(accounts);
-        } catch (final Exception e) {
-            LoggingUtils.error(LOGGER, e);
-        }
+        val accounts = readAccountsFromJsonRepository();
+        accounts.remove(username.trim().toLowerCase());
+        writeAccountsToJsonRepository(accounts);
+    }
+
+    @Override
+    public void delete(final long id) {
+        val accounts = readAccountsFromJsonRepository();
+        accounts.forEach((key, value) -> value.removeIf(d -> d.getId() == id));
+        writeAccountsToJsonRepository(accounts);
     }
 
     @Override
     public long count() {
-        try {
-            val accounts = readAccountsFromJsonRepository();
-            return accounts.size();
-        } catch (final Exception e) {
-            LoggingUtils.error(LOGGER, e);
-        }
-        return 0;
+        val accounts = readAccountsFromJsonRepository();
+        return accounts.size();
     }
 
     @Override
     public long count(final String username) {
-        try {
-            val accounts = readAccountsFromJsonRepository();
-            return accounts.get(username).size();
-        } catch (final Exception e) {
-            LoggingUtils.error(LOGGER, e);
-        }
-        return 0;
-    }
-
-    @Override
-    public Collection<? extends OneTimeTokenAccount> load() {
-        try {
-            return readAccountsFromJsonRepository().values()
-                .stream().flatMap(List::stream).collect(Collectors.toList());
-        } catch (final Exception e) {
-            LoggingUtils.error(LOGGER, e);
-        }
-        return new ArrayList<>(0);
-    }
-
-    @SneakyThrows
-    private void writeAccountsToJsonRepository(final Map<String, List<OneTimeTokenAccount>> accounts) {
-        LOGGER.debug("Saving [{}] google authenticator accounts to JSON file at [{}]", accounts.size(), location.getFile());
-        this.serializer.to(location.getFile(), accounts);
-    }
-
-    private Map<String, List<OneTimeTokenAccount>> readAccountsFromJsonRepository() throws IOException {
-        LOGGER.debug("Ensuring JSON repository file exists at [{}]", location.getFile());
-        val result = location.getFile().createNewFile();
-        if (result) {
-            LOGGER.debug("Created JSON repository file at [{}]", location.getFile());
-        }
-        if (location.getFile().length() > 0) {
-            LOGGER.debug("Reading JSON repository file at [{}]", location.getFile());
-            val accounts = this.serializer.from(location.getFile());
-            LOGGER.debug("Read [{}] accounts from JSON repository file at [{}]", accounts.size(), location.getFile());
-            return accounts;
-        }
-        return new HashMap<>(0);
+        val accounts = readAccountsFromJsonRepository();
+        return accounts.containsKey(username.trim().toLowerCase()) ? accounts.get(username.trim().toLowerCase()).size() : 0;
     }
 
     private static class OneTimeAccountSerializer extends AbstractJacksonBackedStringSerializer<Map<String, List<OneTimeTokenAccount>>> {
@@ -210,5 +176,30 @@ public class JsonGoogleAuthenticatorTokenCredentialRepository extends BaseGoogle
         public Class getTypeToSerialize() {
             return HashMap.class;
         }
+    }
+
+    @SneakyThrows
+    private void writeAccountsToJsonRepository(final Map<String, List<OneTimeTokenAccount>> accounts) {
+        LOGGER.debug("Saving [{}] google authenticator accounts to JSON file at [{}]", accounts.size(), location.getFile());
+        if (location.getFile() != null) {
+            serializer.to(location.getFile(), accounts);
+        }
+    }
+
+    @SneakyThrows
+    private Map<String, List<OneTimeTokenAccount>> readAccountsFromJsonRepository() {
+        val file = location.getFile();
+        LOGGER.debug("Ensuring JSON repository file exists at [{}]", file);
+        val result = file != null && file.createNewFile();
+        if (result) {
+            LOGGER.debug("Created JSON repository file at [{}]", file);
+        }
+        if (file != null && file.length() > 0) {
+            LOGGER.debug("Reading JSON repository file at [{}]", file);
+            val accounts = this.serializer.from(file);
+            LOGGER.debug("Read [{}] accounts from JSON repository file at [{}]", accounts.size(), file);
+            return accounts;
+        }
+        return new HashMap<>(0);
     }
 }

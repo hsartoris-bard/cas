@@ -9,17 +9,21 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.file.PathUtils;
+import org.apache.commons.io.file.StandardDeleteOption;
 import org.eclipse.jgit.api.Git;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.context.TestPropertySource;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystemException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -32,7 +36,10 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestPropertySource(properties = {
     "cas.authn.saml-idp.metadata.git.sign-commits=false",
     "cas.authn.saml-idp.metadata.git.push-changes=true",
-    "cas.authn.saml-idp.metadata.git.repository-url=file:/tmp/cas-metadata-data.git"
+    "cas.authn.saml-idp.metadata.git.idp-metadata-enabled=true",
+    "cas.authn.saml-idp.metadata.git.crypto.enabled=false",
+    "cas.authn.saml-idp.metadata.git.repository-url=file://${java.io.tmpdir}/cas-metadata-data",
+    "cas.authn.saml-idp.metadata.git.clone-directory.location=file://${java.io.tmpdir}/cas-saml-metadata-gsrsmrt"
 })
 @Slf4j
 @Tag("FileSystem")
@@ -40,16 +47,14 @@ public class GitSamlRegisteredServiceMetadataResolverTests extends BaseGitSamlMe
     @BeforeAll
     public static void setup() {
         try {
-            FileUtils.deleteDirectory(new File("/tmp/cas-metadata-data"));
-            val gitDir = new File(FileUtils.getTempDirectory(), "cas-saml-metadata");
-            if (gitDir.exists()) {
-                FileUtils.deleteDirectory(gitDir);
-            }
+            cleanUp();
+            val gitDir = new File(FileUtils.getTempDirectory(), "cas-metadata-data");
             if (!gitDir.mkdir()) {
                 throw new IllegalArgumentException("Git repository directory location " + gitDir + " cannot be located/created");
             }
             val git = Git.init().setDirectory(gitDir).setBare(false).call();
             FileUtils.write(new File(gitDir, "readme.txt"), "text", StandardCharsets.UTF_8);
+            git.add().addFilepattern("*.txt").call();
             git.commit().setSign(false).setMessage("Initial commit").call();
         } catch (final Exception e) {
             LoggingUtils.error(LOGGER, e);
@@ -59,10 +64,19 @@ public class GitSamlRegisteredServiceMetadataResolverTests extends BaseGitSamlMe
 
     @AfterAll
     public static void cleanUp() throws Exception {
-        FileUtils.deleteDirectory(new File("/tmp/cas-metadata-data"));
-        val gitDir = new File(FileUtils.getTempDirectory(), "cas-saml-metadata");
-        if (gitDir.exists()) {
-            FileUtils.deleteDirectory(gitDir);
+        val gitRepoDir = new File(FileUtils.getTempDirectory(), "cas-metadata-data");
+        if (gitRepoDir.exists()) {
+            PathUtils.deleteDirectory(gitRepoDir.toPath(), StandardDeleteOption.OVERRIDE_READ_ONLY);
+        }
+        val cloneDirectory = "cas-saml-metadata-gsrsmrt";
+        val gitCloneRepoDir = new File(FileUtils.getTempDirectory(), cloneDirectory);
+        val cloneRepoPath = gitCloneRepoDir.toPath();
+        if (gitCloneRepoDir.exists()) {
+            try {
+                PathUtils.deleteDirectory(cloneRepoPath, StandardDeleteOption.OVERRIDE_READ_ONLY);
+            } catch (final FileSystemException e) {
+                LOGGER.warn("Can't cleanup [{}] until bean closed: [{}]", cloneRepoPath, e.getMessage());
+            }
         }
     }
 
@@ -84,5 +98,15 @@ public class GitSamlRegisteredServiceMetadataResolverTests extends BaseGitSamlMe
         assertFalse(resolver.supports(null));
         val resolvers = resolver.resolve(service);
         assertFalse(resolvers.isEmpty());
+        service.setMetadataLocation("https://example.com/endswith.git");
+        assertTrue(resolver.supports(service));
+
+        assertDoesNotThrow(new Executable() {
+            @Override
+            public void execute() {
+                resolver.resolve(null, null);
+                resolver.saveOrUpdate(null);
+            }
+        });
     }
 }

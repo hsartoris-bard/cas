@@ -28,7 +28,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.test.annotation.DirtiesContext;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -58,8 +57,11 @@ import static org.junit.jupiter.api.Assertions.*;
     CasCoreLogoutConfiguration.class,
     CasCoreConfiguration.class,
     CasCoreAuthenticationHandlersConfiguration.class
+},
+properties = {
+    "cas.authn.attribute-repository.stub.attributes.uid=uid",
+    "cas.authn.ldap[0].principal-attribute-list=sn,cn"
 })
-@DirtiesContext
 @Tag("Simple")
 public class CasServerProfileRegistrarTests {
     @Autowired
@@ -78,5 +80,7 @@ public class CasServerProfileRegistrarTests {
         assertNotNull(profile.getDelegatedClientTypesSupported());
         assertNotNull(profile.getMultifactorAuthenticationProviderTypesSupported());
         assertNotNull(profile.getRegisteredServiceTypesSupported());
+        assertNotNull(profile.getUserDefinedScopes());
+        assertNotNull(profile.getAvailableAuthenticationHandlers());
     }
 }

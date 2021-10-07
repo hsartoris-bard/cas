@@ -4,9 +4,9 @@ import org.apereo.cas.util.DateTimeUtils;
 
 import lombok.val;
 import org.apereo.inspektr.audit.AuditActionContext;
+import org.apereo.inspektr.audit.FilterAndDelegateAuditTrailManager;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @since 6.1.0
  */
 @Tag("Audits")
-@SuppressWarnings("JdkObsolete")
+@SuppressWarnings("JavaUtilDate")
 public class FilterAndDelegateAuditTrailManagerTests {
 
     @Test
@@ -82,11 +82,6 @@ public class FilterAndDelegateAuditTrailManagerTests {
         mgr.record(ctx);
         assertFalse(mock.getAuditRecords().isEmpty());
         assertEquals(1, mgr.getAuditRecordsSince(LocalDate.now(ZoneOffset.UTC)).size());
-        assertDoesNotThrow(new Executable() {
-            @Override
-            public void execute() throws Throwable {
-                mgr.removeAll();
-            }
-        });
+        assertDoesNotThrow(mgr::removeAll);
     }
 }

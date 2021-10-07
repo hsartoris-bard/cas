@@ -1,16 +1,19 @@
 package org.apereo.cas.config;
 
 import org.apereo.cas.CentralAuthenticationService;
+import org.apereo.cas.audit.AuditableExecution;
 import org.apereo.cas.authentication.AuthenticationServiceSelectionPlan;
 import org.apereo.cas.authentication.AuthenticationSystemSupport;
 import org.apereo.cas.authentication.principal.Service;
 import org.apereo.cas.authentication.principal.ServiceFactory;
 import org.apereo.cas.configuration.CasConfigurationProperties;
+import org.apereo.cas.configuration.model.support.saml.idp.SamlIdPCoreProperties;
 import org.apereo.cas.logout.LogoutExecutionPlanConfigurer;
 import org.apereo.cas.logout.LogoutRedirectionStrategy;
 import org.apereo.cas.logout.slo.SingleLogoutMessageCreator;
 import org.apereo.cas.logout.slo.SingleLogoutServiceLogoutUrlBuilder;
 import org.apereo.cas.logout.slo.SingleLogoutServiceMessageHandler;
+import org.apereo.cas.pac4j.BrowserWebStorageSessionStore;
 import org.apereo.cas.pac4j.DistributedJEESessionStore;
 import org.apereo.cas.services.RegexRegisteredService;
 import org.apereo.cas.services.ServiceRegistryExecutionPlanConfigurer;
@@ -47,22 +50,26 @@ import org.apereo.cas.ticket.TicketFactory;
 import org.apereo.cas.ticket.artifact.SamlArtifactTicketFactory;
 import org.apereo.cas.ticket.query.SamlAttributeQueryTicketFactory;
 import org.apereo.cas.ticket.registry.TicketRegistry;
+import org.apereo.cas.ticket.registry.TicketRegistrySupport;
+import org.apereo.cas.util.InternalTicketValidator;
 import org.apereo.cas.util.RandomUtils;
+import org.apereo.cas.util.crypto.CipherExecutor;
 import org.apereo.cas.util.http.HttpClient;
-import org.apereo.cas.web.ProtocolEndpointConfigurer;
+import org.apereo.cas.validation.AuthenticationAttributeReleasePolicy;
+import org.apereo.cas.web.ProtocolEndpointWebSecurityConfigurer;
 import org.apereo.cas.web.cookie.CasCookieBuilder;
+import org.apereo.cas.web.flow.SingleSignOnParticipationStrategy;
 import org.apereo.cas.web.support.CookieUtils;
 
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.velocity.app.VelocityEngine;
-import org.jasig.cas.client.validation.AbstractUrlBasedTicketValidator;
+import org.jasig.cas.client.validation.TicketValidator;
 import org.opensaml.saml.metadata.resolver.MetadataResolver;
 import org.opensaml.saml.saml2.binding.decoding.impl.HTTPPostDecoder;
 import org.opensaml.saml.saml2.binding.decoding.impl.HTTPPostSimpleSignDecoder;
 import org.opensaml.saml.saml2.core.Response;
-import org.pac4j.core.context.JEEContext;
 import org.pac4j.core.context.session.JEESessionStore;
 import org.pac4j.core.context.session.SessionStore;
 import org.springframework.beans.factory.ObjectProvider;
@@ -92,10 +99,26 @@ import java.util.List;
 public class SamlIdPEndpointsConfiguration {
     @Autowired
     private ConfigurableApplicationContext applicationContext;
-    
+
+    @Autowired
+    @Qualifier("defaultTicketRegistrySupport")
+    private ObjectProvider<TicketRegistrySupport> ticketRegistrySupport;
+
+    @Autowired
+    @Qualifier("singleSignOnParticipationStrategy")
+    private ObjectProvider<SingleSignOnParticipationStrategy> singleSignOnParticipationStrategy;
+
+    @Autowired
+    @Qualifier("webflowCipherExecutor")
+    private ObjectProvider<CipherExecutor> webflowCipherExecutor;
+
     @Autowired
     @Qualifier("singleLogoutServiceLogoutUrlBuilder")
     private ObjectProvider<SingleLogoutServiceLogoutUrlBuilder> singleLogoutServiceLogoutUrlBuilder;
+
+    @Autowired
+    @Qualifier("registeredServiceAccessStrategyEnforcer")
+    private ObjectProvider<AuditableExecution> registeredServiceAccessStrategyEnforcer;
 
     @Autowired
     @Qualifier("noRedirectHttpClient")
@@ -110,10 +133,6 @@ public class SamlIdPEndpointsConfiguration {
     private ObjectProvider<AuthenticationServiceSelectionPlan> authenticationServiceSelectionPlan;
 
     @Autowired
-    @Qualifier("casClientTicketValidator")
-    private ObjectProvider<AbstractUrlBasedTicketValidator> casClientTicketValidator;
-
-    @Autowired
     private CasConfigurationProperties casProperties;
 
     @Autowired
@@ -121,7 +140,7 @@ public class SamlIdPEndpointsConfiguration {
     private ObjectProvider<ServicesManager> servicesManager;
 
     @Autowired
-    @Qualifier("shibboleth.OpenSAMLConfig")
+    @Qualifier(OpenSamlConfigBean.DEFAULT_BEAN_NAME)
     private ObjectProvider<OpenSamlConfigBean> openSamlConfigBean;
 
     @Autowired
@@ -137,9 +156,9 @@ public class SamlIdPEndpointsConfiguration {
     private ObjectProvider<SamlProfileObjectBuilder<Response>> samlProfileSamlResponseBuilder;
 
     @Autowired
-    @Qualifier("defaultSamlRegisteredServiceCachingMetadataResolver")
+    @Qualifier(SamlRegisteredServiceCachingMetadataResolver.DEFAULT_BEAN_NAME)
     private ObjectProvider<SamlRegisteredServiceCachingMetadataResolver> defaultSamlRegisteredServiceCachingMetadataResolver;
-    
+
     @Autowired
     @Qualifier("samlIdPServiceFactory")
     private ObjectProvider<ServiceFactory> samlIdPServiceFactory;
@@ -149,7 +168,7 @@ public class SamlIdPEndpointsConfiguration {
     private ObjectProvider<AuthenticationSystemSupport> authenticationSystemSupport;
 
     @Autowired
-    @Qualifier("samlObjectSigner")
+    @Qualifier(SamlIdPObjectSigner.DEFAULT_BEAN_NAME)
     private ObjectProvider<SamlIdPObjectSigner> samlObjectSigner;
 
     @Autowired
@@ -177,6 +196,10 @@ public class SamlIdPEndpointsConfiguration {
     private ObjectProvider<SamlProfileObjectBuilder<Response>> samlProfileSamlArtifactFaultResponseBuilder;
 
     @Autowired
+    @Qualifier("authenticationAttributeReleasePolicy")
+    private ObjectProvider<AuthenticationAttributeReleasePolicy> authenticationAttributeReleasePolicy;
+
+    @Autowired
     @Qualifier("samlProfileSamlAttributeQueryResponseBuilder")
     private ObjectProvider<SamlProfileObjectBuilder<Response>> samlProfileSamlAttributeQueryResponseBuilder;
 
@@ -191,7 +214,7 @@ public class SamlIdPEndpointsConfiguration {
     @Autowired
     @Qualifier("ticketRegistry")
     private ObjectProvider<TicketRegistry> ticketRegistry;
-    
+
     @Autowired
     @Qualifier("samlArtifactTicketFactory")
     private ObjectProvider<SamlArtifactTicketFactory> samlArtifactTicketFactory;
@@ -341,7 +364,7 @@ public class SamlIdPEndpointsConfiguration {
         return new SamlIdPSaml1ArtifactResolutionProfileHandlerController(context);
     }
 
-    @ConditionalOnProperty(prefix = "cas.authn.saml-idp", name = "attribute-query-profile-enabled", havingValue = "true")
+    @ConditionalOnProperty(prefix = "cas.authn.saml-idp.core", name = "attribute-query-profile-enabled", havingValue = "true")
     @Bean
     @RefreshScope
     public SamlIdPSaml2AttributeQueryProfileHandlerController saml2AttributeQueryProfileHandlerController() {
@@ -354,7 +377,7 @@ public class SamlIdPEndpointsConfiguration {
 
     @Bean
     public Service samlIdPCallbackService() {
-        val service = casProperties.getServer().getPrefix().concat(SamlIdPConstants.ENDPOINT_SAML2_SSO_PROFILE_POST_CALLBACK);
+        val service = casProperties.getServer().getPrefix().concat(SamlIdPConstants.ENDPOINT_SAML2_SSO_PROFILE_CALLBACK);
         return this.samlIdPServiceFactory.getObject().createService(service);
     }
 
@@ -380,17 +403,27 @@ public class SamlIdPEndpointsConfiguration {
         return new SamlIdPServicesManagerRegisteredServiceLocator(defaultSamlRegisteredServiceCachingMetadataResolver.getObject());
     }
 
-    @ConditionalOnMissingBean(name = "samlIdPDistributedSessionStore")
+    @ConditionalOnMissingBean(name = "samlIdPDistributedSessionCookieGenerator")
     @Bean
-    public SessionStore<JEEContext> samlIdPDistributedSessionStore() {
-        val replicate = casProperties.getAuthn().getSamlIdp().isReplicateSessions();
-        if (replicate) {
-            val cookie = casProperties.getSessionReplication().getCookie();
-            val cookieGenerator = CookieUtils.buildCookieRetrievingGenerator(cookie);
+    @RefreshScope
+    public CasCookieBuilder samlIdPDistributedSessionCookieGenerator() {
+        val cookie = casProperties.getSessionReplication().getCookie();
+        return CookieUtils.buildCookieRetrievingGenerator(cookie);
+    }
+
+    @ConditionalOnMissingBean(name = DistributedJEESessionStore.DEFAULT_BEAN_NAME)
+    @Bean
+    @RefreshScope
+    public SessionStore samlIdPDistributedSessionStore() {
+        val type = casProperties.getAuthn().getSamlIdp().getCore().getSessionStorageType();
+        if (type == SamlIdPCoreProperties.SessionStorageTypes.TICKET_REGISTRY) {
             return new DistributedJEESessionStore(centralAuthenticationService.getObject(),
-                ticketFactory.getObject(), cookieGenerator);
+                ticketFactory.getObject(), samlIdPDistributedSessionCookieGenerator());
         }
-        return new JEESessionStore();
+        if (type == SamlIdPCoreProperties.SessionStorageTypes.BROWSER_SESSION_STORAGE) {
+            return new BrowserWebStorageSessionStore(webflowCipherExecutor.getObject());
+        }
+        return JEESessionStore.INSTANCE;
     }
 
     @ConditionalOnMissingBean(name = "samlIdPSingleLogoutRedirectionStrategy")
@@ -398,6 +431,13 @@ public class SamlIdPEndpointsConfiguration {
     @RefreshScope
     public LogoutRedirectionStrategy samlIdPSingleLogoutRedirectionStrategy() {
         return new SamlIdPSingleLogoutRedirectionStrategy(getSamlProfileHandlerConfigurationContextBuilder().build());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(name = "samlIdPTicketValidator")
+    public TicketValidator samlIdPTicketValidator() {
+        return new InternalTicketValidator(centralAuthenticationService.getObject(),
+            samlIdPServiceFactory.getObject(), authenticationAttributeReleasePolicy.getObject(), servicesManager.getObject());
     }
 
     @ConditionalOnMissingBean(name = "samlLogoutBuilder")
@@ -425,7 +465,7 @@ public class SamlIdPEndpointsConfiguration {
             velocityEngineFactory.getObject(),
             openSamlConfigBean.getObject());
     }
-    
+
     @ConditionalOnMissingBean(name = "casSamlIdPLogoutExecutionPlanConfigurer")
     @Bean
     @RefreshScope
@@ -435,10 +475,21 @@ public class SamlIdPEndpointsConfiguration {
             plan.registerSingleLogoutServiceMessageHandler(samlSingleLogoutServiceMessageHandler());
         };
     }
-    
+
     @Bean
     public SamlIdPLogoutResponseObjectBuilder samlIdPLogoutResponseObjectBuilder() {
         return new SamlIdPLogoutResponseObjectBuilder(openSamlConfigBean.getObject());
+    }
+
+    @Bean
+    public ProtocolEndpointWebSecurityConfigurer<Void> samlIdPProtocolEndpointConfigurer() {
+        return new ProtocolEndpointWebSecurityConfigurer<>() {
+            @Override
+            public List<String> getIgnoredEndpoints() {
+                return List.of(StringUtils.prependIfMissing(SamlIdPConstants.BASE_ENDPOINT_SAML1, "/"),
+                    StringUtils.prependIfMissing(SamlIdPConstants.BASE_ENDPOINT_SAML2, "/"));
+            }
+        };
     }
 
     private SamlProfileHandlerConfigurationContext.SamlProfileHandlerConfigurationContextBuilder getSamlProfileHandlerConfigurationContextBuilder() {
@@ -450,23 +501,21 @@ public class SamlIdPEndpointsConfiguration {
             .samlRegisteredServiceCachingMetadataResolver(defaultSamlRegisteredServiceCachingMetadataResolver.getObject())
             .openSamlConfigBean(openSamlConfigBean.getObject())
             .casProperties(casProperties)
+            .ticketRegistrySupport(ticketRegistrySupport.getObject())
+            .singleSignOnParticipationStrategy(singleSignOnParticipationStrategy.getObject())
             .logoutResponseBuilder(samlIdPLogoutResponseObjectBuilder())
             .singleLogoutServiceLogoutUrlBuilder(singleLogoutServiceLogoutUrlBuilder.getObject())
             .artifactTicketFactory(samlArtifactTicketFactory.getObject())
             .samlObjectSignatureValidator(samlObjectSignatureValidator())
             .samlHttpRequestExtractor(ssoSamlHttpRequestExtractor())
             .responseBuilder(samlProfileSamlResponseBuilder.getObject())
-            .ticketValidator(casClientTicketValidator.getObject())
+            .ticketValidator(samlIdPTicketValidator())
             .ticketRegistry(ticketRegistry.getObject())
             .sessionStore(samlIdPDistributedSessionStore())
             .ticketGrantingTicketCookieGenerator(ticketGrantingTicketCookieGenerator.getObject())
             .samlAttributeQueryTicketFactory(samlAttributeQueryTicketFactory.getObject())
+            .samlDistributedSessionCookieGenerator(samlIdPDistributedSessionCookieGenerator())
+            .registeredServiceAccessStrategyEnforcer(registeredServiceAccessStrategyEnforcer.getObject())
             .callbackService(samlIdPCallbackService());
-    }
-
-    @Bean
-    public ProtocolEndpointConfigurer samlIdPProtocolEndpointConfigurer() {
-        return () -> List.of(StringUtils.prependIfMissing(SamlIdPConstants.BASE_ENDPOINT_SAML1, "/"),
-            StringUtils.prependIfMissing(SamlIdPConstants.BASE_ENDPOINT_SAML2, "/"));
     }
 }

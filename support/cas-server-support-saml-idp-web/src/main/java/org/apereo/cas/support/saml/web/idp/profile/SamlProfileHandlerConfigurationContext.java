@@ -1,5 +1,6 @@
 package org.apereo.cas.support.saml.web.idp.profile;
 
+import org.apereo.cas.audit.AuditableExecution;
 import org.apereo.cas.authentication.AuthenticationSystemSupport;
 import org.apereo.cas.authentication.principal.Service;
 import org.apereo.cas.authentication.principal.ServiceFactory;
@@ -17,15 +18,16 @@ import org.apereo.cas.support.saml.web.idp.profile.sso.request.SSOSamlHttpReques
 import org.apereo.cas.ticket.artifact.SamlArtifactTicketFactory;
 import org.apereo.cas.ticket.query.SamlAttributeQueryTicketFactory;
 import org.apereo.cas.ticket.registry.TicketRegistry;
+import org.apereo.cas.ticket.registry.TicketRegistrySupport;
 import org.apereo.cas.web.cookie.CasCookieBuilder;
+import org.apereo.cas.web.flow.SingleSignOnParticipationStrategy;
 
-import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import org.jasig.cas.client.validation.AbstractUrlBasedTicketValidator;
+import lombok.experimental.SuperBuilder;
+import org.jasig.cas.client.validation.TicketValidator;
 import org.opensaml.saml.common.SAMLObject;
-import org.pac4j.core.context.JEEContext;
 import org.pac4j.core.context.session.SessionStore;
 
 /**
@@ -37,7 +39,7 @@ import org.pac4j.core.context.session.SessionStore;
 @ToString
 @Getter
 @Setter
-@Builder
+@SuperBuilder
 public class SamlProfileHandlerConfigurationContext {
 
     private final SamlIdPObjectSigner samlObjectSigner;
@@ -62,13 +64,15 @@ public class SamlProfileHandlerConfigurationContext {
 
     private final Service callbackService;
 
+    private final CasCookieBuilder samlDistributedSessionCookieGenerator;
+
     private final SSOSamlHttpRequestExtractor samlHttpRequestExtractor;
 
     private final HttpServletRequestXMLMessageDecodersMap samlMessageDecoders;
 
     private final SamlProfileObjectBuilder<? extends SAMLObject> samlFaultResponseBuilder;
 
-    private final AbstractUrlBasedTicketValidator ticketValidator;
+    private final TicketValidator ticketValidator;
 
     private final TicketRegistry ticketRegistry;
 
@@ -80,5 +84,11 @@ public class SamlProfileHandlerConfigurationContext {
 
     private final SingleLogoutServiceLogoutUrlBuilder singleLogoutServiceLogoutUrlBuilder;
 
-    private final SessionStore<JEEContext> sessionStore;
+    private final SessionStore sessionStore;
+
+    private final TicketRegistrySupport ticketRegistrySupport;
+
+    private final SingleSignOnParticipationStrategy singleSignOnParticipationStrategy;
+
+    private final AuditableExecution registeredServiceAccessStrategyEnforcer;
 }

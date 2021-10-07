@@ -9,7 +9,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import lombok.experimental.Accessors;
 import lombok.val;
+import org.springframework.http.HttpMethod;
 import org.springframework.util.StringUtils;
 
 import java.util.Map;
@@ -28,6 +30,7 @@ import java.util.Map;
 @Setter
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
+@Accessors(chain = true)
 @JsonInclude(JsonInclude.Include.NON_DEFAULT)
 public class RemoteEndpointServiceAccessStrategy extends DefaultRegisteredServiceAccessStrategy {
 
@@ -40,7 +43,14 @@ public class RemoteEndpointServiceAccessStrategy extends DefaultRegisteredServic
     @Override
     public boolean doPrincipalAttributesAllowServiceAccess(final String principal, final Map<String, Object> principalAttributes) {
         if (super.doPrincipalAttributesAllowServiceAccess(principal, principalAttributes)) {
-            val response = HttpUtils.executeGet(this.endpointUrl, CollectionUtils.wrap("username", principal));
+
+            val exec = HttpUtils.HttpExecutionRequest.builder()
+                .method(HttpMethod.GET)
+                .url(this.endpointUrl)
+                .parameters(CollectionUtils.wrap("username", principal))
+                .build();
+
+            val response = HttpUtils.execute(exec);
             val currentCodes = StringUtils.commaDelimitedListToSet(this.acceptableResponseCodes);
             return response != null && currentCodes.contains(String.valueOf(response.getStatusLine().getStatusCode()));
         }

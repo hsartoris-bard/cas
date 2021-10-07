@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import lombok.experimental.SuperBuilder;
 
 /**
  * This is {@link SamlIdPAttributeDefinition}.
@@ -21,10 +22,13 @@ import lombok.ToString;
 @EqualsAndHashCode(callSuper = true)
 @Getter
 @Setter
+@SuperBuilder
 @AllArgsConstructor
 @NoArgsConstructor
 public class SamlIdPAttributeDefinition extends DefaultAttributeDefinition {
     private static final long serialVersionUID = -144152003366303322L;
 
     private String friendlyName;
+
+    private String urn;
 }
