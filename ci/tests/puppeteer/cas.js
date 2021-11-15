@@ -8,6 +8,7 @@ const colors = require('colors');
 const fs = require("fs");
 const {ImgurClient} = require('imgur');
 const path = require("path");
+const { Buffer } = require('buffer');
 const { PuppeteerScreenRecorder } = require('puppeteer-screen-recorder');
 
 const BROWSER_OPTIONS = {
@@ -27,8 +28,12 @@ exports.browserOptions = (opt) => {
     };
 };
 
+exports.logg = async(text) => {
+    console.log(colors.green(text));
+}
+
 exports.removeDirectory = async (directory) => {
-    console.log(colors.green(`Removing directory ${directory}`));
+    await this.logg(`Removing directory ${directory}`)
     fs.rmdir(directory, {recursive: true}, () => {
     });
 }
@@ -72,7 +77,7 @@ exports.uploadImage = async (imagePath) => {
         console.log(`Uploading image ${imagePath}`);
         const client = new ImgurClient({clientId: clientId});
         const response = await client.upload(imagePath);
-        console.log(colors.green(response.data.link));
+        await this.logg(response.data.link);
     }
 }
 
@@ -96,7 +101,7 @@ exports.fetchGoogleAuthenticatorScratchCode = async (user = "casuser") => {
 }
 exports.isVisible = async (page, selector) => {
     let element = await page.$(selector);
-    console.log(`Checking visibility for ${selector}`);
+    console.log(`Checking visibility for ${selector} while on page ${page.url()}`);
     return (element != null && await element.boundingBox() != null);
 }
 
@@ -169,6 +174,7 @@ exports.assertMissingParameter = async (page, param) => {
 
 exports.sleep = async (ms) => {
     return new Promise((resolve) => {
+        this.logg(`Waiting for ${ms / 1000} second(s)...`)
         setTimeout(resolve, ms);
     });
 }
@@ -215,16 +221,24 @@ exports.doRequest = async (url, method = "GET", headers = {}, statusCode = 200, 
     });
 }
 
-exports.doGet = async (url, successHandler, failureHandler) => {
+exports.doGet = async (url, successHandler, failureHandler, headers = {}, responseType = undefined) => {
     const instance = axios.create({
         httpsAgent: new https.Agent({
             rejectUnauthorized: false
         })
     });
+    let config = {
+      headers: headers
+    };
+    if (responseType !== undefined) {
+        config["responseType"] = responseType
+    }
     await instance
-        .get(url)
+        .get(url, config)
         .then(res => {
-            console.log(res.data);
+            if (responseType !== "blob" && responseType !== "stream") {
+                console.log(res.data);
+            }
             successHandler(res);
         })
         .catch(error => {
@@ -350,16 +364,17 @@ exports.decodeJwt = async (token, complete = false) => {
     if (complete) {
         console.log(`Decoded token header: ${colors.green(decoded.header)}`);
         console.log("Decoded token payload:");
-        console.log(colors.green(decoded.payload));
+        await this.logg(decoded.payload);
     } else {
         console.log("Decoded token payload:");
-        console.log(colors.green(decoded));
+        await this.logg(decoded);
     }
     return decoded;
 }
 
 exports.uploadSamlMetadata = async (page, metadata) => {
     await page.goto("https://samltest.id/upload.php");
+    console.log(`Uploading metadata file ${metadata} to ${await page.url()}`);
     await page.waitForTimeout(1000)
     const fileElement = await page.$("input[type=file]");
     console.log(`Metadata file: ${metadata}`);
@@ -384,12 +399,17 @@ exports.fetchDuoSecurityBypassCode = async (user = "casuser") => {
     return await this.fetchDuoSecurityBypassCode(user)[0];
 }
 
+exports.base64Decode = async(data) => {
+    let buff = Buffer.from(data, 'base64');
+    return buff.toString('ascii');
+}
+
 exports.screenshot = async (page) => {
     let index = Math.floor(Math.random() * 10000);
     let filePath = path.join(__dirname, `/screenshot${index}.png`)
     try {
         await page.screenshot({path: filePath, fullPage: true});
-        console.log(colors.green(`Screenshot saved at ${filePath}`));
+        await this.logg(`Screenshot saved at ${filePath}`);
         await this.uploadImage(filePath);
     } catch (e)  {
         console.log(colors.red(`Unable to capture screenshot ${filePath}: ${e}`));
@@ -434,7 +454,7 @@ exports.loginDuoSecurityBypassCode = async (page, type) => {
         await page.keyboard.down('Enter');
         await page.keyboard.up('Enter');
         await this.screenshot(page);
-        console.log(`Waiting for Duo Security to accept bypass code...`);
+        console.log(`Waiting for Duo Security to accept bypass code for ${type}...`);
         await page.waitForTimeout(15000);
     } else {
         let i = 0;

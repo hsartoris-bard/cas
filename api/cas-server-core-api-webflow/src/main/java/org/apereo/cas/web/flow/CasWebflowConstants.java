@@ -9,6 +9,29 @@ package org.apereo.cas.web.flow;
 public interface CasWebflowConstants {
     /*
      ****************************************
+     * Bean Names.
+     ****************************************
+     */
+
+    /**
+     * Bean name for login flow registry.
+     */
+    String BEAN_NAME_LOGIN_FLOW_DEFINITION_REGISTRY = "loginFlowRegistry";
+    /**
+     * Bean name for logout flow registry.
+     */
+    String BEAN_NAME_LOGOUT_FLOW_DEFINITION_REGISTRY = "logoutFlowRegistry";
+    /**
+     * Bean name for flow builder services.
+     */
+    String BEAN_NAME_FLOW_BUILDER_SERVICES = "flowBuilderServices";
+    /**
+     * Bean name for flow builder.
+     */
+    String BEAN_NAME_FLOW_BUILDER = "flowBuilder";
+
+    /*
+     ****************************************
      * Errors.
      ****************************************
      */
@@ -22,6 +45,7 @@ public interface CasWebflowConstants {
      * Attribute to track registered service in the flow.
      */
     String ATTRIBUTE_REGISTERED_SERVICE = "registeredService";
+
     /**
      * Attribute to track service in the flow.
      */
@@ -33,6 +57,11 @@ public interface CasWebflowConstants {
      ****************************************
      */
 
+    /**
+     * The transition state 'passwordlessGetUserId'.
+     */
+    String TRANSITION_ID_PASSWORDLESS_GET_USERID = "passwordlessGetUserId";
+    
     /**
      * The transition state 'discovery'.
      */
@@ -445,7 +474,7 @@ public interface CasWebflowConstants {
      * The state 'accountRegistrationSubflow'.
      */
     String STATE_ID_ACCOUNT_REGISTRATION_SUBFLOW = "accountRegistrationSubflow";
-    
+
     /**
      * The state 'accountSignUpInfoSent'.
      */
@@ -874,6 +903,61 @@ public interface CasWebflowConstants {
      */
     String STATE_ID_VALIDATE_ACCOUNT_REGISTRATION_TOKEN = "validateAccountRegistrationToken";
 
+    /**
+     * State id 'determineDuoRequest'.
+     */
+    String STATE_ID_DETERMINE_DUO_REQUEST = "determineDuoRequest";
+
+    /**
+     * State id 'viewLoginFormDuo'.
+     */
+    String STATE_ID_VIEW_LOGIN_FORM_DUO = "viewLoginFormDuo";
+
+    /**
+     * State id 'finalizeAuthentication'.
+     */
+    String STATE_ID_FINALIZE_AUTHENTICATION = "finalizeAuthentication";
+
+    /**
+     * State id 'determineDuoUserAccount'.
+     */
+    String STATE_ID_DETERMINE_DUO_USER_ACCOUNT = "determineDuoUserAccount";
+
+    /**
+     * State id 'duoNonWebAuthentication'.
+     */
+    String STATE_ID_DUO_NON_WEB_AUTHENTICATION = "duoNonWebAuthentication";
+
+    /**
+     * State id 'passwordlessDisplayUser'.
+     */
+    String STATE_ID_PASSWORDLESS_DISPLAY = "passwordlessDisplayUser";
+
+    /**
+     * State id 'determineMultifactorPasswordlessAuthentication'.
+     */
+    String STATE_ID_PASSWORDLESS_DETERMINE_MFA = "determineMultifactorPasswordlessAuthentication";
+
+    /**
+     * State id 'determineDelegatedAuthentication'.
+     */
+    String STATE_ID_PASSWORDLESS_DETERMINE_DELEGATED_AUTHN= "determineDelegatedAuthentication";
+
+    /**
+     * State id 'passwordlessVerifyAccount'.
+     */
+    String STATE_ID_PASSWORDLESS_VERIFY_ACCOUNT = "passwordlessVerifyAccount";
+
+    /**
+     * State id 'acceptPasswordlessAuthentication'.
+     */
+    String STATE_ID_ACCEPT_PASSWORDLESS_AUTHENTICATION = "acceptPasswordlessAuthentication";
+
+    /**
+     * State id 'passwordlessGetUserIdView'.
+     */
+    String STATE_ID_PASSWORDLESS_GET_USERID = "passwordlessGetUserIdView";
+
     /*
      ****************************************
      * Views.
@@ -1107,6 +1191,7 @@ public interface CasWebflowConstants {
      * Action id 'serviceWarningAction'.
      */
     String ACTION_ID_SERVICE_WARNING = "serviceWarningAction";
+
     /**
      * Action id 'finishLogoutAction'.
      */
@@ -1275,4 +1360,50 @@ public interface CasWebflowConstants {
      * Action id 'submitAccountRegistrationAction .
      */
     String ACTION_ID_ACCOUNT_REGISTRATION_SUBMIT = "submitAccountRegistrationAction";
+
+    /**
+     * Action id 'determineDuoUserAccountAction .
+     */
+    String ACTION_ID_DETERMINE_DUO_USER_ACCOUNT = "determineDuoUserAccountAction";
+
+    /**
+     * Action id 'checkWebAuthenticationRequestAction .
+     */
+    String ACTION_ID_CHECK_WEB_AUTHENTICATION_REQUEST = "checkWebAuthenticationRequestAction";
+
+    /**
+     * Action id 'prepareDuoWebLoginFormAction .
+     */
+    String ACTION_ID_PREPARE_DUO_WEB_LOGIN_FORM = "prepareDuoWebLoginFormAction";
+
+    /**
+     * Action id 'duoAuthenticationWebflowAction .
+     */
+    String ACTION_ID_DUO_AUTHENTICATION_WEBFLOW = "duoAuthenticationWebflowAction";
+
+    /**
+     * Action id 'duoNonWebAuthenticationAction .
+     */
+    String ACTION_ID_DUO_NON_WEB_AUTHENTICATION = "duoNonWebAuthenticationAction";
+
+    /**
+     * Action id 'displayBeforePasswordlessAuthenticationAction .
+     */
+    String ACTION_ID_DISPLAY_BEFORE_PASSWORDLESS_AUTHN = "displayBeforePasswordlessAuthenticationAction";
+    /**
+     * Action id 'verifyPasswordlessAccountAuthenticationAction .
+     */
+    String ACTION_ID_VERIFY_PASSWORDLESS_ACCOUNT_AUTHN = "verifyPasswordlessAccountAuthenticationAction";
+    /**
+     * Action id 'verifyPasswordlessAccountAuthenticationAction .
+     */
+    String ACTION_ID_DETERMINE_PASSWORDLESS_DELEGATED_AUTHN = "determineDelegatedAuthenticationAction";
+    /**
+     * Action id 'determineMultifactorPasswordlessAuthenticationAction .
+     */
+    String ACTION_ID_DETERMINE_PASSWORDLESS_MULTIFACTOR_AUTHN = "determineMultifactorPasswordlessAuthenticationAction";
+    /**
+     * Action id 'determineMultifactorPasswordlessAuthenticationAction .
+     */
+    String ACTION_ID_ACCEPT_PASSWORDLESS_AUTHN = "acceptPasswordlessAuthenticationAction";
 }

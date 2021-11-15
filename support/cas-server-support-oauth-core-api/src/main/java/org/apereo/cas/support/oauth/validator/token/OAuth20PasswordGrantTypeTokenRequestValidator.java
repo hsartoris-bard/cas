@@ -43,7 +43,7 @@ public class OAuth20PasswordGrantTypeTokenRequestValidator extends BaseOAuth20To
         val clientId = clientIdAndSecret.getKey();
         LOGGER.debug("Received grant type [{}] with client id [{}]", grantType, clientId);
         val registeredService = OAuth20Utils.getRegisteredOAuthServiceByClientId(getConfigurationContext().getServicesManager(), clientId);
-        Objects.requireNonNull(registeredService, "Registered service cannot be found for client " + clientId);
+        Objects.requireNonNull(registeredService, () -> "Registered service cannot be found for client " + clientId);
         val service = getConfigurationContext().getWebApplicationServiceServiceFactory().createService(registeredService.getServiceId());
         val audit = AuditableContext.builder()
             .service(service)
@@ -53,7 +53,8 @@ public class OAuth20PasswordGrantTypeTokenRequestValidator extends BaseOAuth20To
         accessResult.throwExceptionIfNeeded();
 
         if (!isGrantTypeSupportedBy(registeredService, grantType)) {
-            LOGGER.warn("Requested grant type [{}] is not authorized by service definition [{}]", getGrantType(), registeredService.getServiceId());
+            LOGGER.warn("Requested grant type [{}] is not authorized by service definition [{}]",
+                getGrantType(), registeredService.getServiceId());
             return false;
         }
         return true;

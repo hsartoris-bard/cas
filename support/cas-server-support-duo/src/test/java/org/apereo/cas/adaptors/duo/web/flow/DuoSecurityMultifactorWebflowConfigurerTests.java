@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.*;
     properties = {
         "management.endpoint.duoAdmin.enabled=true",
         "management.endpoints.web.exposure.include=*",
-        
+
         "cas.authn.mfa.duo[0].duo-admin-secret-key=${#systemProperties['DUO_SECURITY_ADMIN_SKEY']}",
         "cas.authn.mfa.duo[0].duo-admin-integration-key=${#systemProperties['DUO_SECURITY_ADMIN_IKEY']}",
         "cas.authn.mfa.duo[0].duo-secret-key=1234567890",
@@ -42,6 +42,11 @@ import static org.junit.jupiter.api.Assertions.*;
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 @Tag("WebflowMfaConfig")
 public class DuoSecurityMultifactorWebflowConfigurerTests extends BaseMultifactorWebflowConfigurerTests {
+    static {
+        System.setProperty("DUO_SECURITY_ADMIN_SKEY", UUID.randomUUID().toString());
+        System.setProperty("DUO_SECURITY_ADMIN_IKEY", UUID.randomUUID().toString());
+    }
+
     @Autowired
     private ConfigurableApplicationContext applicationContext;
 
@@ -49,10 +54,6 @@ public class DuoSecurityMultifactorWebflowConfigurerTests extends BaseMultifacto
     @Qualifier("duoAdminApiEndpoint")
     private DuoSecurityAdminApiEndpoint duoAdminApiEndpoint;
 
-    static {
-        System.setProperty("DUO_SECURITY_ADMIN_SKEY", UUID.randomUUID().toString());
-        System.setProperty("DUO_SECURITY_ADMIN_IKEY", UUID.randomUUID().toString());
-    }
     @Test
     public void verifyAdminEndpoint() {
         assertNotNull(duoAdminApiEndpoint);
@@ -60,7 +61,7 @@ public class DuoSecurityMultifactorWebflowConfigurerTests extends BaseMultifacto
 
     @Override
     protected FlowDefinitionRegistry getMultifactorFlowDefinitionRegistry() {
-        return this.applicationContext.getBean(DuoSecurityMultifactorAuthenticationProperties.DEFAULT_IDENTIFIER, FlowDefinitionRegistry.class);
+        return applicationContext.getBean(DuoSecurityMultifactorAuthenticationProperties.DEFAULT_IDENTIFIER, FlowDefinitionRegistry.class);
     }
 
     @Override

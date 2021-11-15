@@ -44,17 +44,17 @@ public class DuoSecurityUniversalPromptMultifactorWebflowConfigurerTests extends
         val loginFlow = (Flow) loginFlowDefinitionRegistry.getFlowDefinition(CasWebflowConfigurer.FLOW_ID_LOGIN);
         assertNotNull(loginFlow.getState(CasWebflowConstants.STATE_ID_DUO_UNIVERSAL_PROMPT_VALIDATE_LOGIN));
         assertEquals(CasWebflowConstants.STATE_ID_DUO_UNIVERSAL_PROMPT_VALIDATE_LOGIN, loginFlow.getStartState().getId());
-        
+
         val registry = getMultifactorFlowDefinitionRegistry();
         val flow = (Flow) registry.getFlowDefinition(getMultifactorEventId());
-        val viewState = (ViewState) flow.getState(DuoSecurityMultifactorWebflowConfigurer.STATE_ID_VIEW_LOGIN_FORM_DUO);
+        val viewState = (ViewState) flow.getState(CasWebflowConstants.STATE_ID_VIEW_LOGIN_FORM_DUO);
         assertTrue(viewState.getEntryActionList().get(0).toString()
             .contains(CasWebflowConstants.ACTION_ID_DUO_UNIVERSAL_PROMPT_PREPARE_LOGIN));
     }
 
     @Override
     protected FlowDefinitionRegistry getMultifactorFlowDefinitionRegistry() {
-        return this.applicationContext.getBean(DuoSecurityMultifactorAuthenticationProperties.DEFAULT_IDENTIFIER, FlowDefinitionRegistry.class);
+        return applicationContext.getBean(DuoSecurityMultifactorAuthenticationProperties.DEFAULT_IDENTIFIER, FlowDefinitionRegistry.class);
     }
 
     @Override

@@ -56,6 +56,7 @@ import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.aop.AopAutoConfiguration;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
@@ -78,11 +79,11 @@ import static org.mockito.Mockito.*;
 @EnableRetry
 public abstract class BaseOAuth20AuthenticatorTests {
     @Autowired
-    @Qualifier("servicesManager")
+    @Qualifier(ServicesManager.BEAN_NAME)
     protected ServicesManager servicesManager;
 
     @Autowired
-    @Qualifier("defaultAuthenticationSystemSupport")
+    @Qualifier(AuthenticationSystemSupport.BEAN_NAME)
     protected AuthenticationSystemSupport authenticationSystemSupport;
 
     @Autowired
@@ -112,7 +113,7 @@ public abstract class BaseOAuth20AuthenticatorTests {
     protected OAuthRegisteredService serviceWithAttributesMapping;
 
     @Autowired
-    @Qualifier("ticketRegistry")
+    @Qualifier(TicketRegistry.BEAN_NAME)
     protected TicketRegistry ticketRegistry;
 
     @Autowired
@@ -164,6 +165,7 @@ public abstract class BaseOAuth20AuthenticatorTests {
     @ImportAutoConfiguration({
         RefreshAutoConfiguration.class,
         SecurityAutoConfiguration.class,
+        WebMvcAutoConfiguration.class,
         AopAutoConfiguration.class
     })
     @SpringBootConfiguration

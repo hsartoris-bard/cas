@@ -123,6 +123,10 @@ To access the service, the principal must have a `cn` attribute whose value is e
 }
 ```
 
+<div class="alert alert-info"><strong>Supported Syntax</strong><p>Required values for 
+a given attribute support regular expression patterns. For example, a <code>phone</code> attribute could
+require a value pattern of <code>\d\d\d-\d\d\d-\d\d\d\d</code>.</p></div>
+
 #### Static Unauthorized Redirect URL
 
 Service access is denied if the principal does *not* have a `cn` attribute containing the value `super-user`. If so,
@@ -147,7 +151,8 @@ the user will be redirected to `https://www.github.com` instead.
 
 #### Dynamic Unauthorized Redirect URL
 
-Service access is denied if the principal does *not* have a `cn` attribute containing the value `super-user`. If so, the redirect URL
+Service access is denied if the principal does *not* have a `cn` attribute 
+containing the value `super-user`. If so, the redirect URL
 will be dynamically determined based on outcome of the specified Groovy script.
 
 ```json
@@ -256,6 +261,41 @@ also must not have an attribute "role" whose value matches the pattern `deny.+`.
 }
 ```
 
+<div class="alert alert-info"><strong>Supported Syntax</strong><p>Rejected values for 
+a given attribute support regular expression patterns. For example, a <code>role</code> attribute could
+be designed with a value value pattern of <code>admin-.*</code>.</p></div>
+
+## Global Groovy Script
+
+Access strategy and authorization decision can be carried using a Groovy script for all services and applications. This policy
+is not tied to a specific application and is invoked for all services and integrations. 
+
+{% include_cached casproperties.html properties="cas.access-strategy.groovy" %}
+
+The outline of the script is as follows:
+
+```groovy
+import org.apereo.cas.audit.*
+import org.apereo.cas.services.*
+
+def run(Object[] args) {
+    def context = args[0] as AuditableContext
+    def logger = args[1]
+    logger.debug("Checking access for ${context.registeredService}")
+    def result = AuditableExecutionResult.builder().build()
+    result.setException(new UnauthorizedServiceException("Service unauthorized"))
+    return result
+}
+```
+      
+The following parameters are passed to the script:
+
+| Parameter  | Description
+|-------------|---------------------------------------------------------------------------------
+| `context`   | An `AuditableContext` object that carries auditable data such as registered services, authentication, etc. 
+| `logger`    | The object responsible for issuing log messages such as `logger.info(...)`.
+  
+
 ## Time-Based
 
 The time-based access strategy is an extension of the default which additionally,
@@ -318,7 +358,7 @@ Remote endpoint access strategy authorizing service access based on response cod
 }
 ```
 
-## Groovy
+## Groovy Per Service
 
 This strategy delegates to a Groovy script to dynamically decide the access rules requested by CAS at runtime:
 
@@ -358,7 +398,8 @@ class GroovyRegisteredAccessStrategy extends DefaultRegisteredServiceAccessStrat
 }
 ```
 
-The configuration of this component qualifies to use the [Spring Expression Language](../configuration/Configuration-Spring-Expressions.html) syntax. Refer to the CAS API documentation to learn more about operations and expected behaviors.
+The configuration of this component qualifies to use the [Spring Expression Language](../configuration/Configuration-Spring-Expressions.html) 
+syntax. Refer to the CAS API documentation to learn more about operations and expected behaviors.
 
 ## Grouper
 
@@ -423,6 +464,64 @@ to override the defaults:
       "grouperClient.webService.url" : "http://grouper.example.com/grouper-ws/servicesRest"
     },
     "groupField" : "DISPLAY_EXTENSION"
+  }
+}
+```
+ 
+## Chaining Strategies
+
+Multiple access strategies can be combined together to form complex rules and conditions in a chain. Using chains,
+one can implement advanced Boolean logic to group results together. Note that chains can contain other chains as well.
+
+The following access strategy chain allows service access if the authenticated principal,
+
+- has an attribute `key1` with a value of `value1` **AND** an attribute `key2` with a value of `value2`.
+
+...**OR**...
+
+- has an attribute `key3` with a value of `value3`.
+
+```json
+{
+  "@class" : "org.apereo.cas.services.RegexRegisteredService",
+  "serviceId" : "^https://.+",
+  "name" : "test",
+  "id" : 1,
+  "accessStrategy" : {
+    "@class": "org.apereo.cas.services.ChainingRegisteredServiceAccessStrategy",
+    "strategies": [ "java.util.ArrayList",
+      [ {
+        "@class": "org.apereo.cas.services.ChainingRegisteredServiceAccessStrategy",
+        "strategies": [ "java.util.ArrayList",
+          [
+            {
+              "@class": "org.apereo.cas.services.DefaultRegisteredServiceAccessStrategy",
+              "requiredAttributes": {
+                "@class": "java.util.LinkedHashMap",
+                "key1": [ "java.util.LinkedHashSet", [ "value1" ] ]
+              }
+            },
+            {
+              "@class": "org.apereo.cas.services.DefaultRegisteredServiceAccessStrategy",
+              "requiredAttributes": {
+                "@class": "java.util.LinkedHashMap",
+                "key2": [ "java.util.LinkedHashSet", [ "value2" ] ]
+              }
+            }
+          ]
+        ],
+        "operator": "AND"
+      },
+        {
+          "@class": "org.apereo.cas.services.DefaultRegisteredServiceAccessStrategy",
+          "requiredAttributes": {
+            "@class": "java.util.LinkedHashMap",
+            "key3": [ "java.util.LinkedHashSet", [ "value3" ] ]
+          }
+        }
+      ]
+    ],
+    "operator": "OR"
   }
 }
 ```

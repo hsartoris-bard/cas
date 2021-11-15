@@ -85,7 +85,7 @@ a remote REST endpoint whose responsibility is to produce the following payload 
 ```
 
 The syntax and collection of available `properties` in the above 
-payload is controlled by the [pac4j library](https://pac4j.org/docs/index.html). 
+payload is controlled by the [pac4j library](https://github.com/pac4j/pac4j). 
 The response that is returned must be accompanied by a `200` status code.
 
 ## Profile Attributes
@@ -124,14 +124,25 @@ Please [see this guide](Delegate-Authentication-AuthenticationPolicy.html).
 
 Please [see this guide](Delegate-Authentication-Provisioning.html).
 
+## Post Processing
+
+Please [see this guide](Delegate-Authentication-PostProcessing.html).
+
 ## Session Replication
                 
 For the current active session, the selected identity provider, the relying party
 and all other relevant details for the given authentication request are tracked as 
 *session attributes* inside a dedicated session store capable of replication, which is specially
-more relevant for clustred deployments.
+more relevant for clustered deployments.
 
 {% include_cached casproperties.html properties="cas.session-replication" %}
+
+## Webflow
+
+Certain aspects of the webflow configuration for delegated authentication can be controlled
+via the following settings:
+
+{% include_cached casproperties.html properties="cas.authn.pac4j.webflow" %}
 
 ## Troubleshooting
 

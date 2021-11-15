@@ -1,5 +1,6 @@
 package org.apereo.cas.consent;
 
+import org.apereo.cas.audit.spi.config.CasCoreAuditConfiguration;
 import org.apereo.cas.authentication.CoreAuthenticationTestUtils;
 import org.apereo.cas.authentication.principal.Service;
 import org.apereo.cas.config.CasConsentCoreConfiguration;
@@ -38,6 +39,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.aop.AopAutoConfiguration;
+import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 import org.springframework.context.annotation.Import;
@@ -119,6 +121,7 @@ public abstract class BaseConsentRepositoryTests {
 
     @ImportAutoConfiguration({
         RefreshAutoConfiguration.class,
+        WebMvcAutoConfiguration.class,
         AopAutoConfiguration.class
     })
     @SpringBootConfiguration
@@ -126,7 +129,6 @@ public abstract class BaseConsentRepositoryTests {
         CasConsentCoreConfiguration.class,
         CasCoreUtilConfiguration.class,
         CasCoreHttpConfiguration.class,
-        RefreshAutoConfiguration.class,
         CasCoreWebConfiguration.class,
         CasCoreLogoutConfiguration.class,
         CasCoreWebflowConfiguration.class,
@@ -148,6 +150,7 @@ public abstract class BaseConsentRepositoryTests {
         CasCoreTicketCatalogConfiguration.class,
         CasCoreTicketIdGeneratorsConfiguration.class,
         CasCoreTicketsConfiguration.class,
+        CasCoreAuditConfiguration.class,
         CasCoreConfiguration.class
     })
     static class SharedTestConfiguration {

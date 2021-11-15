@@ -12,7 +12,7 @@ Allow CAS to act as an [OpenId Connect Provider (OP)](http://openid.net/connect/
 <div class="alert alert-info"><strong>Remember</strong><p>OpenId Connect is a continuation of 
 the <a href="OAuth-Authentication.html">OAuth protocol</a> with some additional variations. If 
 you enable OpenId Connect, you will have automatically enabled OAuth as well. Options and 
-behaviors that are documented for the <a href="OAuth-OpenId-Authentication.html">OAuth protocol</a> 
+behaviors that are documented for the <a href="OAuth-Authentication.html">OAuth protocol</a> 
 support may apply here just the same.</p></div>
 
 Support is enabled by including the following dependency in the WAR overlay:
@@ -39,7 +39,7 @@ The current implementation provides support for:
 | `/oidc/.well-known`                       | The discovery endpoint used to query for CAS OIDC configuration information and metadata.
 | `/oidc/.well-known/openid-configuration`  | Same as `.well-known` discovery endpoint.
 | `/oidc/.well-known/webfinger`             | [WebFinger](https://tools.ietf.org/html/rfc7033) discovery endpoint
-| `/oidc/jwks`                              | Contains the server’s public signing keys, which clients may use to verify the digital signatures of access tokens and ID tokens issued by CAS.
+| `/oidc/jwks`                              | Contains the [server’s public keys](OIDC-Authentication-JWKS.html), which clients may use to verify the digital signatures of access tokens and ID tokens issued by CAS. Accepts an optional `state` query parameter to narrow down keys by their current state (i.e. `current`, `previous`, `future`).
 | `/oidc/authorize`                         | Authorization requests are handled here.
 | `/oidc/profile`                           | User profile requests are handled here.
 | `/oidc/logout`                            | Logout requests are handled here.
@@ -55,7 +55,7 @@ Instead, use the Dynamic Discovery endpoint and parse the discovery document to 
 
 ## Configuration
 
-{% include_cached casproperties.html properties="cas.authn.oidc.core,cas.client" %}
+{% include_cached casproperties.html properties="cas.authn.oidc.core" %}
 
 ## Server Configuration
 

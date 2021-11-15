@@ -6,6 +6,7 @@ import org.apereo.cas.authentication.attribute.DefaultAttributeDefinition;
 import org.apereo.cas.authentication.attribute.DefaultAttributeDefinitionStore;
 import org.apereo.cas.authentication.principal.PrincipalResolver;
 import org.apereo.cas.configuration.CasConfigurationProperties;
+import org.apereo.cas.services.RegisteredServiceAttributeReleasePolicyContext;
 import org.apereo.cas.services.RegisteredServicePublicKey;
 import org.apereo.cas.services.RegisteredServicePublicKeyImpl;
 import org.apereo.cas.services.ReturnAllAttributeReleasePolicy;
@@ -77,9 +78,12 @@ public class DefaultAttributeDefinitionStoreTests {
         assertNotNull(person);
 
         val policy = new ReturnAllAttributeReleasePolicy();
-        val attributes = policy.getAttributes(CoreAuthenticationTestUtils.getPrincipal(person.getAttributes()),
-            CoreAuthenticationTestUtils.getService(), CoreAuthenticationTestUtils.getRegisteredService());
-        assertNotNull(attributes);
+        val releasePolicyContext = RegisteredServiceAttributeReleasePolicyContext.builder()
+            .registeredService(CoreAuthenticationTestUtils.getRegisteredService())
+            .service(CoreAuthenticationTestUtils.getService())
+            .principal(CoreAuthenticationTestUtils.getPrincipal(person.getAttributes()))
+            .build();
+        val attributes = policy.getAttributes(releasePolicyContext);
         assertFalse(attributes.isEmpty());
         assertTrue(attributes.containsKey("uid"));
         assertTrue(attributes.containsKey("givenName"));
@@ -96,7 +100,9 @@ public class DefaultAttributeDefinitionStoreTests {
             .name("commonName,common-name,cname")
             .build();
         store.registerAttributeDefinition(defn);
-        val attrs = store.resolveAttributeValues(CoreAuthenticationTestUtils.getAttributes(), CoreAuthenticationTestUtils.getRegisteredService());
+        val attributes = CoreAuthenticationTestUtils.getAttributes();
+        val attrs = store.resolveAttributeValues(attributes.keySet(), attributes,
+            CoreAuthenticationTestUtils.getRegisteredService());
         assertFalse(attrs.isEmpty());
         assertFalse(attrs.containsKey("cn"));
         assertTrue(attrs.containsKey("commonName"));
@@ -120,7 +126,8 @@ public class DefaultAttributeDefinitionStoreTests {
         store.registerAttributeDefinition(defn);
         assertTrue(store.locateAttributeDefinition("cn", DefaultAttributeDefinition.class).isPresent());
         assertFalse(store.locateAttributeDefinition("unknown", DefaultAttributeDefinition.class).isPresent());
-        val attrs = store.resolveAttributeValues(CoreAuthenticationTestUtils.getAttributes(), service);
+        val attributes = CoreAuthenticationTestUtils.getAttributes();
+        val attrs = store.resolveAttributeValues(attributes.keySet(), attributes, service);
         assertFalse(attrs.isEmpty());
         assertTrue(attrs.containsKey("cn"));
         val values = CollectionUtils.toCollection(attrs.get("cn"));
@@ -146,8 +153,13 @@ public class DefaultAttributeDefinitionStoreTests {
         assertNotNull(person);
 
         val policy = new ReturnAllAttributeReleasePolicy();
-        val attributes = policy.getAttributes(CoreAuthenticationTestUtils.getPrincipal(person.getAttributes()),
-            CoreAuthenticationTestUtils.getService(), CoreAuthenticationTestUtils.getRegisteredService());
+        val releasePolicyContext = RegisteredServiceAttributeReleasePolicyContext.builder()
+            .registeredService(CoreAuthenticationTestUtils.getRegisteredService())
+            .service(CoreAuthenticationTestUtils.getService())
+            .principal(CoreAuthenticationTestUtils.getPrincipal(person.getAttributes()))
+            .build();
+
+        val attributes = policy.getAttributes(releasePolicyContext);
         assertNotNull(attributes);
         assertFalse(attributes.isEmpty());
         assertTrue(attributes.containsKey("interesting-attribute"));
@@ -182,7 +194,8 @@ public class DefaultAttributeDefinitionStoreTests {
             .build();
         store.registerAttributeDefinition(defn);
         assertFalse(store.isEmpty());
-        val attrs = store.resolveAttributeValues(CoreAuthenticationTestUtils.getAttributes(), service);
+        val attributes = CoreAuthenticationTestUtils.getAttributes();
+        val attrs = store.resolveAttributeValues(attributes.keySet(), attributes, service);
         assertFalse(attrs.isEmpty());
         assertTrue(attrs.containsKey("mail"));
         assertTrue(attrs.containsKey(defn.getName()));

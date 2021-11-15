@@ -39,7 +39,7 @@ public abstract class BaseSamlIdPMetadataGenerator implements SamlIdPMetadataGen
     @SneakyThrows
     public SamlIdPMetadataDocument generate(final Optional<SamlRegisteredService> registeredService) {
         val idp = configurationContext.getCasProperties().getAuthn().getSamlIdp();
-        LOGGER.debug("Preparing to generate metadata for entityId [{}]", idp.getCore().getEntityId());
+        LOGGER.debug("Preparing to generate metadata for entity id [{}]", idp.getCore().getEntityId());
         val samlIdPMetadataLocator = configurationContext.getSamlIdPMetadataLocator();
         if (!samlIdPMetadataLocator.exists(registeredService)) {
             val owner = SamlIdPMetadataGenerator.getAppliesToFor(registeredService);
@@ -214,7 +214,7 @@ public abstract class BaseSamlIdPMetadataGenerator implements SamlIdPMetadataGen
             var metadata = writer.toString();
 
             val customizers = configurationContext.getApplicationContext()
-                .getBeansOfType(SamlIdPMetadataCustomizer.class, false, true).values();
+                .getBeansOfType(SamlIdPMetadataCustomizer.class).values();
             if (!customizers.isEmpty()) {
                 val openSamlConfigBean = configurationContext.getOpenSamlConfigBean();
                 val entityDescriptor = SamlUtils.transformSamlObject(openSamlConfigBean, metadata, EntityDescriptor.class);

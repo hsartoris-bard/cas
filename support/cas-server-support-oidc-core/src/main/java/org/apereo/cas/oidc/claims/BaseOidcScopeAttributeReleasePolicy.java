@@ -1,11 +1,9 @@
 package org.apereo.cas.oidc.claims;
 
-import org.apereo.cas.authentication.principal.Principal;
-import org.apereo.cas.authentication.principal.Service;
 import org.apereo.cas.configuration.CasConfigurationProperties;
 import org.apereo.cas.oidc.claims.mapping.OidcAttributeToScopeClaimMapper;
 import org.apereo.cas.services.AbstractRegisteredServiceAttributeReleasePolicy;
-import org.apereo.cas.services.RegisteredService;
+import org.apereo.cas.services.RegisteredServiceAttributeReleasePolicyContext;
 import org.apereo.cas.util.CollectionUtils;
 import org.apereo.cas.util.spring.ApplicationContextProvider;
 
@@ -55,8 +53,8 @@ public abstract class BaseOidcScopeAttributeReleasePolicy extends AbstractRegist
     }
 
     @Override
-    public Map<String, List<Object>> getAttributesInternal(final Principal principal, final Map<String, List<Object>> attributes,
-                                                           final RegisteredService registeredService, final Service selectedService) {
+    public Map<String, List<Object>> getAttributesInternal(final RegisteredServiceAttributeReleasePolicyContext context,
+                                                           final Map<String, List<Object>> attributes) {
         val applicationContext = ApplicationContextProvider.getApplicationContext();
         if (applicationContext == null) {
             LOGGER.warn("Could not locate the application context to process attributes");
@@ -105,7 +103,7 @@ public abstract class BaseOidcScopeAttributeReleasePolicy extends AbstractRegist
     }
 
     @Override
-    public List<String> determineRequestedAttributeDefinitions() {
+    public List<String> determineRequestedAttributeDefinitions(final RegisteredServiceAttributeReleasePolicyContext context) {
         val attributes = getAllowedAttributes();
         return attributes != null ? attributes : new ArrayList<>();
     }

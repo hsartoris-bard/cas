@@ -1,5 +1,6 @@
 package org.apereo.cas.aup;
 
+import org.apereo.cas.audit.spi.config.CasCoreAuditConfiguration;
 import org.apereo.cas.authentication.Authentication;
 import org.apereo.cas.authentication.CoreAuthenticationTestUtils;
 import org.apereo.cas.authentication.Credential;
@@ -42,6 +43,7 @@ import org.springframework.binding.message.MessageContext;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.aop.AopAutoConfiguration;
+import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 import org.springframework.context.annotation.Import;
@@ -71,7 +73,7 @@ import static org.mockito.Mockito.*;
 @SpringBootTest(classes = BaseAcceptableUsagePolicyRepositoryTests.SharedTestConfiguration.class)
 public abstract class BaseAcceptableUsagePolicyRepositoryTests {
     @Autowired
-    @Qualifier("ticketRegistry")
+    @Qualifier(TicketRegistry.BEAN_NAME)
     protected TicketRegistry ticketRegistry;
 
     @Autowired
@@ -143,6 +145,7 @@ public abstract class BaseAcceptableUsagePolicyRepositoryTests {
 
     @ImportAutoConfiguration({
         RefreshAutoConfiguration.class,
+        WebMvcAutoConfiguration.class,
         AopAutoConfiguration.class
     })
     @SpringBootConfiguration
@@ -152,6 +155,7 @@ public abstract class BaseAcceptableUsagePolicyRepositoryTests {
         CasCoreTicketCatalogConfiguration.class,
         CasCoreWebConfiguration.class,
         CasCookieConfiguration.class,
+        CasCoreAuditConfiguration.class,
         CasRegisteredServicesTestConfiguration.class,
         CasWebApplicationServiceFactoryConfiguration.class,
         CasCoreMultifactorAuthenticationConfiguration.class,

@@ -10,6 +10,8 @@ import org.apereo.cas.services.AllAuthenticationHandlersRegisteredServiceAuthent
 import org.apereo.cas.services.AnonymousRegisteredServiceUsernameAttributeProvider;
 import org.apereo.cas.services.AnyAuthenticationHandlerRegisteredServiceAuthenticationPolicyCriteria;
 import org.apereo.cas.services.ChainingAttributeReleasePolicy;
+import org.apereo.cas.services.ChainingRegisteredServiceAccessStrategy;
+import org.apereo.cas.services.ChainingRegisteredServiceDelegatedAuthenticationPolicy;
 import org.apereo.cas.services.DefaultRegisteredServiceAcceptableUsagePolicy;
 import org.apereo.cas.services.DefaultRegisteredServiceAccessStrategy;
 import org.apereo.cas.services.DefaultRegisteredServiceAuthenticationPolicy;
@@ -61,6 +63,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.ScopedProxyMode;
 
 /**
  * This is {@link CasCoreServicesComponentSerializationConfiguration}.
@@ -73,7 +76,7 @@ import org.springframework.context.annotation.Configuration;
 public class CasCoreServicesComponentSerializationConfiguration {
     @Bean
     @ConditionalOnMissingBean(name = "casCoreServicesComponentSerializationPlanConfigurer")
-    @RefreshScope
+    @RefreshScope(proxyMode = ScopedProxyMode.DEFAULT)
     public ComponentSerializationPlanConfigurer casCoreServicesComponentSerializationPlanConfigurer() {
         return plan -> {
             plan.registerSerializableClass(RegexRegisteredService.class);
@@ -82,6 +85,7 @@ public class CasCoreServicesComponentSerializationConfiguration {
             plan.registerSerializableClass(DefaultRegisteredServiceContact.class);
             plan.registerSerializableClass(DefaultRegisteredServiceProperty.class);
             plan.registerSerializableClass(DefaultRegisteredServiceDelegatedAuthenticationPolicy.class);
+            plan.registerSerializableClass(ChainingRegisteredServiceDelegatedAuthenticationPolicy.class);
             plan.registerSerializableClass(DefaultRegisteredServiceExpirationPolicy.class);
             plan.registerSerializableClass(DefaultRegisteredServiceServiceTicketExpirationPolicy.class);
             plan.registerSerializableClass(DefaultRegisteredServiceProxyTicketExpirationPolicy.class);
@@ -96,6 +100,7 @@ public class CasCoreServicesComponentSerializationConfiguration {
             plan.registerSerializableClass(RegexMatchingRegisteredServiceProxyPolicy.class);
             plan.registerSerializableClass(RefuseRegisteredServiceProxyPolicy.class);
             plan.registerSerializableClass(DefaultRegisteredServiceAccessStrategy.class);
+            plan.registerSerializableClass(ChainingRegisteredServiceAccessStrategy.class);
             plan.registerSerializableClass(GroovyRegisteredServiceAccessStrategy.class);
             plan.registerSerializableClass(RemoteEndpointServiceAccessStrategy.class);
             plan.registerSerializableClass(TimeBasedRegisteredServiceAccessStrategy.class);

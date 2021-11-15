@@ -6,6 +6,7 @@ import org.apereo.cas.adaptors.duo.config.DuoSecurityComponentSerializationConfi
 import org.apereo.cas.adaptors.duo.config.DuoSecurityConfiguration;
 import org.apereo.cas.adaptors.duo.config.DuoSecurityMultifactorProviderBypassConfiguration;
 import org.apereo.cas.adaptors.duo.config.DuoSecurityRestConfiguration;
+import org.apereo.cas.audit.spi.config.CasCoreAuditConfiguration;
 import org.apereo.cas.authentication.Authentication;
 import org.apereo.cas.authentication.AuthenticationResultBuilder;
 import org.apereo.cas.authentication.CoreAuthenticationTestUtils;
@@ -48,6 +49,7 @@ import org.springframework.binding.expression.support.LiteralExpression;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.aop.AopAutoConfiguration;
+import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Import;
@@ -112,6 +114,7 @@ public abstract class BaseDuoSecurityTests {
 
     @ImportAutoConfiguration({
         RefreshAutoConfiguration.class,
+        WebMvcAutoConfiguration.class,
         AopAutoConfiguration.class
     })
     @SpringBootConfiguration
@@ -134,6 +137,7 @@ public abstract class BaseDuoSecurityTests {
         CasCoreAuthenticationConfiguration.class,
         CasCoreTicketsConfiguration.class,
         CasCoreLogoutConfiguration.class,
+        CasCoreAuditConfiguration.class,
         CasCoreMultifactorAuthenticationConfiguration.class,
         CasMultifactorAuthenticationWebflowConfiguration.class,
         CasCoreAuthenticationServiceSelectionStrategyConfiguration.class,

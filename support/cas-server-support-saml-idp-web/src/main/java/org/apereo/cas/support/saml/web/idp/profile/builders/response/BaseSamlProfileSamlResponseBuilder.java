@@ -8,6 +8,7 @@ import org.apereo.cas.support.saml.SamlProtocolConstants;
 import org.apereo.cas.support.saml.services.SamlRegisteredService;
 import org.apereo.cas.support.saml.services.idp.metadata.SamlRegisteredServiceServiceProviderMetadataFacade;
 import org.apereo.cas.support.saml.util.AbstractSaml20ObjectBuilder;
+import org.apereo.cas.support.saml.web.idp.profile.builders.AuthenticatedAssertionContext;
 import org.apereo.cas.support.saml.web.idp.profile.builders.SamlProfileObjectBuilder;
 
 import lombok.Getter;
@@ -38,7 +39,8 @@ import java.util.Objects;
  */
 @Slf4j
 @Getter
-public abstract class BaseSamlProfileSamlResponseBuilder<T extends XMLObject> extends AbstractSaml20ObjectBuilder implements SamlProfileObjectBuilder {
+public abstract class BaseSamlProfileSamlResponseBuilder<T extends XMLObject> extends AbstractSaml20ObjectBuilder
+    implements SamlProfileObjectBuilder {
     private static final long serialVersionUID = -1891703354216174875L;
 
     private final transient SamlProfileSamlResponseBuilderConfigurationContext configurationContext;
@@ -56,7 +58,7 @@ public abstract class BaseSamlProfileSamlResponseBuilder<T extends XMLObject> ex
     public T build(final RequestAbstractType authnRequest,
                    final HttpServletRequest request,
                    final HttpServletResponse response,
-                   final Object casAssertion,
+                   final AuthenticatedAssertionContext casAssertion,
                    final SamlRegisteredService service,
                    final SamlRegisteredServiceServiceProviderMetadataFacade adaptor,
                    final String binding,
@@ -90,7 +92,7 @@ public abstract class BaseSamlProfileSamlResponseBuilder<T extends XMLObject> ex
                                     final T finalResponse,
                                     final String binding,
                                     final RequestAbstractType authnRequest,
-                                    final Object assertion,
+                                    final AuthenticatedAssertionContext assertion,
                                     final MessageContext messageContext) {
 
         val scratch = messageContext.getSubcontext(ScratchContext.class, true);
@@ -123,7 +125,7 @@ public abstract class BaseSamlProfileSamlResponseBuilder<T extends XMLObject> ex
     protected Assertion buildSamlAssertion(final RequestAbstractType authnRequest,
                                            final HttpServletRequest request,
                                            final HttpServletResponse response,
-                                           final Object casAssertion,
+                                           final AuthenticatedAssertionContext casAssertion,
                                            final SamlRegisteredService service,
                                            final SamlRegisteredServiceServiceProviderMetadataFacade adaptor,
                                            final String binding,
@@ -148,7 +150,7 @@ public abstract class BaseSamlProfileSamlResponseBuilder<T extends XMLObject> ex
      * @throws SamlException the saml exception
      */
     protected abstract T buildResponse(Assertion assertion,
-                                       Object casAssertion,
+                                       AuthenticatedAssertionContext casAssertion,
                                        RequestAbstractType authnRequest,
                                        SamlRegisteredService service,
                                        SamlRegisteredServiceServiceProviderMetadataFacade adaptor,
@@ -193,7 +195,7 @@ public abstract class BaseSamlProfileSamlResponseBuilder<T extends XMLObject> ex
                                 String relayState,
                                 String binding,
                                 RequestAbstractType authnRequest,
-                                Object assertion,
+                                AuthenticatedAssertionContext assertion,
                                 MessageContext messageContext) throws SamlException;
 
     /**
@@ -212,7 +214,8 @@ public abstract class BaseSamlProfileSamlResponseBuilder<T extends XMLObject> ex
                                           final HttpServletRequest request,
                                           final HttpServletResponse response,
                                           final SamlRegisteredService service,
-                                          final SamlRegisteredServiceServiceProviderMetadataFacade adaptor) throws SamlException {
+                                          final SamlRegisteredServiceServiceProviderMetadataFacade adaptor)
+        throws SamlException {
 
         if (service.isEncryptAssertions()) {
             LOGGER.debug("SAML service [{}] requires assertions to be encrypted", adaptor.getEntityId());

@@ -28,6 +28,7 @@ import org.jose4j.jwt.JwtClaims;
 import org.jose4j.jwt.NumericDate;
 import org.pac4j.core.context.WebContext;
 import org.pac4j.core.profile.UserProfile;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.util.Assert;
 
 import java.util.ArrayList;
@@ -46,7 +47,7 @@ import java.util.stream.Stream;
 @Slf4j
 public class OidcIdTokenGeneratorService extends BaseIdTokenGeneratorService<OidcConfigurationContext> {
 
-    public OidcIdTokenGeneratorService(final OidcConfigurationContext configurationContext) {
+    public OidcIdTokenGeneratorService(final ObjectProvider<OidcConfigurationContext> configurationContext) {
         super(configurationContext);
     }
 
@@ -127,13 +128,15 @@ public class OidcIdTokenGeneratorService extends BaseIdTokenGeneratorService<Oid
             val acrValues = CollectionUtils.toCollection(attributes.get(mfa.getCore().getAuthenticationContextAttribute()));
             val authnContexts = oidc.getCore().getAuthenticationContextReferenceMappings();
             val mappings = CollectionUtils.convertDirectedListToMap(authnContexts);
-            val acrMapped = acrValues.stream().map(acrValue ->
+            val acrMapped = acrValues
+                .stream()
+                .map(acrValue ->
                     mappings.entrySet()
                         .stream()
                         .filter(entry -> entry.getValue().equalsIgnoreCase(acrValue.toString()))
                         .map(Map.Entry::getKey)
                         .findFirst()
-                        .orElse(acrValue.toString()))
+                        .orElseGet(acrValue::toString))
                 .collect(Collectors.joining(" "));
             LOGGER.debug("ID token acr claim calculated as [{}]", acrMapped);
             claims.setStringClaim(OidcConstants.ACR, acrMapped);
@@ -158,14 +161,14 @@ public class OidcIdTokenGeneratorService extends BaseIdTokenGeneratorService<Oid
         if (includeClaims || oidc.getCore().isIncludeIdTokenClaims()) {
             FunctionUtils.doIf(oidc.getCore().isIncludeIdTokenClaims(),
                     ignore -> LOGGER.warn("Individual claims requested by OpenID scopes are forced to be included in the ID token. "
-                        + "This is a violation of the OpenID Connect specification and a workaround via dedicated CAS configuration. "
-                        + "Claims should be requested from the userinfo/profile endpoints in exchange for an access token."))
+                                          + "This is a violation of the OpenID Connect specification and a workaround via dedicated CAS configuration. "
+                                          + "Claims should be requested from the userinfo/profile endpoints in exchange for an access token."))
                 .accept(claims);
             collectIdTokenClaims(principal, claims);
         } else {
             LOGGER.debug("Per OpenID Connect specification, individual claims requested by OpenID scopes "
-                + "such as profile, email, address, etc. are only put "
-                + "into the OpenID Connect ID token when the response type is set to id_token.");
+                         + "such as profile, email, address, etc. are only put "
+                         + "into the OpenID Connect ID token when the response type is set to id_token.");
         }
 
         return claims;
@@ -242,8 +245,8 @@ public class OidcIdTokenGeneratorService extends BaseIdTokenGeneratorService<Oid
      */
     protected String getJwtId(final TicketGrantingTicket tgt) {
         val oAuthCallbackUrl = getConfigurationContext().getCasProperties().getServer().getPrefix()
-            + OAuth20Constants.BASE_OAUTH20_URL + '/'
-            + OAuth20Constants.CALLBACK_AUTHORIZE_URL_DEFINITION;
+                               + OAuth20Constants.BASE_OAUTH20_URL + '/'
+                               + OAuth20Constants.CALLBACK_AUTHORIZE_URL_DEFINITION;
 
         val oAuthServiceTicket = Stream.concat(
                 tgt.getServices().entrySet().stream(),

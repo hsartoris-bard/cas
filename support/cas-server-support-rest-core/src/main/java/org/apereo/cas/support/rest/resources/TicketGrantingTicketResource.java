@@ -13,6 +13,7 @@ import org.apereo.cas.util.LoggingUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.apache.commons.text.StringEscapeUtils;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -80,12 +81,14 @@ public class TicketGrantingTicketResource {
         consumes = {
             MediaType.APPLICATION_FORM_URLENCODED_VALUE,
             MediaType.APPLICATION_JSON_VALUE,
-            MediaType.TEXT_HTML_VALUE
+            MediaType.TEXT_HTML_VALUE,
+            MediaType.TEXT_PLAIN_VALUE
         },
         produces = {
             MediaType.APPLICATION_FORM_URLENCODED_VALUE,
             MediaType.APPLICATION_JSON_VALUE,
-            MediaType.TEXT_HTML_VALUE
+            MediaType.TEXT_HTML_VALUE,
+            MediaType.TEXT_PLAIN_VALUE
         })
     public ResponseEntity<String> createTicketGrantingTicket(@RequestBody(required = false) final MultiValueMap<String, String> requestBody,
                                                              final HttpServletRequest request) {
@@ -96,10 +99,10 @@ public class TicketGrantingTicketResource {
             return RestResourceUtils.createResponseEntityForAuthnFailure(e, request, applicationContext);
         } catch (final BadRestRequestException e) {
             LoggingUtils.error(LOGGER, e);
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(StringEscapeUtils.escapeHtml4(e.getMessage()), HttpStatus.BAD_REQUEST);
         } catch (final Exception e) {
             LoggingUtils.error(LOGGER, e);
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(StringEscapeUtils.escapeHtml4(e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 

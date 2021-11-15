@@ -1,6 +1,7 @@
 package org.apereo.cas.support.saml.services;
 
 import org.apereo.cas.authentication.CoreAuthenticationTestUtils;
+import org.apereo.cas.services.RegisteredServiceAttributeReleasePolicyContext;
 import org.apereo.cas.support.saml.BaseSamlIdPConfigurationTests;
 import org.apereo.cas.support.saml.InMemoryResourceMetadataResolver;
 import org.apereo.cas.support.saml.SamlIdPTestUtils;
@@ -46,6 +47,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
 
+import static org.apereo.cas.authentication.CoreAuthenticationTestUtils.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -132,10 +134,14 @@ public class AuthnRequestRequestedAttributesAttributeReleasePolicyTests extends 
 
         val registeredService = SamlIdPTestUtils.getSamlRegisteredService();
         registeredService.setAttributeReleasePolicy(filter);
-        assertThrows(IllegalArgumentException.class,
-            () -> filter.getAttributes(CoreAuthenticationTestUtils.getPrincipal("casuser",
-                CollectionUtils.wrap("eduPersonPrincipalName", "casuser")),
-                CoreAuthenticationTestUtils.getService(), registeredService));
+
+        val context = RegisteredServiceAttributeReleasePolicyContext.builder()
+            .registeredService(registeredService)
+            .service(CoreAuthenticationTestUtils.getService())
+            .principal(getPrincipal("casuser",
+                CollectionUtils.wrap("eduPersonPrincipalName", "casuser")))
+            .build();
+        assertThrows(IllegalArgumentException.class, () -> filter.getAttributes(context));
     }
 
     @Test
@@ -163,9 +169,13 @@ public class AuthnRequestRequestedAttributesAttributeReleasePolicyTests extends 
             samlIdPDistributedSessionStore.set(context, MessageContext.class.getName(),
                 SamlIdPAuthenticationContext.from(messageContext).encode());
 
-            val attributes = filter.getAttributes(CoreAuthenticationTestUtils.getPrincipal("casuser",
-                CollectionUtils.wrap("eduPersonPrincipalName", "casuser")),
-                CoreAuthenticationTestUtils.getService(), registeredService);
+            val releasePolicyContext = RegisteredServiceAttributeReleasePolicyContext.builder()
+                .registeredService(registeredService)
+                .service(CoreAuthenticationTestUtils.getService())
+                .principal(getPrincipal("casuser",
+                    CollectionUtils.wrap("eduPersonPrincipalName", "casuser")))
+                .build();
+            val attributes = filter.getAttributes(releasePolicyContext);
             assertTrue(attributes.isEmpty());
         }
     }
@@ -206,9 +216,13 @@ public class AuthnRequestRequestedAttributesAttributeReleasePolicyTests extends 
             samlIdPDistributedSessionStore.set(context, MessageContext.class.getName(),
                 SamlIdPAuthenticationContext.from(messageContext).encode());
 
-            val attributes = filter.getAttributes(CoreAuthenticationTestUtils.getPrincipal("casuser",
-                CollectionUtils.wrap("eduPersonPrincipalName", "casuser", "givenName", "CAS")),
-                CoreAuthenticationTestUtils.getService(), registeredService);
+            val releasePolicyContext = RegisteredServiceAttributeReleasePolicyContext.builder()
+                .registeredService(registeredService)
+                .service(CoreAuthenticationTestUtils.getService())
+                .principal(getPrincipal("casuser",
+                    CollectionUtils.wrap("eduPersonPrincipalName", "casuser", "givenName", "CAS")))
+                .build();
+            val attributes = filter.getAttributes(releasePolicyContext);
             assertTrue(attributes.isEmpty());
         }
     }
@@ -249,10 +263,16 @@ public class AuthnRequestRequestedAttributesAttributeReleasePolicyTests extends 
             samlIdPDistributedSessionStore.set(context, MessageContext.class.getName(),
                 SamlIdPAuthenticationContext.from(messageContext).encode());
 
-            val attributes = filter.getAttributes(CoreAuthenticationTestUtils.getPrincipal("casuser",
-                CollectionUtils.wrap("eduPersonPrincipalName", "casuser", "givenName", "CAS")),
-                CoreAuthenticationTestUtils.getService(), registeredService);
+            val releasePolicyContext = RegisteredServiceAttributeReleasePolicyContext.builder()
+                .registeredService(registeredService)
+                .service(CoreAuthenticationTestUtils.getService())
+                .principal(getPrincipal("casuser",
+                    CollectionUtils.wrap("eduPersonPrincipalName", "casuser", "givenName", "CAS")))
+                .build();
+            val attributes = filter.getAttributes(releasePolicyContext);
             assertTrue(attributes.containsKey("eduPersonPrincipalName"));
+            val definitions = filter.determineRequestedAttributeDefinitions(releasePolicyContext);
+            assertTrue(definitions.contains("eduPersonPrincipalName"));
         }
     }
 }

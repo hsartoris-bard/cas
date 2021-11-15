@@ -7,6 +7,7 @@ import org.apereo.cas.authentication.PrincipalException;
 import org.apereo.cas.authentication.principal.Service;
 import org.apereo.cas.configuration.model.support.saml.idp.SamlIdPCoreProperties;
 import org.apereo.cas.services.RegisteredService;
+import org.apereo.cas.services.RegisteredServiceAttributeReleasePolicyContext;
 import org.apereo.cas.services.UnauthorizedServiceException;
 import org.apereo.cas.support.saml.SamlException;
 import org.apereo.cas.support.saml.SamlIdPUtils;
@@ -14,6 +15,9 @@ import org.apereo.cas.support.saml.SamlProtocolConstants;
 import org.apereo.cas.support.saml.SamlUtils;
 import org.apereo.cas.support.saml.services.SamlRegisteredService;
 import org.apereo.cas.support.saml.services.idp.metadata.SamlRegisteredServiceServiceProviderMetadataFacade;
+import org.apereo.cas.support.saml.web.idp.profile.builders.AuthenticatedAssertionContext;
+import org.apereo.cas.ticket.ServiceTicket;
+import org.apereo.cas.ticket.ServiceTicketFactory;
 import org.apereo.cas.ticket.TicketGrantingTicket;
 import org.apereo.cas.util.CollectionUtils;
 import org.apereo.cas.util.DateTimeUtils;
@@ -34,10 +38,8 @@ import lombok.val;
 import net.shibboleth.utilities.java.support.net.URLBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import org.jasig.cas.client.authentication.AttributePrincipalImpl;
 import org.jasig.cas.client.util.CommonUtils;
 import org.jasig.cas.client.validation.Assertion;
-import org.jasig.cas.client.validation.AssertionImpl;
 import org.opensaml.messaging.context.MessageContext;
 import org.opensaml.messaging.decoder.servlet.BaseHttpServletRequestXMLMessageDecoder;
 import org.opensaml.saml.common.SAMLException;
@@ -58,9 +60,6 @@ import org.springframework.web.servlet.view.RedirectView;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -137,8 +136,9 @@ public abstract class AbstractSamlIdPProfileHandlerController {
      * @param authnRequest      the authn request
      * @return the saml metadata adaptor for service
      */
-    protected Optional<SamlRegisteredServiceServiceProviderMetadataFacade> getSamlMetadataFacadeFor(final SamlRegisteredService registeredService,
-                                                                                                    final RequestAbstractType authnRequest) {
+    protected Optional<SamlRegisteredServiceServiceProviderMetadataFacade> getSamlMetadataFacadeFor(
+        final SamlRegisteredService registeredService,
+        final RequestAbstractType authnRequest) {
         return SamlRegisteredServiceServiceProviderMetadataFacade.get(
             configurationContext.getSamlRegisteredServiceCachingMetadataResolver(), registeredService, authnRequest);
     }
@@ -189,20 +189,29 @@ public abstract class AbstractSamlIdPProfileHandlerController {
      * @param attributesToCombine the attributes to combine
      * @return the assertion
      */
-    protected Assertion buildCasAssertion(final Authentication authentication,
-                                          final Service service,
-                                          final RegisteredService registeredService,
-                                          final Map<String, List<Object>> attributesToCombine) {
-        val attributes = registeredService.getAttributeReleasePolicy()
-            .getAttributes(authentication.getPrincipal(), service, registeredService);
+    protected AuthenticatedAssertionContext buildCasAssertion(final Authentication authentication,
+                                                              final Service service,
+                                                              final RegisteredService registeredService,
+                                                              final Map<String, List<Object>> attributesToCombine) {
+        val context = RegisteredServiceAttributeReleasePolicyContext.builder()
+            .registeredService(registeredService)
+            .service(service)
+            .principal(authentication.getPrincipal())
+            .build();
+        val attributes = registeredService.getAttributeReleasePolicy().getAttributes(context);
         val principalId = registeredService.getUsernameAttributeProvider()
             .resolveUsername(authentication.getPrincipal(), service, registeredService);
-        val principal = new AttributePrincipalImpl(principalId, (Map) attributes);
-        val authnAttrs = new LinkedHashMap<>(authentication.getAttributes());
-        authnAttrs.putAll(attributesToCombine);
-        return new AssertionImpl(principal, DateTimeUtils.dateOf(authentication.getAuthenticationDate()),
-            null, DateTimeUtils.dateOf(authentication.getAuthenticationDate()),
-            (Map) authnAttrs);
+        attributes.putAll(attributesToCombine);
+
+        val authnAttributes = configurationContext.getAuthenticationAttributeReleasePolicy()
+            .getAuthenticationAttributesForRelease(authentication, null, Map.of(), registeredService);
+
+        return AuthenticatedAssertionContext.builder()
+            .name(principalId)
+            .authenticationDate(DateTimeUtils.zonedDateTimeOf(authentication.getAuthenticationDate()))
+            .validFromDate(DateTimeUtils.zonedDateTimeOf(authentication.getAuthenticationDate()))
+            .attributes(CollectionUtils.merge(attributes, authnAttributes))
+            .build();
     }
 
     /**
@@ -213,12 +222,13 @@ public abstract class AbstractSamlIdPProfileHandlerController {
      * @param attributes        the attributes
      * @return the assertion
      */
-    protected Assertion buildCasAssertion(final String principal,
-                                          final RegisteredService registeredService,
-                                          final Map<String, Object> attributes) {
-        val p = new AttributePrincipalImpl(principal, attributes);
-        return new AssertionImpl(p, DateTimeUtils.dateOf(ZonedDateTime.now(ZoneOffset.UTC)),
-            null, DateTimeUtils.dateOf(ZonedDateTime.now(ZoneOffset.UTC)), attributes);
+    protected AuthenticatedAssertionContext buildCasAssertion(final String principal,
+                                                              final RegisteredService registeredService,
+                                                              final Map<String, Object> attributes) {
+        return AuthenticatedAssertionContext.builder()
+            .name(principal)
+            .attributes(attributes)
+            .build();
     }
 
     /**
@@ -229,9 +239,10 @@ public abstract class AbstractSamlIdPProfileHandlerController {
      * @param response the response
      * @return the model and view
      */
-    protected ModelAndView issueAuthenticationRequestRedirect(final Pair<? extends SignableSAMLObject, MessageContext> pair,
-                                                              final HttpServletRequest request,
-                                                              final HttpServletResponse response) {
+    protected ModelAndView issueAuthenticationRequestRedirect(
+        final Pair<? extends SignableSAMLObject, MessageContext> pair,
+        final HttpServletRequest request,
+        final HttpServletResponse response) {
         val authnRequest = (AuthnRequest) pair.getLeft();
         val serviceUrl = constructServiceUrl(request, response, pair);
         LOGGER.debug("Created service url [{}]", DigestUtils.abbreviate(serviceUrl));
@@ -315,15 +326,16 @@ public abstract class AbstractSamlIdPProfileHandlerController {
      * to ensure a clean slate from previous attempts, specially
      * when requests/responses are produced rapidly.
      *
-     * @param context        the pair
-     * @param authentication the authentication
-     * @param request        the request
-     * @param response       the response
+     * @param context              the pair
+     * @param ticketGrantingTicket the authentication
+     * @param request              the request
+     * @param response             the response
      */
-    protected void buildResponseBasedSingleSignOnSession(final Pair<? extends RequestAbstractType, MessageContext> context,
-                                                         final Authentication authentication,
-                                                         final HttpServletRequest request,
-                                                         final HttpServletResponse response) {
+    protected void buildResponseBasedSingleSignOnSession(
+        final Pair<? extends RequestAbstractType, MessageContext> context,
+        final TicketGrantingTicket ticketGrantingTicket,
+        final HttpServletRequest request,
+        final HttpServletResponse response) {
         val authnRequest = (AuthnRequest) context.getLeft();
         val id = SamlIdPUtils.getIssuerFromSamlObject(authnRequest);
         val service = configurationContext.getWebApplicationServiceFactory().createService(id);
@@ -332,7 +344,7 @@ public abstract class AbstractSamlIdPProfileHandlerController {
 
         val audit = AuditableContext.builder()
             .service(service)
-            .authentication(authentication)
+            .authentication(ticketGrantingTicket.getAuthentication())
             .registeredService(registeredService)
             .httpRequest(request)
             .httpResponse(response)
@@ -340,7 +352,7 @@ public abstract class AbstractSamlIdPProfileHandlerController {
         val accessResult = configurationContext.getRegisteredServiceAccessStrategyEnforcer().execute(audit);
         accessResult.throwExceptionIfNeeded();
 
-        val assertion = buildCasAssertion(authentication, service, registeredService, Map.of());
+        val assertion = buildCasAssertion(ticketGrantingTicket.getAuthentication(), service, registeredService, Map.of());
         val authenticationContext = buildAuthenticationContextPair(request, response, context);
         val binding = determineProfileBinding(authenticationContext);
 
@@ -348,6 +360,11 @@ public abstract class AbstractSamlIdPProfileHandlerController {
         val relayState = SAMLBindingSupport.getRelayState(messageContext);
         SAMLBindingSupport.setRelayState(authenticationContext.getRight(), relayState);
         response.reset();
+
+        val factory = (ServiceTicketFactory) getConfigurationContext().getTicketFactory().get(ServiceTicket.class);
+        val st = factory.create(ticketGrantingTicket, service, false, ServiceTicket.class);
+        getConfigurationContext().getTicketRegistry().addTicket(st);
+        getConfigurationContext().getTicketRegistry().updateTicket(ticketGrantingTicket);
         buildSamlResponse(response, request, authenticationContext, assertion, binding);
     }
 
@@ -359,9 +376,10 @@ public abstract class AbstractSamlIdPProfileHandlerController {
      * @param authnContext the authn context
      * @return the pair
      */
-    protected Pair<? extends RequestAbstractType, MessageContext> buildAuthenticationContextPair(final HttpServletRequest request,
-                                                                                                 final HttpServletResponse response,
-                                                                                                 final Pair<? extends RequestAbstractType, MessageContext> authnContext) {
+    protected Pair<? extends RequestAbstractType, MessageContext> buildAuthenticationContextPair(
+        final HttpServletRequest request,
+        final HttpServletResponse response,
+        final Pair<? extends RequestAbstractType, MessageContext> authnContext) {
         val relayState = Optional.ofNullable(SAMLBindingSupport.getRelayState(authnContext.getValue()))
             .orElseGet(() -> request.getParameter(SamlProtocolConstants.PARAMETER_SAML_RELAY_STATE));
         val messageContext = bindRelayStateParameter(request, response, authnContext, relayState);
@@ -376,9 +394,10 @@ public abstract class AbstractSamlIdPProfileHandlerController {
      * @param response the response
      * @return the boolean
      */
-    protected Optional<Authentication> singleSignOnSessionExists(final Pair<? extends SignableSAMLObject, MessageContext> pair,
-                                                                 final HttpServletRequest request,
-                                                                 final HttpServletResponse response) {
+    protected Optional<TicketGrantingTicket> singleSignOnSessionExists(
+        final Pair<? extends SignableSAMLObject, MessageContext> pair,
+        final HttpServletRequest request,
+        final HttpServletResponse response) {
         val authnRequest = AuthnRequest.class.cast(pair.getLeft());
         if (authnRequest.isForceAuthn()) {
             LOGGER.trace("Authentication request asks for forced authn. Ignoring existing single sign-on session, if any");
@@ -390,12 +409,13 @@ public abstract class AbstractSamlIdPProfileHandlerController {
             return Optional.empty();
         }
 
-        val authn = configurationContext.getTicketRegistrySupport().getAuthenticationFrom(cookie);
-        if (authn == null) {
+        val ticketGrantingTicket = configurationContext.getTicketRegistrySupport().getTicketGrantingTicket(cookie);
+        if (ticketGrantingTicket == null) {
             LOGGER.debug("Authentication transaction linked to single sign-on session cannot determined.");
             return Optional.empty();
         }
 
+        val authn = ticketGrantingTicket.getAuthentication();
         LOGGER.debug("Located single sign-on authentication for principal [{}]", authn.getPrincipal());
         val issuer = SamlIdPUtils.getIssuerFromSamlObject(authnRequest);
         val service = configurationContext.getWebApplicationServiceFactory().createService(issuer);
@@ -403,6 +423,7 @@ public abstract class AbstractSamlIdPProfileHandlerController {
         val ssoRequest = SingleSignOnParticipationRequest.builder()
             .httpServletRequest(request)
             .build()
+            .attribute(Service.class.getName(), service)
             .attribute(RegisteredService.class.getName(), registeredService)
             .attribute(Issuer.class.getName(), issuer)
             .attribute(Authentication.class.getName(), authn)
@@ -411,7 +432,7 @@ public abstract class AbstractSamlIdPProfileHandlerController {
         val ssoStrategy = configurationContext.getSingleSignOnParticipationStrategy();
         LOGGER.debug("Checking for single sign-on participation for issuer [{}]", issuer);
         val ssoAvailable = ssoStrategy.supports(ssoRequest) && ssoStrategy.isParticipating(ssoRequest);
-        return ssoAvailable ? Optional.of(authn) : Optional.empty();
+        return ssoAvailable ? Optional.of(ticketGrantingTicket) : Optional.empty();
     }
 
     /**
@@ -490,7 +511,7 @@ public abstract class AbstractSamlIdPProfileHandlerController {
                 throw new SAMLException("Request is not signed but should be");
             }
             LOGGER.trace("Request is not signed or validation is skipped, so there is no need to verify its signature.");
-        } else if (!registeredService.isSkipValidatingAuthnRequest()) {
+        } else if (adaptor.isAuthnRequestsSigned() && !registeredService.isSkipValidatingAuthnRequest()) {
             LOGGER.trace("The authentication context is signed; Proceeding to validate signatures...");
             configurationContext.getSamlObjectSignatureValidator().verifySamlProfileRequestIfNeeded(authnRequest, adaptor, request, ctx);
         }
@@ -508,7 +529,7 @@ public abstract class AbstractSamlIdPProfileHandlerController {
     protected void buildSamlResponse(final HttpServletResponse response,
                                      final HttpServletRequest request,
                                      final Pair<? extends RequestAbstractType, MessageContext> authenticationContext,
-                                     final Assertion casAssertion,
+                                     final AuthenticatedAssertionContext casAssertion,
                                      final String binding) {
 
         val authnRequest = AuthnRequest.class.cast(authenticationContext.getKey());

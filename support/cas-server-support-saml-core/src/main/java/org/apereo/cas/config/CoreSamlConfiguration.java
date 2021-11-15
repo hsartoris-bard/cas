@@ -17,7 +17,7 @@ import org.opensaml.core.xml.XMLObjectBuilderFactory;
 import org.opensaml.core.xml.config.XMLObjectProviderRegistrySupport;
 import org.opensaml.core.xml.io.MarshallerFactory;
 import org.opensaml.core.xml.io.UnmarshallerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -35,25 +35,22 @@ import java.util.Properties;
  * @author Misagh Moayyed
  * @since 5.0.0
  */
-@Configuration("coreSamlConfiguration")
+@Configuration(value = "coreSamlConfiguration", proxyBeanMethods = false)
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 public class CoreSamlConfiguration {
 
-    private static final int POOL_SIZE = 200;
+    private static final int POOL_SIZE = 1_000;
 
-    /**
-     * Make that SAML2 responses is not built with linebreaks.
+    /*
+      Make sure that SAML2 responses is not built with linebreaks.
      */
     static {
         System.setProperty("org.apache.xml.security.ignoreLineBreaks", "true");
         Init.init();
     }
 
-    @Autowired
-    private CasConfigurationProperties casProperties;
-
     @Lazy
-    @Bean(name = "shibboleth.VelocityEngine")
+    @Bean(name = {"shibboleth.VelocityEngine", "velocityEngineFactoryBean", "velocityEngineFactory"})
     @ConditionalOnMissingBean(name = "velocityEngineFactoryBean")
     public VelocityEngine velocityEngineFactoryBean() {
         val properties = new Properties();
@@ -68,13 +65,15 @@ public class CoreSamlConfiguration {
         return new VelocityEngine(properties);
     }
 
-    @Bean(name = OpenSamlConfigBean.DEFAULT_BEAN_NAME)
-    public OpenSamlConfigBean openSamlConfigBean() throws Exception {
-        return new OpenSamlConfigBean(parserPool());
+    @Bean(name = {OpenSamlConfigBean.DEFAULT_BEAN_NAME, OpenSamlConfigBean.DEFAULT_BEAN_NAME})
+    public OpenSamlConfigBean openSamlConfigBean(
+        @Qualifier("shibboleth.ParserPool")
+        final BasicParserPool parserPool) throws Exception {
+        return new OpenSamlConfigBean(parserPool);
     }
 
-    @Bean(name = "shibboleth.ParserPool", initMethod = "initialize")
-    public BasicParserPool parserPool() throws Exception {
+    @Bean(name = {"shibboleth.ParserPool", "basicParserPool"}, initMethod = "initialize")
+    public BasicParserPool parserPool(final CasConfigurationProperties casProperties) throws Exception {
         val pool = new BasicParserPool();
         pool.setMaxPoolSize(POOL_SIZE);
         pool.setCoalescing(true);

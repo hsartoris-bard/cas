@@ -51,12 +51,13 @@ public class DetermineMultifactorPasswordlessAuthenticationActionTests {
             return new DefaultMultifactorAuthenticationTriggerSelectionStrategy(List.of());
         }
     }
-    
+
     @Import({
-        BaseWebflowConfigurerTests.SharedTestConfiguration.class,
-        DetermineMultifactorPasswordlessAuthenticationActionTests.MultifactorAuthenticationTestConfiguration.class
+        DetermineMultifactorPasswordlessAuthenticationActionTests.MultifactorAuthenticationTestConfiguration.class,
+        BaseWebflowConfigurerTests.SharedTestConfiguration.class
     })
     @TestPropertySource(properties = {
+        "spring.main.allow-bean-definition-overriding=true",
         "cas.authn.passwordless.accounts.simple.casuser=casuser@example.org",
         "cas.authn.passwordless.core.multifactor-authentication-activated=true"
     })
@@ -66,9 +67,9 @@ public class DetermineMultifactorPasswordlessAuthenticationActionTests {
     public class WithoutMultifactorAuthenticationTrigger extends BasePasswordlessAuthenticationActionTests {
 
         @Autowired
-        @Qualifier("determineMultifactorPasswordlessAuthenticationAction")
+        @Qualifier(CasWebflowConstants.ACTION_ID_DETERMINE_PASSWORDLESS_MULTIFACTOR_AUTHN)
         private Action determineMultifactorPasswordlessAuthenticationAction;
-        
+
         @Test
         public void verifyAction() throws Exception {
             val exec = new MockFlowExecutionContext(new MockFlowSession(new Flow(CasWebflowConfigurer.FLOW_ID_LOGIN)));
@@ -97,7 +98,7 @@ public class DetermineMultifactorPasswordlessAuthenticationActionTests {
     @SuppressWarnings("ClassCanBeStatic")
     public class WithMultifactorAuthenticationTrigger extends BasePasswordlessAuthenticationActionTests {
         @Autowired
-        @Qualifier("determineMultifactorPasswordlessAuthenticationAction")
+        @Qualifier(CasWebflowConstants.ACTION_ID_DETERMINE_PASSWORDLESS_MULTIFACTOR_AUTHN)
         private Action determineMultifactorPasswordlessAuthenticationAction;
 
         @Test

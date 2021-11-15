@@ -45,6 +45,7 @@ import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.actuate.autoconfigure.health.HealthEndpointAutoConfiguration;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.aop.AopAutoConfiguration;
+import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -62,12 +63,12 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  */
 @SpringBootTest(classes = AbstractCasEndpointTests.SharedTestConfiguration.class,
     properties = "management.endpoints.web.exposure.include=*")
-@EnableAspectJAutoProxy(proxyTargetClass = true)
+@EnableAspectJAutoProxy
 @EnableScheduling
 @EnableConfigurationProperties(CasConfigurationProperties.class)
 public abstract class AbstractCasEndpointTests {
     @Autowired
-    @Qualifier("servicesManager")
+    @Qualifier(ServicesManager.BEAN_NAME)
     protected ServicesManager servicesManager;
 
     @Autowired
@@ -86,6 +87,7 @@ public abstract class AbstractCasEndpointTests {
     @ImportAutoConfiguration({
         RefreshAutoConfiguration.class,
         HealthEndpointAutoConfiguration.class,
+        WebMvcAutoConfiguration.class,
         AopAutoConfiguration.class
     })
     @SpringBootConfiguration

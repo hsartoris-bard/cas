@@ -4,9 +4,11 @@ import org.apereo.cas.support.saml.SamlAttributeEncoderTests;
 import org.apereo.cas.support.saml.SamlIdPConfigurationTests;
 import org.apereo.cas.support.saml.authentication.SamlIdPAuthenticationContextTests;
 import org.apereo.cas.support.saml.authentication.SamlIdPServiceFactoryTests;
+import org.apereo.cas.support.saml.idp.DefaultSamlIdPCasEventListenerTests;
 import org.apereo.cas.support.saml.idp.metadata.generator.FileSystemSamlIdPMetadataGeneratorTests;
 import org.apereo.cas.support.saml.idp.metadata.locator.FileSystemSamlIdPMetadataLocatorTests;
 import org.apereo.cas.support.saml.idp.metadata.locator.SamlIdPMetadataResolverTests;
+import org.apereo.cas.support.saml.services.AttributeQueryAttributeReleasePolicyTests;
 import org.apereo.cas.support.saml.services.AuthnRequestRequestedAttributesAttributeReleasePolicyTests;
 import org.apereo.cas.support.saml.services.EduPersonTargetedIdAttributeReleasePolicyTests;
 import org.apereo.cas.support.saml.services.GroovySamlRegisteredServiceAttributeReleasePolicyTests;
@@ -70,6 +72,7 @@ import org.apereo.cas.support.saml.web.velocity.SamlTemplatesVelocityEngineTests
 import org.apereo.cas.ticket.artifact.DefaultSamlArtifactTicketFactoryTests;
 import org.apereo.cas.ticket.query.DefaultSamlAttributeQueryTicketFactoryTests;
 import org.apereo.cas.web.SamlIdPSingleSignOnParticipationStrategyTests;
+import org.apereo.cas.web.flow.SamlIdPConsentSingleSignOnParticipationStrategyTests;
 import org.apereo.cas.web.flow.SamlIdPConsentableAttributeBuilderTests;
 import org.apereo.cas.web.flow.SamlIdPMetadataUIActionTests;
 import org.apereo.cas.web.flow.SamlIdPWebflowConfigurerTests;
@@ -142,14 +145,18 @@ import org.junit.platform.suite.api.Suite;
     SamlTemplatesVelocityEngineTests.class,
     SamlIdPDelegatedAuthenticationConfigurationTests.class,
     SamlIdPAuthenticationContextTests.class,
+    SamlIdPConsentableAttributeBuilderTests.class,
     SamlProfileSamlAssertionBuilderTests.class,
     SamlProfileSamlAuthNStatementBuilderTests.class,
+    SamlIdPConsentSingleSignOnParticipationStrategyTests.class,
     SSOSamlIdPPostProfileHandlerControllerWithTicketRegistryTests.class,
     SamlIdPDelegatedClientAuthenticationRequestCustomizerTests.class,
     MetadataRegistrationAuthorityAttributeReleasePolicyTests.class,
     SSOSamlIdPProfileCallbackHandlerControllerWithBrowserStorageTests.class,
     SSOSamlIdPPostProfileHandlerControllerWithBrowserStorageTests.class,
     SamlIdPProfileHandlerControllerTests.class,
+    DefaultSamlIdPCasEventListenerTests.class,
+    AttributeQueryAttributeReleasePolicyTests.class,
     SamlIdPMultifactorAuthenticationTriggerTests.class,
     ECPSamlIdPProfileHandlerControllerTests.class,
     SamlIdPSaml2AttributeQueryProfileHandlerControllerTests.class,

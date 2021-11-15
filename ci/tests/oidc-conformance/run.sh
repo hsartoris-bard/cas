@@ -33,7 +33,7 @@ java -Xdebug -Xrunjdwp:transport=dt_socket,address=*:5000,server=y,suspend=n\
   --cas.service-registry.core.init-from-json=true \
   --cas.service-registry.json.location=file:"$PWD"/ci/tests/oidc-conformance/cas-config/services \
   --cas.authn.oidc.core.dynamic-client-registration-mode=OPEN \
-  --cas.authn.oauth.user-profile-view-type=FLAT \
+  --cas.authn.oauth.core.user-profile-view-type=FLAT \
   --cas.server.name=https://localhost:8446 \
   --cas.server.prefix=https://localhost:8446/cas \
   --logging.level.org.apereo.cas=debug \
@@ -64,7 +64,7 @@ mvn --quiet -f "$PWD"/ci/tests/oidc-conformance/conformance-suite/pom.xml clean 
 
 echo -e "Launching MongoDb instance..."
 docker container stop $(docker container ls -aq) && docker container rm $(docker container ls -aq)
-docker run --rm -d -p 27017:27017 --name="mongodb-server" mongo:4.4.3
+docker run --rm -d -p 27017:27017 --name="mongodb-server" mongo:4.4.8
 
 echo -e "\nWaiting for OIDC conformance test suite"
 java -jar "$PWD"/ci/tests/oidc-conformance/conformance-suite/target/fapi-test-suite.jar \
