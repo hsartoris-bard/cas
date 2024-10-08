@@ -24,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.webflow.execution.Action;
 import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
@@ -34,6 +35,9 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Misagh Moayyed
  * @since 6.2.0
  */
+@TestPropertySource(properties = {
+    "cas.logout.confirm-logout=true"
+})
 @ExtendWith(CasTestExtension.class)
 @SpringBootTest(classes =BaseDelegatedAuthenticationTests.SharedTestConfiguration.class)
 @Tag("Delegation")
