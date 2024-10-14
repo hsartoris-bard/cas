@@ -28,12 +28,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.ConfigurableApplicationContext;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.List;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -117,11 +120,13 @@ class GitServiceRegistryTests extends AbstractServiceRegistryTests {
     }
 
     @Test
-    void verifyMalformedJsonFile() throws Throwable {
+    @ExtendWith(OutputCaptureExtension.class)
+    void verifyMalformedJsonFile(CapturedOutput capture) throws Throwable {
         val gitDir = new File(FileUtils.getTempDirectory(), GitServiceRegistryProperties.DEFAULT_CAS_SERVICE_REGISTRY_NAME);
+        val fileName = "malformed-1.json";
 
         FileUtils.write(Paths.get(gitDir.getAbsolutePath(), "svc-cfg", CasRegisteredService.FRIENDLY_NAME,
-            "malformed-1.json").normalize().toFile(), "{\"@class\":\"xxxx\"", StandardCharsets.UTF_8);
+            fileName).normalize().toFile(), "{\"@class\":\"xxxx\"", StandardCharsets.UTF_8);
         gitRepositoryInstance.commitAll("Malformed json file");
 
         val svc = buildRegisteredServiceInstance(RandomUtils.nextLong(), CasRegisteredService.class);
@@ -130,6 +135,7 @@ class GitServiceRegistryTests extends AbstractServiceRegistryTests {
 
         val size = newServiceRegistry.load().size();
         assertEquals(1, size);
+        assertThat(capture.getOut()).contains(fileName);
     }
 
     @Test
