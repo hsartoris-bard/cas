@@ -203,7 +203,13 @@ public class GitServiceRegistry extends AbstractServiceRegistry {
         return this.registeredServiceSerializers
             .stream()
             .filter(s -> s.supports(obj.getContent()))
-            .map(s -> s.load(new StringReader(obj.getContent())))
+            .map(s -> {
+                val service = s.load(new StringReader(obj.getContent()));
+                if (service == null) {
+                    LOGGER.warn("Failed to parse service definition [{}] with [{}]", obj.getPath(), s.getClass().getSimpleName());
+                }
+                return service;
+            })
             .filter(Objects::nonNull)
             .flatMap(Collection::stream)
             .collect(Collectors.toList());
